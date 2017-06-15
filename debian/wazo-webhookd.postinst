@@ -3,6 +3,7 @@
 set -e
 
 DAEMONNAME='wazo-webhookd'
+LOG_FILENAME="/var/log/${DAEMONNAME}.log"
 USER=$DAEMONNAME
 GROUP=$USER
 
@@ -13,6 +14,11 @@ case "$1" in
             echo "Adding system user $USER" 1>&2
             adduser --quiet --system --group $USER
         fi
+
+        if [ ! -e "$LOG_FILENAME" ]; then
+            touch "$LOG_FILENAME"
+        fi
+        chown "$USER:$GROUP" "$LOG_FILENAME"
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
