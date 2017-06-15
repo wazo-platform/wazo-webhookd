@@ -10,7 +10,9 @@ Package: wazo-webhookd
 Architecture: all
 Depends:
  ${python3:Depends},
- ${misc:Depends}
+ ${misc:Depends},
+ adduser,
+ xivo-lib-python-python3
 Description: Wazo webhookd server
  Wazo is a system based on a powerful IPBX, to bring an easy to
  install solution for telephony and related services.
