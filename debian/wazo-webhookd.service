@@ -4,6 +4,7 @@ After=network.target
 Before=monit.service
 
 [Service]
+ExecStartPre=/usr/bin/install -d -o wazo-webhookd -g wazo-webhookd /var/run/wazo-webhookd
 ExecStart=/usr/bin/python3 /usr/bin/wazo-webhookd
 
 [Install]
