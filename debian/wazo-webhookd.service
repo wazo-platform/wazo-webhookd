@@ -1,0 +1,10 @@
+[Unit]
+Description=wazo-webhookd server
+After=network.target
+Before=monit.service
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/bin/wazo-webhookd
+
+[Install]
+WantedBy=multi-user.target
