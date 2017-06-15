@@ -1,0 +1,12 @@
+# This file should not be modified as it may get changed by the maintainer.
+# Add extra configuration files in the extra_config_files directory to override
+# the content from this file
+
+# Extra configuration directory where the config files overriding this file
+# should be.
+extra_config_files: '/etc/wazo-webhookd/conf.d'
+
+debug: false
+log_level: info
+log_file: /var/log/wazo-webhookd.log
+pid_file: /var/run/wazo-webhookd/wazo-plugind.pid

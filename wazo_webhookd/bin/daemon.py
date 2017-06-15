@@ -10,12 +10,9 @@ from xivo import xivo_logging
 from xivo.daemonize import pidfile_context
 from xivo.user_rights import change_user
 
-DEBUG = True
+from wazo_webhookd import config
+
 FOREGROUND = True  # Always in foreground systemd takes care of daemonizing
-LOGFILE = '/var/log/wazo-webhookd.log'
-LOGLEVEL = 'debug'
-PIDFILE = '/var/run/wazo-webhookd/wazo-webhookd.pid'
-USER = 'wazo-webhookd'
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +23,14 @@ def _sigterm_handler(signum, frame):
 
 
 def main():
-    if USER:
-        change_user(USER)
+    conf = config.load_config(sys.argv[1:])
 
-    xivo_logging.setup_logging(LOGFILE, FOREGROUND, DEBUG, LOGLEVEL)
+    if conf['user']:
+        change_user(conf['user'])
+
+    xivo_logging.setup_logging(conf['log_file'], FOREGROUND, conf['debug'], conf['log_level'])
     signal.signal(signal.SIGTERM, _sigterm_handler)
 
-    with pidfile_context(PIDFILE, FOREGROUND):
+    with pidfile_context(conf['pid_file'], FOREGROUND):
         while True:
             time.sleep(1)
