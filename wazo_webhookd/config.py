@@ -7,7 +7,8 @@ from xivo.chain_map import ChainMap
 from xivo.config_helper import read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
-_DEFAULT_HTTPS_PORT = 9505
+_CERT_FILE = '/usr/share/xivo-certs/server.crt'
+_DEFAULT_HTTPS_PORT = 9300
 _DEFAULT_CONFIG = {
     'config_file': '/etc/wazo-webhookd/config.yml',
     'debug': False,
@@ -16,6 +17,12 @@ _DEFAULT_CONFIG = {
     'log_level': 'info',
     'pid_file': '/var/run/wazo-webhookd/wazo-webhookd.pid',
     'user': 'wazo-webhookd',
+    'auth': {
+        'host': 'localhost',
+        'port': 9497,
+        'verify_certificate': _CERT_FILE,
+        'key_file': '/var/lib/xivo-auth-keys/xivo-ctid-ng-key.yml',
+    },
     'bus': {
         'username': 'guest',
         'password': 'guest',
@@ -30,6 +37,16 @@ _DEFAULT_CONFIG = {
         'port': 8500,
         'verify': '/usr/share/xivo-certs/server.crt',
     },
+    'rest_api': {
+        'listen': '0.0.0.0',
+        'port': _DEFAULT_HTTPS_PORT,
+        'certificate': _CERT_FILE,
+        'private_key': '/usr/share/xivo-certs/server.key',
+        'cors': {
+            'enabled': True,
+            'allow_headers': ['Content-Type', 'X-Auth-Token'],
+        },
+    },
     'service_discovery': {
         'advertise_address': 'auto',
         'advertise_address_interface': 'eth0',
@@ -40,6 +57,7 @@ _DEFAULT_CONFIG = {
         'retry_interval': 2,
         'extra_tags': [],
     },
+    'enabled_plugins': [],
 }
 
 

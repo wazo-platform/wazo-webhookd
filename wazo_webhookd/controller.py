@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import logging
-import time
 import signal
-import sys
 
 from xivo.consul_helpers import ServiceCatalogRegistration
+from wazo_webhookd.core import plugin_manager
+from wazo_webhookd.core.rest_api import api, CoreRestApi
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 class Controller:
 
     def __init__(self, config):
-        self.config = config
         self._service_discovery_args = [
             'wazo-webhookd',
             config.get('uuid'),
@@ -23,14 +22,25 @@ class Controller:
             config['bus'],
             lambda: True,
         ]
+        self.rest_api = CoreRestApi(config)
+        self._load_plugins(config)
 
     def run(self):
         signal.signal(signal.SIGTERM, _sigterm_handler)
         with ServiceCatalogRegistration(*self._service_discovery_args):
-            while True:
-                time.sleep(1)
+            self.rest_api.run()
+
+    def stop(self, reason):
+        logger.warning('Stopping wazo-webhookd: %s', reason)
+        self.rest_api.stop()
+
+    def _load_plugins(self, global_config):
+        load_args = [{
+            'api': api,
+            'config': global_config,
+        }]
+        plugin_manager.load_plugins(global_config['enabled_plugins'], load_args)
 
 
-def _sigterm_handler(signum, frame):
-    logger.info('SIGTERM received, terminating')
-    sys.exit(0)
+def _sigterm_handler(controller, signum, frame):
+    controller.stop(reason='SIGTERM')

@@ -16,5 +16,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': ['{}=wazo_webhookd.bin.daemon:main'.format(NAME)],
+        'wazo_webhookd.plugins': [
+        ],
     },
 )
