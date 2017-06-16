@@ -7,6 +7,7 @@ from xivo.chain_map import ChainMap
 from xivo.config_helper import read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
+_DEFAULT_HTTPS_PORT = 9505
 _DEFAULT_CONFIG = {
     'config_file': '/etc/wazo-webhookd/config.yml',
     'debug': False,
@@ -15,6 +16,30 @@ _DEFAULT_CONFIG = {
     'log_level': 'info',
     'pid_file': '/var/run/wazo-webhookd/wazo-webhookd.pid',
     'user': 'wazo-webhookd',
+    'bus': {
+        'username': 'guest',
+        'password': 'guest',
+        'host': 'localhost',
+        'port': 5672,
+        'exchange_name': 'xivo',
+        'exchange_type': 'topic',
+    },
+    'consul': {
+        'scheme': 'https',
+        'host': 'localhost',
+        'port': 8500,
+        'verify': '/usr/share/xivo-certs/server.crt',
+    },
+    'service_discovery': {
+        'advertise_address': 'auto',
+        'advertise_address_interface': 'eth0',
+        'advertise_port': _DEFAULT_HTTPS_PORT,
+        'enabled': True,
+        'ttl_interval': 30,
+        'refresh_interval': 27,
+        'retry_interval': 2,
+        'extra_tags': [],
+    },
 }
 
 
