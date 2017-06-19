@@ -2,4 +2,7 @@ docker-compose
 nose
 pyhamcrest
 requests
-git+https://github.com/wazo-pbx/xivo-test-helpers.git
+stevedore
+https://github.com/wazo-pbx/wazo-webhookd-client/archive/master.zip
+https://github.com/wazo-pbx/xivo-test-helpers/archive/master.zip
+https://github.com/wazo-pbx/xivo-lib-rest-client/archive/master.zip
