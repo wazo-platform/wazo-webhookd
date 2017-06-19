@@ -17,7 +17,8 @@ setup(
     entry_points={
         'console_scripts': ['{}=wazo_webhookd.bin.daemon:main'.format(NAME)],
         'wazo_webhookd.plugins': [
-            'api = wazo_webhookd.plugins.api.plugin:Plugin'
+            'api = wazo_webhookd.plugins.api.plugin:Plugin',
+            'config = wazo_webhookd.plugins.config.plugin:Plugin',
         ],
     },
 )

@@ -5,6 +5,8 @@ import os
 
 from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 
+VALID_TOKEN = 'valid-token'
+
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
 

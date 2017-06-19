@@ -11,6 +11,7 @@ egg-info:
 pull-images:
 	docker pull n3llyb0y/wait
 	docker pull swaggerapi/swagger-validator
+	docker pull wazopbx/xivo-auth-mock
 
 build-webhookd:
 	docker pull python:3.4.2

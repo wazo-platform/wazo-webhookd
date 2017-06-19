@@ -1,11 +1,18 @@
 sync:
   image: n3llyb0y/wait
   links:
+    - auth
     - webhookd
-    - swagger-validator
   environment:
-    PORTS: "9300 8080"
+    PORTS: "9300 9497"
     TIMEOUT: "${INTEGRATION_TEST_TIMEOUT}"
+
+auth:
+  image: "wazopbx/xivo-auth-mock"
+  ports:
+    - "9497"
+  volumes:
+    - "./ssl:/usr/local/share/ssl"
 
 webhookd:
   image: "wazo-webhookd-test"
@@ -14,12 +21,8 @@ webhookd:
   volumes:
     - "../../..:/usr/src/wazo-webhookd"
     - "./etc/wazo-webhookd:/etc/wazo-webhookd"
+    - "./ssl:/usr/local/share/ssl"
   ports:
     - "9300"
-
-swagger-validator:
-  image: swaggerapi/swagger-validator
-  ports:
-    - "8080"
   links:
-    - webhookd
+    - "auth"

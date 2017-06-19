@@ -1,0 +1,13 @@
+paths:
+  /config:
+    get:
+      produces:
+        - application/json
+      summary: Show the current configuration
+      description: '**Required ACL:** `webhookd.config.read`'
+      operationId: getConfig
+      tags:
+        - config
+      responses:
+        '200':
+          'description': The configuration of the service
