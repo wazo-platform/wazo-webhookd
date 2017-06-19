@@ -57,7 +57,9 @@ _DEFAULT_CONFIG = {
         'retry_interval': 2,
         'extra_tags': [],
     },
-    'enabled_plugins': [],
+    'enabled_plugins': {
+        'api': True,
+    },
 }
 
 

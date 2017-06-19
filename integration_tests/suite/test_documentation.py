@@ -15,7 +15,7 @@ class TestDocumentation(BaseIntegrationTest):
     asset = 'documentation'
 
     def test_documentation_errors(self):
-        api_url = 'https://webhookd:9300/0.1/api/api.yml'
+        api_url = 'https://webhookd:9300/1.0/api/api.yml'
         self.validate_api(api_url)
 
     def validate_api(self, url):

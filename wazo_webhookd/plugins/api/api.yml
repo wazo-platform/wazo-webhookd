@@ -1,0 +1,59 @@
+swagger: '2.0'
+info:
+  title: wazo-webhookd
+  description: Control your webhooks from a REST API
+  version: 1.0.0
+schemes:
+- https
+basePath: /1.0
+produces:
+- application/json
+x-xivo-port: 9300
+x-xivo-name: webhookd
+securityDefinitions:
+  xivo_auth_token:
+    type: apiKey
+    name: X-Auth-Token
+    in: header
+security:
+- xivo_auth_token: []
+responses:
+  AnotherServiceUnavailable:
+    description: Another service is unavailable (e.g. xivo-auth, xivo-confd, Asterisk,
+      ...)
+    schema:
+      $ref: '#/definitions/Error'
+  NotFoundError:
+    description: The resource requested was not found on the server
+    schema:
+      $ref: '#/definitions/Error'
+  InvalidRequest:
+    description: Invalid request
+    schema:
+      $ref: '#/definitions/Error'
+definitions:
+  Error:
+    title: Error
+    description: Error message for the client
+    properties:
+      message:
+        description: Human readable explanation of the error
+        type: string
+      error_id:
+        description: Identifier of the type of error. It is more precise than the
+          HTTP status code.
+        type: string
+      details:
+        description: Additional information about the error. The keys are specific
+          to each error.
+        type: object
+      timestamp:
+        description: Time when the error occured
+        type: number
+        format: timestamp
+parameters:
+  TokenID:
+    name: token
+    in: query
+    description: The token's ID
+    type: string
