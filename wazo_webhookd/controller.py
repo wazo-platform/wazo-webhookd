@@ -4,6 +4,7 @@
 import logging
 import signal
 
+from functools import partial
 from xivo.consul_helpers import ServiceCatalogRegistration
 from wazo_webhookd.core import plugin_manager
 from wazo_webhookd.core.rest_api import api, CoreRestApi
@@ -26,7 +27,7 @@ class Controller:
         self._load_plugins(config)
 
     def run(self):
-        signal.signal(signal.SIGTERM, _sigterm_handler)
+        signal.signal(signal.SIGTERM, partial(_sigterm_handler, self))
         with ServiceCatalogRegistration(*self._service_discovery_args):
             self.rest_api.run()
 
