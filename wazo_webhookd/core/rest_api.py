@@ -18,7 +18,7 @@ from xivo import rest_api_helpers
 VERSION = 1.0
 
 logger = logging.getLogger(__name__)
-app = Flask('xivo_ctid_ng')
+app = Flask('wazo-webhookd')
 api = Api(app, prefix='/{}'.format(VERSION))
 auth_verifier = AuthVerifier()
 

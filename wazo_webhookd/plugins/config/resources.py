@@ -12,6 +12,6 @@ class ConfigResource(AuthResource):
     def __init__(self, config):
         self._config = config
 
-    @required_acl('plugind.config.read')
+    @required_acl('webhookd.config.read')
     def get(self):
         return dict(self._config), 200
