@@ -12,6 +12,13 @@ Depends:
  ${python3:Depends},
  ${misc:Depends},
  adduser,
+ python3-cheroot,
+ python3-flask,
+ python3-flask-cors,
+ python3-flask-restful,
+ python3-kombu,
+ python3-stevedore,
+ python3-yaml,
  xivo-lib-python-python3
 Description: Wazo webhookd server
  Wazo is a system based on a powerful IPBX, to bring an easy to
