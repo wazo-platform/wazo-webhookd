@@ -14,6 +14,7 @@ setup(
     author_email='dev@wazo.community',
     url='http://wazo.community',
     packages=find_packages(),
+    package_data={'wazo_webhookd.plugins': ['*/api.yml']},
     entry_points={
         'console_scripts': ['{}=wazo_webhookd.bin.daemon:main'.format(NAME)],
         'wazo_webhookd.plugins': [
