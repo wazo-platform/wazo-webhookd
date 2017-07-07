@@ -1,0 +1,34 @@
+paths:
+  /subscriptions:
+    post:
+      produces:
+        - application/json
+      summary: Subscribe to a HTTP callback (webhook)
+      description: '**Required ACL:** `webhookd.subscriptions.create`'
+      operationId: createSubscription
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: '#/definitions/SubscriptionRequest'
+      tags:
+        - subscriptions
+      responses:
+        '201':
+          'description': The subscription has been completed
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+definitions:
+  SubscriptionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+      service:
+        type: string
+      config:
+        type: object
+      events:
+        type: array
+        items:
+          type: string
