@@ -1,6 +1,6 @@
-.PHONY: test-setup build-webhookd test pull-images
+.PHONY: test-setup test egg-info pull-images webhookd db
 
-test-setup: pull-images build-webhookd
+test-setup: pull-images webhookd db
 
 test:
 	nosetests -x
@@ -13,7 +13,10 @@ pull-images:
 	docker pull swaggerapi/swagger-validator
 	docker pull wazopbx/xivo-auth-mock
 
-build-webhookd:
+webhookd:
 	docker pull python:3.4.2
 	docker build -t wazopbx/wazo-webhookd ..
 	docker build --no-cache -t wazo-webhookd-test -f Dockerfile ..
+
+db:
+	docker build -f ../contribs/docker/Dockerfile-db -t wazopbx/wazo-webhookd-db ..

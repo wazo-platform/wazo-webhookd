@@ -16,7 +16,10 @@ setup(
     packages=find_packages(),
     package_data={'wazo_webhookd.plugins': ['*/api.yml']},
     entry_points={
-        'console_scripts': ['{}=wazo_webhookd.bin.daemon:main'.format(NAME)],
+        'console_scripts': [
+            '{}=wazo_webhookd.bin.daemon:main'.format(NAME),
+            '{}-init-db=wazo_webhookd.bin.init_db:main'.format(NAME),
+        ],
         'wazo_webhookd.plugins': [
             'api = wazo_webhookd.plugins.api.plugin:Plugin',
             'config = wazo_webhookd.plugins.config.plugin:Plugin',

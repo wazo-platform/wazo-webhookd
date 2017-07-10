@@ -1,0 +1,46 @@
+"""create subscription tables
+
+Revision ID: 1495b7c1224
+Revises: None
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '1495b7c1224'
+down_revision = None
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.schema import Column
+
+
+def upgrade():
+    op.create_table(
+        'webhookd_subscription',
+        Column('uuid', sa.String(38),
+               server_default=sa.text('uuid_generate_v4()'), primary_key=True),
+        Column('name', sa.Text()),
+    )
+    op.create_table(
+        'webhookd_subscription_event',
+        Column('uuid', sa.String(38),
+               server_default=sa.text('uuid_generate_v4()'), primary_key=True),
+        Column('subscription_uuid', sa.String(38),
+               sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE')),
+        Column('event_name', sa.Text(), nullable=False),
+    )
+    op.create_table(
+        'webhookd_subscription_option',
+        Column('uuid', sa.String(38),
+               server_default=sa.text('uuid_generate_v4()'), primary_key=True),
+        Column('subscription_uuid', sa.String(38),
+               sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE')),
+        Column('name', sa.Text(), nullable=False),
+        Column('value', sa.Text()),
+    )
+
+
+def downgrade():
+    op.drop_table('webhookd_subscription')
+    op.drop_table('webhookd_subscription_event')
+    op.drop_table('webhookd_subscription_option')
