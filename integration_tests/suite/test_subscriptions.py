@@ -3,6 +3,8 @@
 
 from hamcrest import assert_that
 from hamcrest import calling
+from hamcrest import empty
+from hamcrest import has_entries
 from hamcrest import has_key
 from hamcrest import has_property
 from wazo_webhookd_client.exceptions import WebhookdError
@@ -12,7 +14,26 @@ from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
 
 
-class TestSubscriptions(BaseIntegrationTest):
+class TestListSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+
+    def test_given_wrong_auth_when_list_then_401(self):
+        webhookd = self.make_webhookd('invalid-token')
+
+        assert_that(calling(webhookd.subscriptions.list),
+                    raises(WebhookdError, has_property('status_code', 401)))
+
+    def test_given_no_subscriptions_when_list_then_empty(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        response = webhookd.subscriptions.list()
+
+        assert_that(response, has_entries({'items': empty(),
+                                           'total': 0}))
+
+
+class TestCreateSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
 

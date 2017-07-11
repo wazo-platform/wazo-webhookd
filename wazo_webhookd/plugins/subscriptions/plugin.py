@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 from .resources import SubscriptionsResource
+from .service import SubscriptionsService
 
 
 class Plugin(object):
@@ -9,4 +10,5 @@ class Plugin(object):
     def load(self, dependencies):
         api = dependencies['api']
         config = dependencies['config']
-        api.add_resource(SubscriptionsResource, '/subscriptions')
+        service = SubscriptionsService(config)
+        api.add_resource(SubscriptionsResource, '/subscriptions', resource_class_args=[service])

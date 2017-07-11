@@ -2,9 +2,10 @@ sync:
   image: n3llyb0y/wait
   links:
     - auth
+    - postgres
     - webhookd
   environment:
-    PORTS: "9300 9497"
+    PORTS: "5432 9300 9497"
     TIMEOUT: "${INTEGRATION_TEST_TIMEOUT}"
 
 auth:
@@ -13,6 +14,11 @@ auth:
     - "9497"
   volumes:
     - "./ssl:/usr/local/share/ssl"
+
+postgres:
+  image: wazopbx/wazo-webhookd-db
+  expose:
+    - "5432"
 
 webhookd:
   image: "wazo-webhookd-test"
@@ -25,4 +31,5 @@ webhookd:
   ports:
     - "9300"
   links:
-    - "auth"
+    - auth
+    - postgres

@@ -20,6 +20,7 @@ def upgrade():
         Column('uuid', sa.String(38),
                server_default=sa.text('uuid_generate_v4()'), primary_key=True),
         Column('name', sa.Text()),
+        Column('service', sa.Text()),
     )
     op.create_table(
         'webhookd_subscription_event',

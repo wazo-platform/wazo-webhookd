@@ -3,6 +3,7 @@
 
 from sqlalchemy import (Column, ForeignKey, String, text, Text)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -13,6 +14,9 @@ class Subscription(Base):
 
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
     name = Column(Text())
+    service = Column(Text())
+    events = relationship('SubscriptionEvent')
+    options = relationship('SubscriptionOption')
 
 
 class SubscriptionEvent(Base):

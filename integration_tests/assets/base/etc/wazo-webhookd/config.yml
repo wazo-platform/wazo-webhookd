@@ -3,3 +3,4 @@ service_discovery:
 auth:
   host: auth
   verify_certificate: /usr/local/share/ssl/auth/server.crt
+db_uri: postgresql://asterisk:proformatique@postgres/asterisk

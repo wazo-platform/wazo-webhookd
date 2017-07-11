@@ -9,6 +9,7 @@ psycopg2==2.5.4
 python-consul==0.6.0
 pyyaml==3.11
 netifaces==0.10.4
+sqlalchemy==0.9.8
 stevedore==1.17.1
 https://github.com/wazo-pbx/xivo-auth-client/archive/master.zip
 https://github.com/wazo-pbx/xivo-bus/archive/master.zip
