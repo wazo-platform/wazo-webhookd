@@ -9,7 +9,7 @@ from xivo.auth_verifier import required_acl
 from .schema import SubscriptionSchema
 
 
-class SubscriptionsResource(AuthResource):
+class SubscriptionResource(AuthResource):
 
     def __init__(self, service):
         self._service = service

@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from wazo_webhookd.core.database.models import Subscription
 
 
-class SubscriptionsService(object):
+class SubscriptionService(object):
 
     def __init__(self, config):
         engine = create_engine(config['db_uri'])

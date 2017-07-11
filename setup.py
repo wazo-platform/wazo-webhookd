@@ -23,7 +23,7 @@ setup(
         'wazo_webhookd.plugins': [
             'api = wazo_webhookd.plugins.api.plugin:Plugin',
             'config = wazo_webhookd.plugins.config.plugin:Plugin',
-            'subscriptions = wazo_webhookd.plugins.subscriptions.plugin:Plugin',
+            'subscriptions = wazo_webhookd.plugins.subscription.plugin:Plugin',
         ],
     },
 )
