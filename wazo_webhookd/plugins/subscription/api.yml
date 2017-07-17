@@ -1,11 +1,20 @@
 paths:
   /subscriptions:
+    get:
+      summary: List subscriptions to HTTP callbacks
+      description: '**Required ACL:** `webhookd.subscriptions.read`'
+      operationId: list
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: List of the subscriptions
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
     post:
-      produces:
-        - application/json
       summary: Subscribe to a HTTP callback (webhook)
       description: '**Required ACL:** `webhookd.subscriptions.create`'
-      operationId: createSubscription
+      operationId: create
       parameters:
         - name: body
           in: body

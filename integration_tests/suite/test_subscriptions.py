@@ -3,15 +3,19 @@
 
 from hamcrest import assert_that
 from hamcrest import calling
+from hamcrest import contains
 from hamcrest import empty
 from hamcrest import has_entries
+from hamcrest import has_entry
 from hamcrest import has_key
+from hamcrest import has_item
 from hamcrest import has_property
 from wazo_webhookd_client.exceptions import WebhookdError
 from xivo_test_helpers.hamcrest.raises import raises
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
+from .test_api.fixtures import subscription
 
 
 class TestListSubscriptions(BaseIntegrationTest):
@@ -31,6 +35,29 @@ class TestListSubscriptions(BaseIntegrationTest):
 
         assert_that(response, has_entries({'items': empty(),
                                            'total': 0}))
+
+    @subscription({
+        'name': 'test',
+        'service': 'http',
+        'config': {'url': 'http://test.example.com',
+                   'method': 'get'},
+        'events': []
+    })
+    def test_given_one_subscription_when_list_then_list_one(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        response = webhookd.subscriptions.list()
+
+        assert_that(response, has_entries({
+            'items': contains(has_entries({
+                'name': 'test',
+                'service': 'http',
+                'config': {'url': 'http://test.example.com',
+                           'method': 'get'},
+                'events': []
+            })),
+            'total': 1
+        }))
 
 
 class TestCreateSubscriptions(BaseIntegrationTest):
@@ -59,5 +86,9 @@ class TestCreateSubscriptions(BaseIntegrationTest):
                                    'method': 'get'},
                         'events': []}
         response = webhookd.subscriptions.create(subscription)
+        subscription_uuid = response['uuid']
 
         assert_that(response, has_key('uuid'))
+
+        response = webhookd.subscriptions.list()
+        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_uuid))))

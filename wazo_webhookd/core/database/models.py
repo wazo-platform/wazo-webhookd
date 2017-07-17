@@ -18,6 +18,15 @@ class Subscription(Base):
     events = relationship('SubscriptionEvent')
     options = relationship('SubscriptionOption')
 
+    @property
+    def config(self):
+        return {option.name: option.value for option in self.options}
+
+    @config.setter
+    def config(self, config):
+        self.options = [SubscriptionOption(name=key, value=value, subscription_uuid=self.uuid)
+                        for (key, value) in config.items()]
+
 
 class SubscriptionEvent(Base):
 

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 from .resource import SubscriptionResource
+from .resource import SubscriptionsResource
 from .service import SubscriptionService
 
 
@@ -11,4 +12,5 @@ class Plugin(object):
         api = dependencies['api']
         config = dependencies['config']
         service = SubscriptionService(config)
-        api.add_resource(SubscriptionResource, '/subscriptions', resource_class_args=[service])
+        api.add_resource(SubscriptionsResource, '/subscriptions', resource_class_args=[service])
+        api.add_resource(SubscriptionResource, '/subscriptions/<subscription_id>', resource_class_args=[service])

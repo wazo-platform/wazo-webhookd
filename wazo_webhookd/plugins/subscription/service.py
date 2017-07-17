@@ -3,7 +3,9 @@
 
 from contextlib import contextmanager
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.core.database.models import Subscription
 
 
@@ -28,4 +30,14 @@ class SubscriptionService(object):
 
     def list(self):
         with self.new_session() as session:
-            return session.query(Subscription).join(Subscription.events).join(Subscription.options)
+            result = session.query(Subscription).options(joinedload('events'), joinedload('options')).all()
+            session.expunge_all()
+            return result
+
+    def create(self, subscription):
+        with self.new_session() as session:
+            return session.add(Subscription(**subscription))
+
+    def delete(self, subscription_id):
+        with self.new_session() as session:
+            return session.query(Subscription).filter(Subscription.uuid == subscription_id).delete()
