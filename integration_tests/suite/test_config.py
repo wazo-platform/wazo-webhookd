@@ -9,7 +9,7 @@ from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
 
 
-class TestDocumentation(BaseIntegrationTest):
+class TestConfig(BaseIntegrationTest):
 
     asset = 'base'
 
