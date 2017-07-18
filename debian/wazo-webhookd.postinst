@@ -20,7 +20,7 @@ case "$1" in
         fi
 
         # /home/wazo-webhookd was created in Wazo 17.09-10
-        usermod --home "$USER_HOME"
+        usermod --home "$USER_HOME" "$USER"
         rm -rf /home/wazo-webhookd
 
         adduser --quiet $USER www-data
