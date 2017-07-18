@@ -6,14 +6,23 @@ DAEMONNAME='wazo-webhookd'
 LOG_FILENAME="/var/log/${DAEMONNAME}.log"
 USER=$DAEMONNAME
 GROUP=$USER
+USER_HOME="/var/lib/${USER}"
 
 case "$1" in
     configure)
         # add/update user
         if ! getent passwd $USER > /dev/null; then
             echo "Adding system user $USER" 1>&2
-            adduser --quiet --system --group $USER
+            adduser --system --group --quiet \
+                --home $USER_HOME \
+                --no-create-home --disabled-login \
+                $USER
         fi
+
+        # /home/wazo-webhookd was created in Wazo 17.09-10
+        usermod --home "$USER_HOME"
+        rm -rf /home/wazo-webhookd
+
         adduser --quiet $USER www-data
 
         if [ ! -e "$LOG_FILENAME" ]; then
