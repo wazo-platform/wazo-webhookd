@@ -29,6 +29,11 @@ case "$1" in
             touch "$LOG_FILENAME"
         fi
         chown "$USER:$GROUP" "$LOG_FILENAME"
+
+        if dpkg --compare-versions "$2" lt '17.10'; then
+            ln -sf /etc/nginx/locations/https-available/$DAEMONNAME \
+                   /etc/nginx/locations/https-enabled/$DAEMONNAME
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
