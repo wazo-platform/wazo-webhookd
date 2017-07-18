@@ -8,6 +8,8 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.core.database.models import Subscription
 
+from .exceptions import NoSuchSubscription
+
 
 class SubscriptionService(object):
 
@@ -40,4 +42,6 @@ class SubscriptionService(object):
 
     def delete(self, subscription_id):
         with self.new_session() as session:
+            if session.query(Subscription).filter(Subscription.uuid == subscription_id).first() is None:
+                raise NoSuchSubscription(subscription_id)
             return session.query(Subscription).filter(Subscription.uuid == subscription_id).delete()

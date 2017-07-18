@@ -10,12 +10,15 @@ from hamcrest import has_entry
 from hamcrest import has_key
 from hamcrest import has_item
 from hamcrest import has_property
+from hamcrest import not_
 from wazo_webhookd_client.exceptions import WebhookdError
 from xivo_test_helpers.hamcrest.raises import raises
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
 from .test_api.fixtures import subscription
+
+SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 
 
 class TestListSubscriptions(BaseIntegrationTest):
@@ -43,19 +46,13 @@ class TestListSubscriptions(BaseIntegrationTest):
                    'method': 'get'},
         'events': []
     })
-    def test_given_one_subscription_when_list_then_list_one(self):
+    def test_given_one_subscription_when_list_then_list_one(self, subscription_):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         response = webhookd.subscriptions.list()
 
         assert_that(response, has_entries({
-            'items': contains(has_entries({
-                'name': 'test',
-                'service': 'http',
-                'config': {'url': 'http://test.example.com',
-                           'method': 'get'},
-                'events': []
-            })),
+            'items': contains(has_entries(**subscription_)),
             'total': 1
         }))
 
@@ -92,3 +89,42 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_uuid))))
+
+
+class TestDeleteSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+
+    def test_given_no_auth_server_when_delete_subscription_then_503(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        with self.auth_stopped():
+            assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
+                        raises(WebhookdError, has_property('status_code', 503)))
+
+    def test_given_wrong_auth_when_delete_subscription_then_401(self):
+        webhookd = self.make_webhookd('invalid-token')
+
+        assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
+                    raises(WebhookdError, has_property('status_code', 401)))
+
+    def test_given_no_subscription_when_delete_http_subscription_then_404(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription({
+        'name': 'test',
+        'service': 'http',
+        'config': {'url': 'http://test.example.com',
+                   'method': 'get'},
+        'events': []
+    })
+    def test_given_one_subscription_when_delete_http_subscription_then_deleted(self, subscription_):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        webhookd.subscriptions.delete(subscription_['uuid'])
+
+        response = webhookd.subscriptions.list()
+        assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))
