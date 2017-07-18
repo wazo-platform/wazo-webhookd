@@ -32,7 +32,7 @@ class SubscriptionService(object):
 
     def list(self):
         with self.new_session() as session:
-            result = session.query(Subscription).options(joinedload('events'), joinedload('options')).all()
+            result = session.query(Subscription).options(joinedload('events_'), joinedload('options')).all()
             session.expunge_all()
             return result
 

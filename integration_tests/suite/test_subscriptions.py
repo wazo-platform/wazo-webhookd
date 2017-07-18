@@ -25,7 +25,7 @@ TEST_SUBSCRIPTION = {
     'service': 'http',
     'config': {'url': 'http://test.example.com',
                'method': 'get'},
-    'events': []
+    'events': ['test']
 }
 
 

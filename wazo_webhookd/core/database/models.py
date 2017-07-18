@@ -15,7 +15,7 @@ class Subscription(Base):
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
     name = Column(Text())
     service = Column(Text())
-    events = relationship('SubscriptionEvent')
+    events_ = relationship('SubscriptionEvent')
     options = relationship('SubscriptionOption')
 
     @property
@@ -26,6 +26,15 @@ class Subscription(Base):
     def config(self, config):
         self.options = [SubscriptionOption(name=key, value=value, subscription_uuid=self.uuid)
                         for (key, value) in config.items()]
+
+    @property
+    def events(self):
+        return [event.event_name for event in self.events_]
+
+    @events.setter
+    def events(self, events):
+        self.events_ = [SubscriptionEvent(subscription_uuid=self.uuid, event_name=event)
+                        for event in events]
 
 
 class SubscriptionEvent(Base):
