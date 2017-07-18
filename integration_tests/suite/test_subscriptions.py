@@ -20,6 +20,14 @@ from .test_api.fixtures import subscription
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 
+TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com',
+               'method': 'get'},
+    'events': []
+}
+
 
 class TestListSubscriptions(BaseIntegrationTest):
 
@@ -39,13 +47,7 @@ class TestListSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entries({'items': empty(),
                                            'total': 0}))
 
-    @subscription({
-        'name': 'test',
-        'service': 'http',
-        'config': {'url': 'http://test.example.com',
-                   'method': 'get'},
-        'events': []
-    })
+    @subscription(TEST_SUBSCRIPTION)
     def test_given_one_subscription_when_list_then_list_one(self, subscription_):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
@@ -77,11 +79,7 @@ class TestCreateSubscriptions(BaseIntegrationTest):
     def test_when_create_http_subscription_then_subscription_no_error(self):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
-        subscription = {'name': 'test',
-                        'service': 'http',
-                        'config': {'url': 'http://test.example.com',
-                                   'method': 'get'},
-                        'events': []}
+        subscription = TEST_SUBSCRIPTION
         response = webhookd.subscriptions.create(subscription)
         subscription_uuid = response['uuid']
 
@@ -114,13 +112,7 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
         assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
                     raises(WebhookdError, has_property('status_code', 404)))
 
-    @subscription({
-        'name': 'test',
-        'service': 'http',
-        'config': {'url': 'http://test.example.com',
-                   'method': 'get'},
-        'events': []
-    })
+    @subscription(TEST_SUBSCRIPTION)
     def test_given_one_subscription_when_delete_http_subscription_then_deleted(self, subscription_):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
