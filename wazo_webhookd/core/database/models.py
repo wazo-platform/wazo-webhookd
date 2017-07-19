@@ -15,8 +15,8 @@ class Subscription(Base):
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
     name = Column(Text())
     service = Column(Text())
-    events_rel = relationship('SubscriptionEvent', lazy='joined')
-    options_rel = relationship('SubscriptionOption', lazy='joined')
+    events_rel = relationship('SubscriptionEvent', lazy='joined', cascade='all, delete-orphan')
+    options_rel = relationship('SubscriptionOption', lazy='joined', cascade='all, delete-orphan')
 
     @property
     def config(self):
@@ -44,7 +44,9 @@ class SubscriptionEvent(Base):
     )
 
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
-    subscription_uuid = Column(String(38), ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'))
+    subscription_uuid = Column(String(38),
+                               ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
+                               nullable=False)
     event_name = Column(Text(), nullable=False)
 
 
@@ -56,6 +58,8 @@ class SubscriptionOption(Base):
     )
 
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
-    subscription_uuid = Column(String(38), ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'))
+    subscription_uuid = Column(String(38),
+                               ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
+                               nullable=False)
     name = Column(Text(), nullable=False)
     value = Column(Text())
