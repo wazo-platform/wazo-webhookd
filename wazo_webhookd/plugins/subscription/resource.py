@@ -17,7 +17,7 @@ class SubscriptionsResource(AuthResource):
     @required_acl('webhookd.subscriptions.read')
     def get(self):
         subscriptions = list(self._service.list())
-        return {'items': SubscriptionSchema(strict=True).dump(subscriptions, many=True).data,
+        return {'items': SubscriptionSchema().dump(subscriptions, many=True).data,
                 'total': len(subscriptions)}
 
     @required_acl('webhookd.subscriptions.create')
