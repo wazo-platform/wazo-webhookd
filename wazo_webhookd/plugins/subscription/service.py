@@ -36,11 +36,11 @@ class SubscriptionService(object):
             session.expunge_all()
             return result
 
-    def get(self, subscription_id):
+    def get(self, subscription_uuid):
         with self.new_session() as session:
-            result = session.query(Subscription).options(joinedload('events_'), joinedload('options')).filter(Subscription.uuid == subscription_id).first()
+            result = session.query(Subscription).options(joinedload('events_'), joinedload('options')).filter(Subscription.uuid == subscription_uuid).first()
             if result is None:
-                raise NoSuchSubscription(subscription_id)
+                raise NoSuchSubscription(subscription_uuid)
 
             session.expunge_all()
             return result
@@ -49,8 +49,8 @@ class SubscriptionService(object):
         with self.new_session() as session:
             return session.add(Subscription(**subscription))
 
-    def delete(self, subscription_id):
+    def delete(self, subscription_uuid):
         with self.new_session() as session:
-            if session.query(Subscription).filter(Subscription.uuid == subscription_id).first() is None:
-                raise NoSuchSubscription(subscription_id)
-            return session.query(Subscription).filter(Subscription.uuid == subscription_id).delete()
+            if session.query(Subscription).filter(Subscription.uuid == subscription_uuid).first() is None:
+                raise NoSuchSubscription(subscription_uuid)
+            return session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()

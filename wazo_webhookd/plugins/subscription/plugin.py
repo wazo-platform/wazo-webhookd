@@ -13,4 +13,4 @@ class Plugin(object):
         config = dependencies['config']
         service = SubscriptionService(config)
         api.add_resource(SubscriptionsResource, '/subscriptions', resource_class_args=[service])
-        api.add_resource(SubscriptionResource, '/subscriptions/<subscription_id>', resource_class_args=[service])
+        api.add_resource(SubscriptionResource, '/subscriptions/<subscription_uuid>', resource_class_args=[service])

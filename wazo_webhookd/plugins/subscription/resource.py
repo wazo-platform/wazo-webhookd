@@ -33,12 +33,12 @@ class SubscriptionResource(AuthResource):
     def __init__(self, service):
         self._service = service
 
-    @required_acl('webhookd.subscriptions.{subscription_id}.read')
-    def get(self, subscription_id):
-        subscription = self._service.get(subscription_id)
+    @required_acl('webhookd.subscriptions.{subscription_uuid}.read')
+    def get(self, subscription_uuid):
+        subscription = self._service.get(subscription_uuid)
         return SubscriptionSchema().dump(subscription).data
 
-    @required_acl('webhookd.subscriptions.{subscription_id}.delete')
-    def delete(self, subscription_id):
-        self._service.delete(subscription_id)
+    @required_acl('webhookd.subscriptions.{subscription_uuid}.delete')
+    def delete(self, subscription_uuid):
+        self._service.delete(subscription_uuid)
         return '', 204
