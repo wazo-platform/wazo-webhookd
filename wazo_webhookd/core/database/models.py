@@ -1,7 +1,7 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
-from sqlalchemy import (Column, ForeignKey, String, text, Text)
+from sqlalchemy import (Column, ForeignKey, String, text, Text, UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -39,6 +39,9 @@ class Subscription(Base):
 class SubscriptionEvent(Base):
 
     __tablename__ = 'webhookd_subscription_event'
+    __table_args__ = (
+        UniqueConstraint('subscription_uuid', 'event_name'),
+    )
 
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
     subscription_uuid = Column(String(38), ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'))
@@ -48,6 +51,9 @@ class SubscriptionEvent(Base):
 class SubscriptionOption(Base):
 
     __tablename__ = 'webhookd_subscription_option'
+    __table_args__ = (
+        UniqueConstraint('subscription_uuid', 'name'),
+    )
 
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
     subscription_uuid = Column(String(38), ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'))

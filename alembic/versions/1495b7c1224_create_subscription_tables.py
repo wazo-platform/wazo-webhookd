@@ -29,6 +29,7 @@ def upgrade():
         Column('subscription_uuid', sa.String(38),
                sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE')),
         Column('event_name', sa.Text(), nullable=False),
+        sa.UniqueConstraint('subscription_uuid', 'event_name'),
     )
     op.create_table(
         'webhookd_subscription_option',
@@ -38,6 +39,7 @@ def upgrade():
                sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE')),
         Column('name', sa.Text(), nullable=False),
         Column('value', sa.Text()),
+        sa.UniqueConstraint('subscription_uuid', 'name'),
     )
 
 
