@@ -5,6 +5,7 @@ from hamcrest import assert_that
 from hamcrest import calling
 from hamcrest import contains
 from hamcrest import empty
+from hamcrest import equal_to
 from hamcrest import has_entries
 from hamcrest import has_entry
 from hamcrest import has_key
@@ -57,6 +58,38 @@ class TestListSubscriptions(BaseIntegrationTest):
             'items': contains(has_entries(**subscription_)),
             'total': 1
         }))
+
+
+class TestGetSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+
+    def test_given_no_auth_server_when_get_subscription_then_503(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        with self.auth_stopped():
+            assert_that(calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
+                        raises(WebhookdError, has_property('status_code', 503)))
+
+    def test_given_wrong_auth_when_get_subscription_then_401(self):
+        webhookd = self.make_webhookd('invalid-token')
+
+        assert_that(calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
+                    raises(WebhookdError, has_property('status_code', 401)))
+
+    def test_given_no_subscription_when_get_http_subscription_then_404(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        assert_that(calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_subscription_when_get_http_subscription_then_return_the_subscription(self, subscription_):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        response = webhookd.subscriptions.get(subscription_['uuid'])
+
+        assert_that(response, equal_to(subscription_))
 
 
 class TestCreateSubscriptions(BaseIntegrationTest):

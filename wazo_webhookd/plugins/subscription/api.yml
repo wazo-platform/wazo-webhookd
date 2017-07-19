@@ -27,6 +27,24 @@ paths:
           'description': The subscription has been completed
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+  /subscriptions/{subscription_uuid}:
+    get:
+      summary: Get a subscription
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.read`'
+      operationId: get
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: Details of the requested subscription
+          schema:
+            $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
 definitions:
   SubscriptionRequest:
     type: object
@@ -41,3 +59,25 @@ definitions:
         type: array
         items:
           type: string
+  Subscription:
+    type: object
+    properties:
+      uuid:
+        type: string
+      name:
+        type: string
+      service:
+        type: string
+      config:
+        type: object
+      events:
+        type: array
+        items:
+          type: string
+parameters:
+  SubscriptionUUID:
+    type: string
+    name: subscription_uuid
+    description: The UUID of the subscription
+    in: path
+    required: true

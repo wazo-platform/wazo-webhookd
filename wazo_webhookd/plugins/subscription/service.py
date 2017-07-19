@@ -36,6 +36,15 @@ class SubscriptionService(object):
             session.expunge_all()
             return result
 
+    def get(self, subscription_id):
+        with self.new_session() as session:
+            result = session.query(Subscription).options(joinedload('events_'), joinedload('options')).filter(Subscription.uuid == subscription_id).first()
+            if result is None:
+                raise NoSuchSubscription(subscription_id)
+
+            session.expunge_all()
+            return result
+
     def create(self, subscription):
         with self.new_session() as session:
             return session.add(Subscription(**subscription))
