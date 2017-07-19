@@ -3,7 +3,6 @@
 
 from contextlib import contextmanager
 from sqlalchemy import create_engine
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.core.database.models import Subscription
@@ -32,13 +31,13 @@ class SubscriptionService(object):
 
     def list(self):
         with self.new_session() as session:
-            result = session.query(Subscription).options(joinedload('events_'), joinedload('options')).all()
+            result = session.query(Subscription).all()
             session.expunge_all()
             return result
 
     def get(self, subscription_uuid):
         with self.new_session() as session:
-            result = session.query(Subscription).options(joinedload('events_'), joinedload('options')).filter(Subscription.uuid == subscription_uuid).first()
+            result = session.query(Subscription).get(subscription_uuid)
             if result is None:
                 raise NoSuchSubscription(subscription_uuid)
 
