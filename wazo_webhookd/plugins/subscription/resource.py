@@ -22,7 +22,7 @@ class SubscriptionsResource(AuthResource):
 
     @required_acl('webhookd.subscriptions.create')
     def post(self):
-        subscription = request.json
+        subscription = subscription_schema.load(request.json).data
         subscription['uuid'] = str(uuid.uuid4())
         self._service.create(subscription)
         return subscription, 201
@@ -40,7 +40,7 @@ class SubscriptionResource(AuthResource):
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.update')
     def put(self, subscription_uuid):
-        subscription = request.json
+        subscription = subscription_schema.load(request.json).data
         subscription = self._service.edit(subscription_uuid, subscription)
         return subscription_schema.dump(subscription).data
 
