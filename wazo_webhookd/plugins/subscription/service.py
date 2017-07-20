@@ -48,6 +48,24 @@ class SubscriptionService(object):
         with self.new_session() as session:
             return session.add(Subscription(**subscription))
 
+    def edit(self, subscription_uuid, new_subscription):
+        with self.new_session() as session:
+            subscription = session.query(Subscription).get(subscription_uuid)
+            if subscription is None:
+                raise NoSuchSubscription(subscription_uuid)
+
+            subscription.clear_relations()
+            session.flush()
+            subscription.update(**new_subscription)
+            session.commit()
+
+        with self.new_session() as session:
+            subscription = session.query(Subscription).get(subscription_uuid)
+            if subscription is None:
+                raise NoSuchSubscription(subscription_uuid)
+            session.expunge_all()
+            return subscription
+
     def delete(self, subscription_uuid):
         with self.new_session() as session:
             if session.query(Subscription).filter(Subscription.uuid == subscription_uuid).first() is None:

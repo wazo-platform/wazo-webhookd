@@ -35,6 +35,14 @@ class Subscription(Base):
     def events(self, events):
         self.events_rel = [SubscriptionEvent(event_name=event) for event in events]
 
+    def clear_relations(self):
+        self.events_rel.clear()
+        self.options_rel.clear()
+
+    def update(self, **attributes):
+        for attribute, value in attributes.items():
+            setattr(self, attribute, value)
+
 
 class SubscriptionEvent(Base):
 
