@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
@@ -36,7 +35,7 @@ def main():
     if args.user:
         change_user(args.user)
 
-    for _ in xrange(40):
+    for _ in range(40):
         try:
             conn = psycopg2.connect(args.pg_db_uri)
             break
