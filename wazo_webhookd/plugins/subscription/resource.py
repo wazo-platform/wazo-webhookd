@@ -6,7 +6,7 @@ from flask import request
 from wazo_webhookd.core.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 
-from .schema import SubscriptionSchema
+from .schema import subscription_schema
 
 
 class SubscriptionsResource(AuthResource):
@@ -17,7 +17,7 @@ class SubscriptionsResource(AuthResource):
     @required_acl('webhookd.subscriptions.read')
     def get(self):
         subscriptions = list(self._service.list())
-        return {'items': SubscriptionSchema().dump(subscriptions, many=True).data,
+        return {'items': subscription_schema.dump(subscriptions, many=True).data,
                 'total': len(subscriptions)}
 
     @required_acl('webhookd.subscriptions.create')
@@ -36,13 +36,13 @@ class SubscriptionResource(AuthResource):
     @required_acl('webhookd.subscriptions.{subscription_uuid}.read')
     def get(self, subscription_uuid):
         subscription = self._service.get(subscription_uuid)
-        return SubscriptionSchema().dump(subscription).data
+        return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.update')
     def put(self, subscription_uuid):
         subscription = request.json
         subscription = self._service.edit(subscription_uuid, subscription)
-        return SubscriptionSchema().dump(subscription).data
+        return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.delete')
     def delete(self, subscription_uuid):

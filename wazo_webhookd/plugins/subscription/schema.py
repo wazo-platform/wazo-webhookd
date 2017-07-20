@@ -38,3 +38,6 @@ class SubscriptionSchema(Schema):
     service = fields.String(allow_none=False)
     events = fields.List(fields.String(allow_none=False))
     config = ConfigField()
+
+
+subscription_schema = SubscriptionSchema(strict=True)
