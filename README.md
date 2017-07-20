@@ -26,7 +26,7 @@ docker pull wazopbx/wazo-webhookd
 ### Running wazo-webhookd
 
 ```sh
-docker run -e"XIVO_UUID=<the xivo UUID>" wazopbx/wazo-webhookd
+docker run -e"XIVO_UUID=<the wazo UUID>" wazopbx/wazo-webhookd
 ```
 
 ### Building the image
