@@ -46,6 +46,8 @@ def upgrade():
 
 
 def downgrade():
+    op.drop_constraint(u'webhookd_subscription_event_subscription_uuid_fkey', 'webhookd_subscription_event', type_='foreignkey')
+    op.drop_constraint(u'webhookd_subscription_option_subscription_uuid_fkey', 'webhookd_subscription_option', type_='foreignkey')
     op.drop_table('webhookd_subscription')
     op.drop_table('webhookd_subscription_event')
     op.drop_table('webhookd_subscription_option')
