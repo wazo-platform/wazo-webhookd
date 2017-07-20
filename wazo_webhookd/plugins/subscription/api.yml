@@ -25,6 +25,8 @@ paths:
       responses:
         '201':
           'description': The subscription has been completed
+        '400':
+          $ref: '#/definitions/InvalidRequest'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /subscriptions/{subscription_uuid}:
@@ -41,6 +43,25 @@ paths:
           description: Details of the requested subscription
           schema:
             $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+    put:
+      summary: Edit a subscription
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.update`'
+      operationId: edit
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: The requested subscription was edited
+          schema:
+            $ref: '#/definitions/Subscription'
+        '400':
+          $ref: '#/definitions/InvalidRequest'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
