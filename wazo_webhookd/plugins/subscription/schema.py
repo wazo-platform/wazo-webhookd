@@ -3,29 +3,48 @@
 
 from marshmallow import fields
 from marshmallow import Schema
+from marshmallow.validate import Length
 from marshmallow.validate import OneOf
 from marshmallow.validate import URL
 
 
 class HTTPSubscriptionConfigSchema(Schema):
-    method = fields.String(validate=OneOf(['get', 'post', 'put', 'delete']))
-    url = fields.String(validate=URL(schemes={'http', 'https'}))
+    method = fields.String(validate=OneOf(['get', 'post', 'put', 'delete']), required=True)
+    url = fields.String(validate=URL(schemes={'http', 'https'}), required=True)
+
+
+class StringDictField(fields.Dict):
+
+    default_error_messages = {
+        'invalid': 'Not a mapping with string keys and string values',
+        'too-long': 'Key (limit: 128) or value (limit: 2048) too long'
+    }
+
+    def _deserialize(self, value, attr, obj):
+        dict_ = super()._deserialize(value, attr, obj)
+        for key, value in dict_.items():
+            if not (isinstance(key, str) and isinstance(value, str)):
+                self.fail('invalid')
+            if len(key) > 128:
+                self.fail('too-long')
+            if len(value) > 2048:
+                self.fail('too-long')
+        return dict_
 
 
 class ConfigField(fields.Nested):
 
+    _default_options = StringDictField(allow_none=False, required=True)
     _options = {
-        'http': fields.Nested(HTTPSubscriptionConfigSchema, missing=dict, required=False),
+        'http': fields.Nested(HTTPSubscriptionConfigSchema, required=True),
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(Schema, *args, **kwargs)
 
     def _deserialize(self, value, attr, data):
-        method = data.get('service')
-        concrete_options = self._options.get(method)
-        if not concrete_options:
-            return {}
+        service = data.get('service')
+        concrete_options = self._options.get(service, self._default_options)
         return concrete_options._deserialize(value, attr, data)
 
     def _serialize(self, value, attr, obj):
@@ -34,10 +53,10 @@ class ConfigField(fields.Nested):
 
 class SubscriptionSchema(Schema):
     uuid = fields.UUID(dump_only=True)
-    name = fields.String()
-    service = fields.String(allow_none=False)
-    events = fields.List(fields.String(allow_none=False))
-    config = ConfigField()
+    name = fields.String(validate=Length(max=128), required=True)
+    service = fields.String(validate=Length(max=128), allow_none=False, required=True)
+    events = fields.List(fields.String(validate=Length(max=128), allow_none=False), allow_none=False, required=True)
+    config = ConfigField(allow_none=False, required=True)
 
 
 subscription_schema = SubscriptionSchema(strict=True)
