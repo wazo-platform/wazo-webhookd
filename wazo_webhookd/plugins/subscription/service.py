@@ -62,12 +62,9 @@ class SubscriptionService(object):
             subscription.clear_relations()
             session.flush()
             subscription.update(**new_subscription)
-            session.commit()
+            session.flush()
 
-        with self.ro_session() as session:
-            subscription = session.query(Subscription).get(subscription_uuid)
-            if subscription is None:
-                raise NoSuchSubscription(subscription_uuid)
+            session.expunge_all()
             return subscription
 
     def delete(self, subscription_uuid):
