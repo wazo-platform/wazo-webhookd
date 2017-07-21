@@ -42,7 +42,7 @@ def main():
         except psycopg2.OperationalError:
             time.sleep(0.25)
     else:
-        print >> sys.stderr, 'Failed to connect to postgres'
+        print('Failed to connect to postgres', file=sys.stderr)
         sys.exit(1)
 
     conn.autocommit = True
