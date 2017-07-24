@@ -16,10 +16,7 @@ paths:
       description: '**Required ACL:** `webhookd.subscriptions.create`'
       operationId: create
       parameters:
-        - name: body
-          in: body
-          schema:
-            $ref: '#/definitions/SubscriptionRequest'
+        - $ref: '#/parameters/SubscriptionBody'
       tags:
         - subscriptions
       responses:
@@ -53,6 +50,7 @@ paths:
       operationId: edit
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
+        - $ref: '#/parameters/SubscriptionBody'
       tags:
         - subscriptions
       responses:
@@ -117,3 +115,10 @@ parameters:
     description: The UUID of the subscription
     in: path
     required: true
+  SubscriptionBody:
+    name: body
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/SubscriptionRequest'
+
