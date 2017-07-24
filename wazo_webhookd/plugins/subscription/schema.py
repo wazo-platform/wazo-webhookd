@@ -1,77 +1,12 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
-from marshmallow import fields
 from marshmallow import Schema
-from marshmallow import validate
 from marshmallow import ValidationError
-
-
-fields.Field.default_error_messages = {
-    'required': {'message': fields.Field.default_error_messages['required'],
-                 'constraint_id': 'required',
-                 'constraint': 'required'},
-    'null': {'message': fields.Field.default_error_messages['null'],
-             'constraint_id': 'not_null',
-             'constraint': 'not_null'},
-}
-fields.String.default_error_messages = {
-    'invalid': {'message': fields.String.default_error_messages['invalid'],
-                'constraint_id': 'type',
-                'constraint': 'string'},
-}
-fields.List.default_error_messages = {
-    'invalid': {'message': fields.List.default_error_messages['invalid'],
-                'constraint_id': 'type',
-                'constraint': 'list'},
-}
-fields.Dict.default_error_messages = {
-    'invalid': {'message': fields.Dict.default_error_messages['invalid'],
-                'constraint_id': 'type',
-                'constraint': 'dict'},
-}
-
-
-class Length(validate.Length):
-
-    constraint_id = 'length'
-
-    def _format_error(self, value, message):
-        msg = super()._format_error(value, message)
-
-        return {
-            'constraint_id': self.constraint_id,
-            'constraint': {'min': self.min, 'max': self.max},
-            'message': msg,
-        }
-
-
-class OneOf(validate.OneOf):
-
-    constraint_id = 'enum'
-
-    def _format_error(self, value):
-        msg = super()._format_error(value)
-
-        return {
-            'constraint_id': self.constraint_id,
-            'constraint': {'choices': self.choices},
-            'message': msg,
-        }
-
-
-class URL(validate.URL):
-
-    constraint_id = 'url'
-
-    def _format_error(self, value):
-        msg = super()._format_error(value)
-
-        return {
-            'constraint_id': self.constraint_id,
-            'constraint': {'schemes': list(self.schemes)},
-            'message': msg,
-        }
+from xivo.mallow import fields
+from xivo.mallow.validate import OneOf
+from xivo.mallow.validate import URL
+from xivo.mallow.validate import Length
 
 
 class HTTPSubscriptionConfigSchema(Schema):
