@@ -3,9 +3,49 @@
 
 from marshmallow import fields
 from marshmallow import Schema
-from marshmallow.validate import Length
-from marshmallow.validate import OneOf
-from marshmallow.validate import URL
+from marshmallow import validate
+
+
+class Length(validate.Length):
+
+    constraint_id = 'length'
+
+    def _format_error(self, value, message):
+        msg = super()._format_error(value, message)
+
+        return {
+            'constraint_id': self.constraint_id,
+            'constraint': {'min': self.min, 'max': self.max},
+            'message': msg,
+        }
+
+
+class OneOf(validate.OneOf):
+
+    constraint_id = 'enum'
+
+    def _format_error(self, value):
+        msg = super()._format_error(value)
+
+        return {
+            'constraint_id': self.constraint_id,
+            'constraint': {'choices': self.choices},
+            'message': msg,
+        }
+
+
+class URL(validate.URL):
+
+    constraint_id = 'url'
+
+    def _format_error(self, value):
+        msg = super()._format_error(value)
+
+        return {
+            'constraint_id': self.constraint_id,
+            'constraint': {'schemes': list(self.schemes)},
+            'message': msg,
+        }
 
 
 class HTTPSubscriptionConfigSchema(Schema):
