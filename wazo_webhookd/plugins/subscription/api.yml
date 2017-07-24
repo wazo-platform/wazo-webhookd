@@ -23,7 +23,7 @@ paths:
         '201':
           'description': The subscription has been completed
         '400':
-          $ref: '#/definitions/InvalidRequest'
+          $ref: '#/responses/InvalidRequest'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /subscriptions/{subscription_uuid}:
@@ -59,7 +59,7 @@ paths:
           schema:
             $ref: '#/definitions/Subscription'
         '400':
-          $ref: '#/definitions/InvalidRequest'
+          $ref: '#/responses/InvalidRequest'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
