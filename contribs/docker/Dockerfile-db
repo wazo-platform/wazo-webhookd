@@ -1,0 +1,16 @@
+FROM postgres:9.4
+MAINTAINER Wazo Maintainers <dev@wazo.community>
+
+ENV BUILD_PACKAGES="alembic python-psycopg2 python3-psycopg2 python3-setuptools python3-sqlalchemy unzip"
+
+ADD https://github.com/wazo-pbx/xivo-lib-python/archive/master.zip /usr/src/xivo-lib-python-master.zip
+COPY . /usr/src/wazo-webhookd
+WORKDIR /usr/src
+
+RUN apt-get update \
+    && apt-get -y install $BUILD_PACKAGES \
+    && unzip xivo-lib-python-master.zip \
+    && (cd xivo-lib-python-master && python3 setup.py install) \
+    && (cd wazo-webhookd && python3 setup.py install)
+
+COPY contribs/docker/init-webhookd-db.sh /docker-entrypoint-initdb.d/init-webhookd-db.sh

@@ -36,6 +36,7 @@ _DEFAULT_CONFIG = {
         'port': 8500,
         'verify': '/usr/share/xivo-certs/server.crt',
     },
+    'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk',
     'rest_api': {
         'listen': '0.0.0.0',
         'port': _DEFAULT_HTTPS_PORT,
@@ -59,6 +60,7 @@ _DEFAULT_CONFIG = {
     'enabled_plugins': {
         'api': True,
         'config': True,
+        'subscriptions': True,
     },
 }
 

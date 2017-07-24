@@ -1,8 +1,13 @@
 docker-compose
 nose
+psycopg2
 pyhamcrest
 requests
+sqlalchemy
 stevedore
 https://github.com/wazo-pbx/wazo-webhookd-client/archive/master.zip
 https://github.com/wazo-pbx/xivo-test-helpers/archive/master.zip
 https://github.com/wazo-pbx/xivo-lib-rest-client/archive/master.zip
+
+# for database tests
+-e ..

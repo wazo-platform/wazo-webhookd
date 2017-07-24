@@ -33,5 +33,4 @@ def load_plugin(ext, load_args, load_kwargs):
 
 
 def plugins_load_fail(_, entrypoint, exception):
-    logger.warning("There is an error with this module: %s", entrypoint)
-    logger.warning('%s', exception)
+    logger.exception('There is an error with this module: %s', entrypoint)

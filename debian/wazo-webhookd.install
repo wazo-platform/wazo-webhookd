@@ -1,1 +1,3 @@
 etc/* etc/
+alembic/ usr/share/wazo-webhookd/
+alembic.ini usr/share/wazo-webhookd/

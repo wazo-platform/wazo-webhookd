@@ -1,0 +1,135 @@
+paths:
+  /subscriptions:
+    get:
+      summary: List subscriptions to HTTP callbacks
+      description: '**Required ACL:** `webhookd.subscriptions.read`'
+      operationId: list
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: List of the subscriptions
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+    post:
+      summary: Subscribe to a HTTP callback (webhook)
+      description: '**Required ACL:** `webhookd.subscriptions.create`'
+      operationId: create
+      parameters:
+        - $ref: '#/parameters/SubscriptionBody'
+      tags:
+        - subscriptions
+      responses:
+        '201':
+          'description': The subscription has been completed
+        '400':
+          $ref: '#/responses/InvalidRequest'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+  /subscriptions/{subscription_uuid}:
+    get:
+      summary: Get a subscription
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.read`'
+      operationId: get
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: Details of the requested subscription
+          schema:
+            $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+    put:
+      summary: Edit a subscription
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.update`'
+      operationId: edit
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+        - $ref: '#/parameters/SubscriptionBody'
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: The requested subscription was edited
+          schema:
+            $ref: '#/definitions/Subscription'
+        '400':
+          $ref: '#/responses/InvalidRequest'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+    delete:
+      summary: Delete a subscription
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.delete`'
+      operationId: delete
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+      responses:
+        '204':
+          description: The requested subscription was deleted
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+definitions:
+  SubscriptionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+      service:
+        type: string
+      config:
+        type: object
+      events:
+        type: array
+        items:
+          type: string
+    required:
+      - name
+      - service
+      - config
+      - events
+  Subscription:
+    type: object
+    properties:
+      uuid:
+        type: string
+      name:
+        type: string
+      service:
+        type: string
+      config:
+        type: object
+      events:
+        type: array
+        items:
+          type: string
+    required:
+      - uuid
+      - name
+      - service
+      - config
+      - events
+parameters:
+  SubscriptionUUID:
+    type: string
+    name: subscription_uuid
+    description: The UUID of the subscription
+    in: path
+    required: true
+  SubscriptionBody:
+    name: body
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/SubscriptionRequest'
+

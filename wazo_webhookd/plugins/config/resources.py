@@ -7,8 +7,6 @@ from xivo.auth_verifier import required_acl
 
 class ConfigResource(AuthResource):
 
-    api_path = '/config'
-
     def __init__(self, config):
         self._config = config
 

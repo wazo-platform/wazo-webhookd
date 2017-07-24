@@ -34,6 +34,9 @@ consul:
   verify: /usr/share/xivo-certs/server.crt
   token: 'the_one_ring'
 
+# database connection informations
+db_uri: postgresql://asterisk:proformatique@localhost/asterisk
+
 # REST API server
 rest_api:
 

@@ -2,6 +2,7 @@
 
 set -e
 
+ALEMBIC_INI_PATH='/usr/share/wazo-webhookd'
 DAEMONNAME='wazo-webhookd'
 LOG_FILENAME="/var/log/${DAEMONNAME}.log"
 USER=$DAEMONNAME
@@ -29,6 +30,13 @@ case "$1" in
             touch "$LOG_FILENAME"
         fi
         chown "$USER:$GROUP" "$LOG_FILENAME"
+
+        # Database initialization and migrations
+        if wazo-pg-is-running ; then
+            wazo-webhookd-init-db --user postgres
+            echo "Upgrading wazo-webhookd database ..."
+            (cd $ALEMBIC_INI_PATH && alembic -c alembic.ini upgrade head)
+        fi
 
         if dpkg --compare-versions "$2" lt '17.10'; then
             ln -sf /etc/nginx/locations/https-available/$DAEMONNAME \
