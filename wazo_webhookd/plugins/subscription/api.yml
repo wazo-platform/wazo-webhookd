@@ -93,6 +93,11 @@ definitions:
         type: array
         items:
           type: string
+    required:
+      - name
+      - service
+      - config
+      - events
   Subscription:
     type: object
     properties:
@@ -108,6 +113,12 @@ definitions:
         type: array
         items:
           type: string
+    required:
+      - uuid
+      - name
+      - service
+      - config
+      - events
 parameters:
   SubscriptionUUID:
     type: string
