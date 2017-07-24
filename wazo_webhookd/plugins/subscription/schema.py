@@ -4,6 +4,7 @@
 from marshmallow import fields
 from marshmallow import Schema
 from marshmallow import validate
+from marshmallow import ValidationError
 
 
 fields.Field.default_error_messages = {
@@ -23,6 +24,11 @@ fields.List.default_error_messages = {
     'invalid': {'message': fields.List.default_error_messages['invalid'],
                 'constraint_id': 'type',
                 'constraint': 'list'},
+}
+fields.Dict.default_error_messages = {
+    'invalid': {'message': fields.Dict.default_error_messages['invalid'],
+                'constraint_id': 'type',
+                'constraint': 'dict'},
 }
 
 
@@ -73,39 +79,28 @@ class HTTPSubscriptionConfigSchema(Schema):
     url = fields.String(validate=URL(schemes={'http', 'https'}), required=True)
 
 
-class StringDictField(fields.Dict):
-
-    default_error_messages = {
-        'invalid': {
-            'message': 'Not a mapping with string keys and string values',
-            'constraint_id': 'key-value-type',
-            'constraint': 'string',
-        },
-        'too-long': {
-            'message': 'Key or value too long',
-            'constraint_id': 'key-value-length',
-            'constraint': {
-                'key-max': 128,
-                'value-max': 2048,
-            }
-        }
-    }
-
-    def _deserialize(self, value, attr, obj):
-        dict_ = super()._deserialize(value, attr, obj)
-        for key, value in dict_.items():
-            if not (isinstance(key, str) and isinstance(value, str)):
-                self.fail('invalid')
-            if len(key) > 128:
-                self.fail('too-long')
-            if len(value) > 2048:
-                self.fail('too-long')
-        return dict_
+def validate_config_dict(dict_):
+    for key, value in dict_.items():
+        if not (isinstance(key, str) and isinstance(value, str)):
+            raise ValidationError({
+                'message': 'Not a mapping with string keys and string values',
+                'constraint_id': 'key-value-type',
+                'constraint': 'string',
+            })
+        if len(key) > 128 or len(value) > 2048:
+            raise ValidationError({
+                'message': 'Key or value too long',
+                'constraint_id': 'key-value-length',
+                'constraint': {
+                    'key-max': 128,
+                    'value-max': 2048,
+                }
+            })
 
 
 class ConfigField(fields.Nested):
 
-    _default_options = StringDictField(allow_none=False, required=True)
+    _default_options = fields.Dict(validate=validate_config_dict, allow_none=False, required=True)
     _options = {
         'http': fields.Nested(HTTPSubscriptionConfigSchema, required=True),
     }
@@ -117,6 +112,12 @@ class ConfigField(fields.Nested):
         service = data.get('service')
         concrete_options = self._options.get(service, self._default_options)
         return concrete_options._deserialize(value, attr, data)
+
+    def _validate(self, value):
+        super()._validate(value)
+        service = value.get('service')
+        concrete_options = self._options.get(service, self._default_options)
+        return concrete_options._validate(value)
 
     def _serialize(self, value, attr, obj):
         return value
