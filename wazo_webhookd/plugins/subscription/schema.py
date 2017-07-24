@@ -6,6 +6,26 @@ from marshmallow import Schema
 from marshmallow import validate
 
 
+fields.Field.default_error_messages = {
+    'required': {'message': fields.Field.default_error_messages['required'],
+                 'constraint_id': 'required',
+                 'constraint': 'required'},
+    'null': {'message': fields.Field.default_error_messages['null'],
+             'constraint_id': 'not_null',
+             'constraint': 'not_null'},
+}
+fields.String.default_error_messages = {
+    'invalid': {'message': fields.String.default_error_messages['invalid'],
+                'constraint_id': 'type',
+                'constraint': 'string'},
+}
+fields.List.default_error_messages = {
+    'invalid': {'message': fields.List.default_error_messages['invalid'],
+                'constraint_id': 'type',
+                'constraint': 'list'},
+}
+
+
 class Length(validate.Length):
 
     constraint_id = 'length'
@@ -56,8 +76,19 @@ class HTTPSubscriptionConfigSchema(Schema):
 class StringDictField(fields.Dict):
 
     default_error_messages = {
-        'invalid': 'Not a mapping with string keys and string values',
-        'too-long': 'Key (limit: 128) or value (limit: 2048) too long'
+        'invalid': {
+            'message': 'Not a mapping with string keys and string values',
+            'constraint_id': 'key-value-type',
+            'constraint': 'string',
+        },
+        'too-long': {
+            'message': 'Key or value too long',
+            'constraint_id': 'key-value-length',
+            'constraint': {
+                'key-max': 128,
+                'value-max': 2048,
+            }
+        }
     }
 
     def _deserialize(self, value, attr, obj):
