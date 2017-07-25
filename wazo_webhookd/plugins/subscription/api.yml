@@ -87,8 +87,12 @@ definitions:
         type: string
       service:
         type: string
+        description: >
+          Known services: http. The service may be arbitrary, but it must be bound to an installed plugin in order to be effective.
       config:
         type: object
+        description: >
+          Details of the subscription. The keys of this field are specific to the given service. Known configs: http: {url, method}.
       events:
         type: array
         items:
