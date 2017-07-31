@@ -26,6 +26,13 @@ bus:
   exchange_name: xivo
   exchange_type: topic
 
+# celery (task queue) connection informations
+celery:
+    broker: amqp://guest:guest@localhost:5672
+    exchange_name: celery-webhookd
+    queue_name: celery-webhookd
+    worker_pid_file: /var/run/wazo-webhookd/celery-worker.pid
+
 # consul connection informations
 consul:
   scheme: https

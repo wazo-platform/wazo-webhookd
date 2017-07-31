@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import argparse
+import os
 
 from xivo.chain_map import ChainMap
 from xivo.config_helper import read_config_file_hierarchy
@@ -9,13 +10,15 @@ from xivo.xivo_logging import get_log_level_by_name
 
 _CERT_FILE = '/usr/share/xivo-certs/server.crt'
 _DEFAULT_HTTPS_PORT = 9300
+_PID_DIR = '/var/run/wazo-webhookd'
+
 _DEFAULT_CONFIG = {
     'config_file': '/etc/wazo-webhookd/config.yml',
     'debug': False,
     'extra_config_files': '/etc/wazo-webhookd/conf.d',
     'log_file': '/var/log/wazo-webhookd.log',
     'log_level': 'info',
-    'pid_file': '/var/run/wazo-webhookd/wazo-webhookd.pid',
+    'pid_file': os.path.join(_PID_DIR, 'wazo-webhookd.pid'),
     'user': 'wazo-webhookd',
     'auth': {
         'host': 'localhost',
@@ -29,6 +32,12 @@ _DEFAULT_CONFIG = {
         'port': 5672,
         'exchange_name': 'xivo',
         'exchange_type': 'topic',
+    },
+    'celery': {
+        'broker': 'amqp://guest:guest@localhost:5672',
+        'exchange_name': 'celery-webhookd',
+        'queue_name': 'celery-webhookd',
+        'worker_pid_file': os.path.join(_PID_DIR, 'celery-worker.pid'),
     },
     'consul': {
         'scheme': 'https',
