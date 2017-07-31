@@ -1,16 +1,42 @@
-FROM postgres:9.4
+FROM debian:jessie
 MAINTAINER Wazo Maintainers <dev@wazo.community>
 
-ENV BUILD_PACKAGES="alembic python-psycopg2 python3-psycopg2 python3-setuptools python3-sqlalchemy unzip"
-
-ADD https://github.com/wazo-pbx/xivo-lib-python/archive/master.zip /usr/src/xivo-lib-python-master.zip
+ENV DEBIAN_FRONTEND=noninteractive \
+    LC_ALL=C.UTF-8 \
+    BUILD_PACKAGES="python3-pip python3-dev libpq-dev" \
+    PYTHON_PACKAGES="alembic psycopg2 sqlalchemy https://github.com/wazo-pbx/xivo-lib-python/archive/master.zip" \
+    PG_PACKAGES="postgresql-9.4 postgresql-contrib-9.4 postgresql-client" \
+    PG_CTL="sudo -u postgres /usr/lib/postgresql/9.4/bin/pg_ctl -D /var/lib/postgresql/9.4/main" \
+    PG_CONF="/etc/postgresql/9.4/main/postgresql.conf"
 COPY . /usr/src/wazo-webhookd
-WORKDIR /usr/src
+WORKDIR /usr/src/wazo-webhookd
 
+#Locales must be configured before installing postgres, otherwise the database encoding defaults to SQL_ASCII
 RUN apt-get update \
+    && apt-get install -y \
+        sudo \
+        locales \
+    && dpkg-reconfigure locales \
+    && locale-gen C.UTF-8  \
+    && /usr/sbin/update-locale LANG=C.UTF-8 \
+    && apt-get -y install $PG_PACKAGES \
+    && echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/9.4/main/pg_hba.conf \
+    && echo "listen_addresses='*'" >> /etc/postgresql/9.4/main/postgresql.conf \
+    && mkdir -p /var/run/postgresql/9.4-main.pg_stat_tmp \
+    && chown -R postgres:postgres /var/run/postgresql \
     && apt-get -y install $BUILD_PACKAGES \
-    && unzip xivo-lib-python-master.zip \
-    && (cd xivo-lib-python-master && python3 setup.py install) \
-    && (cd wazo-webhookd && python3 setup.py install)
+    && pip3 install $PYTHON_PACKAGES \
+    && python3 setup.py install \
+    && $PG_CTL -o "--config-file=$PG_CONF" start \
+    && while [ "$($PG_CTL status)" = "pg_ctl: no server running" ]; do sleep 1; done \
+    && until wazo-webhookd-init-db --user postgres ; do sleep 1; done \
+    && (cd /usr/src/wazo-webhookd && alembic -c alembic.ini upgrade head) \
+    && $PG_CTL -o "--config-file=$PG_CONF" stop \
+    && apt-get purge -y $BUILD_PACKAGES \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /usr/src/wazo-webhookd /var/lib/apt/lists/*
 
-COPY contribs/docker/init-webhookd-db.sh /docker-entrypoint-initdb.d/init-webhookd-db.sh
+EXPOSE 5432
+USER postgres
+CMD ["/usr/lib/postgresql/9.4/bin/postgres", "-D", "/var/lib/postgresql/9.4/main", "--config-file=/etc/postgresql/9.4/main/postgresql.conf"]
