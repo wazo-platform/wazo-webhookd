@@ -82,3 +82,10 @@ class TestSubscriptionSchema(TestCase):
 
         assert_that(calling(subscription_schema.load).with_args(subscription),
                     raises(ValidationError))
+
+    def test_given_http_service_and_url_with_no_dots_when_load_then_pass(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config']['url'] = 'http://third-party-http/test'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    not_(raises(ValidationError)))
