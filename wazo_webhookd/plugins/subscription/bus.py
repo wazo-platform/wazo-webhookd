@@ -18,5 +18,6 @@ class SubscriptionBusEventHandler:
                 if subscription.service == 'http':
                     http_task.apply_async([
                         subscription.config['method'],
-                        subscription.config['url']
+                        subscription.config['url'],
+                        subscription.config.get('body')
                     ])

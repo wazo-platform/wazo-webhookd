@@ -12,7 +12,8 @@ TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
     'config': {'url': 'http://third-party-http:1080/test',
-               'method': 'get'},
+               'method': 'get',
+               'body': '{"body_keỳ": "body_vàlue"}'},
     'events': ['trigger']
 }
 SOME_ROUTING_KEY = 'routing-key'
@@ -45,6 +46,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
+                        'body': '{"body_keỳ": "body_vàlue"}',
                     }
                 )
             except Exception:

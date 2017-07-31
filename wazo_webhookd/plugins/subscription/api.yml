@@ -92,7 +92,7 @@ definitions:
       config:
         type: object
         description: >
-          Details of the subscription. The keys of this field are specific to the given service. Known configs: http: {url, method}.
+          Details of the subscription. The keys of this field are specific to the given service. Known configs: http: {url, method, body}.
       events:
         type: array
         items:

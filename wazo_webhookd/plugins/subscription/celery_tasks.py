@@ -7,5 +7,5 @@ import requests
 def load(celery_app):
 
     @celery_app.task
-    def http_callback(method, url):
-        requests.request(method, url)
+    def http_callback(method, url, body):
+        requests.request(method, url, data=body.encode('utf-8'))

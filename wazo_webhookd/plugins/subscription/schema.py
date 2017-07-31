@@ -9,6 +9,7 @@ from xivo.mallow.validate import Length
 
 
 class HTTPSubscriptionConfigSchema(Schema):
+    body = fields.String(validate=Length(max=16384))
     method = fields.String(validate=OneOf(['get', 'post', 'put', 'delete']), required=True)
     url = fields.String(required=True)
 

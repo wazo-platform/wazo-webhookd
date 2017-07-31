@@ -81,3 +81,21 @@ class TestBusEventHandler(TestCase):
         handler.on_wazo_event({'name': 'no-trigger'})
 
         assert_that(task.apply_async.called, is_(False))
+
+    def test_given_http_subscription_with_body_when_event_then_http_callback_with_body(self):
+        task = Mock()
+        celery = Mock()
+        service = Mock()
+        handler = SubscriptionBusEventHandler(celery, service)
+        celery.tasks = defaultdict(lambda: task)
+        subscription_config = {
+            'url': 'http://callback-handler',
+            'method': 'get',
+            'body': 'my-body',
+        }
+        subscription = Mock(service='http', config=subscription_config, events=['trigger'])
+        service.list.return_value = [subscription]
+
+        handler.on_wazo_event({'name': 'trigger'})
+
+        task.apply_async.assert_called_once_with(['get', 'http://callback-handler', 'my-body'])
