@@ -38,6 +38,10 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
+        # TODO: Delete when /status will be implemented
+        import time
+        time.sleep(3)
+
         bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
