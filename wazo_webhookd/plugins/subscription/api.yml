@@ -107,6 +107,7 @@ definitions:
     properties:
       uuid:
         type: string
+        readOnly: true
       name:
         type: string
       service:
