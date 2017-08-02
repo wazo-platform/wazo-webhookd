@@ -12,6 +12,13 @@ TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
     'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get'},
+    'events': ['trigger']
+}
+TEST_SUBSCRIPTION_BODY = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
                'method': 'get',
                'body': '{"body_keỳ": "body_vàlue"}'},
     'events': ['trigger']
@@ -35,6 +42,31 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # TODO: Delete when /status will be implemented
+        import time
+        time.sleep(3)
+
+        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_BODY)
+    def test_given_one_http_subscription_with_body_when_bus_event_then_http_callback_with_body(self, subscription):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
