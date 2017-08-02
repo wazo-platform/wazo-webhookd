@@ -90,9 +90,7 @@ definitions:
         description: >
           Known services: http. The service may be arbitrary, but it must be bound to an installed plugin in order to be effective.
       config:
-        type: object
-        description: >
-          Details of the subscription. The keys of this field are specific to the given service. Known configs: http: {url, method, body}.
+        $ref: '#/definitions/HTTPServiceConfig'
       events:
         type: array
         items:
@@ -123,6 +121,23 @@ definitions:
       - service
       - config
       - events
+  HTTPServiceConfig:
+    type: object
+    properties:
+      url:
+        type: string
+      method:
+        type: string
+        enum:
+          - get
+          - post
+          - put
+          - delete
+      body:
+        type: string
+    required:
+      - url
+      - method
 parameters:
   SubscriptionUUID:
     type: string
