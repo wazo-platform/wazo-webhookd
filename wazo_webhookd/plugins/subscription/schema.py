@@ -5,13 +5,13 @@ from marshmallow import Schema
 from marshmallow import ValidationError
 from xivo.mallow import fields
 from xivo.mallow.validate import OneOf
-from xivo.mallow.validate import URL
 from xivo.mallow.validate import Length
 
 
 class HTTPSubscriptionConfigSchema(Schema):
+    body = fields.String(validate=Length(max=16384))
     method = fields.String(validate=OneOf(['get', 'post', 'put', 'delete']), required=True)
-    url = fields.String(validate=URL(schemes={'http', 'https'}), required=True)
+    url = fields.String(required=True)
 
 
 def validate_config_dict(dict_):
