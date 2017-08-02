@@ -9,6 +9,8 @@ paths:
       responses:
         '200':
           description: List of the subscriptions
+          schema:
+            $ref: '#/definitions/SubscriptionList'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     post:
@@ -138,6 +140,20 @@ definitions:
     required:
       - url
       - method
+  SubscriptionList:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Subscription'
+        readOnly: true
+      total:
+        type: integer
+        readOnly: true
+    required:
+      - items
+      - total
 parameters:
   SubscriptionUUID:
     type: string
@@ -151,4 +167,3 @@ parameters:
     required: true
     schema:
       $ref: '#/definitions/SubscriptionRequest'
-
