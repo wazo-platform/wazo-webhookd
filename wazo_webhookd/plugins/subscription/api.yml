@@ -132,6 +132,7 @@ definitions:
       method:
         type: string
         enum:
+          - head
           - get
           - post
           - put
