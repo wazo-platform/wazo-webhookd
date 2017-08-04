@@ -24,13 +24,12 @@ class TestStatusRabbitMQStops(BaseIntegrationTest):
 
         until.assert_(all_connections_ok, tries=5)
 
-        self.stop_service('rabbitmq')
-
         def rabbitmq_is_down():
             result = webhookd.status.get()
             assert_that(result['connections']['bus_consumer'], equal_to('fail'))
 
-        until.assert_(rabbitmq_is_down, tries=5)
+        with self.rabbitmq_stopped():
+            until.assert_(rabbitmq_is_down, tries=5)
 
 
 class TestStatusAllOK(BaseIntegrationTest):
