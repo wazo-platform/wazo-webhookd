@@ -27,6 +27,12 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     def make_auth(self):
         return AuthClient('localhost', self.service_port(9497, 'auth'))
 
+    def make_bus(self):
+        return BusClient.from_connection_fields(
+            host='localhost',
+            port=self.service_port(5672, 'rabbitmq')
+        )
+
     @contextmanager
     def auth_stopped(self):
         self.stop_service('auth')
@@ -40,5 +46,5 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         self.stop_service('rabbitmq')
         yield
         self.start_service('rabbitmq')
-        bus = BusClient.from_connection_fields(host='localhost', port=self.service_port(5672, 'rabbitmq'))
+        bus = self.make_bus()
         until.true(bus.is_up, tries=5, message='rabbitmq did not come back up')

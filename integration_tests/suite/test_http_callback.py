@@ -77,12 +77,6 @@ class TestHTTPCallback(BaseIntegrationTest):
         url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         return MockServerClient(url)
 
-    def make_bus(self):
-        return BusClient.from_connection_fields(
-            host='localhost',
-            port=self.service_port(5672, 'rabbitmq')
-        )
-
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):
         third_party = self.make_third_party()
