@@ -33,29 +33,17 @@ def validate_config_dict(dict_):
             })
 
 
-class ConfigField(fields.Nested):
+class ConfigField(fields.Field):
 
     _default_options = fields.Dict(validate=validate_config_dict, allow_none=False, required=True)
     _options = {
         'http': fields.Nested(HTTPSubscriptionConfigSchema, required=True),
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(Schema, *args, **kwargs)
-
     def _deserialize(self, value, attr, data):
         service = data.get('service')
         concrete_options = self._options.get(service, self._default_options)
-        return concrete_options._deserialize(value, attr, data)
-
-    def _validate(self, value):
-        super()._validate(value)
-        service = value.get('service')
-        concrete_options = self._options.get(service, self._default_options)
-        return concrete_options._validate(value)
-
-    def _serialize(self, value, attr, obj):
-        return value
+        return concrete_options.deserialize(value, attr, data)
 
 
 class SubscriptionSchema(Schema):
