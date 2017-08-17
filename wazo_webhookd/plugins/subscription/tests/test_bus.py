@@ -98,4 +98,4 @@ class TestBusEventHandler(TestCase):
 
         handler.on_wazo_event({'name': 'trigger'})
 
-        task.apply_async.assert_called_once_with(['get', 'http://callback-handler', 'my-body'])
+        task.apply_async.assert_called_once_with(['get', 'http://callback-handler', 'my-body', None])
