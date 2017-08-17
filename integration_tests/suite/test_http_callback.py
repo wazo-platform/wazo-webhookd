@@ -3,6 +3,7 @@
 
 from mockserver import MockServerClient
 from xivo_test_helpers import until
+from xivo_test_helpers.bus import BusClient
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.fixtures import subscription
