@@ -7,7 +7,11 @@ import requests
 def load(celery_app):
 
     @celery_app.task
-    def http_callback(method, url, body):
+    def http_callback(method, url, body, verify):
         if body:
             body = body.encode('utf-8')
-        requests.request(method, url, data=body)
+        if verify:
+            verify = True if verify == 'true' else verify
+            verify = False if verify == 'false' else verify
+
+        requests.request(method, url, data=body, verify=verify)

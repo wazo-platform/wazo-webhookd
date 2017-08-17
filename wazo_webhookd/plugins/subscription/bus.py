@@ -19,5 +19,6 @@ class SubscriptionBusEventHandler:
                     http_task.apply_async([
                         subscription.config['method'],
                         subscription.config['url'],
-                        subscription.config.get('body')
+                        subscription.config.get('body'),
+                        subscription.config.get('verify_certificate'),
                     ])

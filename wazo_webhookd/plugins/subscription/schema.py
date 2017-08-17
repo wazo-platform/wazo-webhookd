@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 from marshmallow import Schema
+from marshmallow import validates
 from marshmallow import ValidationError
 from xivo.mallow import fields
 from xivo.mallow.validate import OneOf
@@ -12,6 +13,20 @@ class HTTPSubscriptionConfigSchema(Schema):
     body = fields.String(validate=Length(max=16384))
     method = fields.String(validate=OneOf(['head', 'get', 'post', 'put', 'delete']), required=True)
     url = fields.String(required=True)
+    verify_certificate = fields.String(validate=Length(max=1024))
+
+    @validates('verify_certificate')
+    def validate_verify(self, data):
+        if data in ('true', 'false'):
+            pass
+        elif data.startswith('/'):
+            pass
+        else:
+            raise ValidationError({
+                'message': 'Wrong value for verify_certificate',
+                'constraint_id': 'verify-certificate-invalid',
+                'constraint': ['true', 'false', '/*'],
+            })
 
 
 def validate_config_dict(dict_):

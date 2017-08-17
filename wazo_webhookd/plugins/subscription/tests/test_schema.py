@@ -85,7 +85,32 @@ class TestSubscriptionSchema(TestCase):
 
     def test_given_http_service_and_url_with_no_dots_when_load_then_pass(self):
         subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
         subscription['config']['url'] = 'http://third-party-http/test'
 
         assert_that(calling(subscription_schema.load).with_args(subscription),
                     not_(raises(ValidationError)))
+
+    def test_given_http_service_and_verify_certificate_bool_when_load_then_pass(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['verify_certificate'] = 'true'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    not_(raises(ValidationError)))
+
+    def test_given_http_service_and_verify_certificate_string_when_load_then_pass(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['verify_certificate'] = '/some/path'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    not_(raises(ValidationError)))
+
+    def test_given_http_service_and_verify_certificate_wrong_value_when_load_then_fail(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['verify_certificate'] = 'wrong'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    raises(ValidationError))
