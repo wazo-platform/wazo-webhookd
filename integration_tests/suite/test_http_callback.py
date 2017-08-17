@@ -23,6 +23,14 @@ TEST_SUBSCRIPTION_BODY = {
                'body': '{"body_keỳ": "body_vàlue"}'},
     'events': ['trigger']
 }
+TEST_SUBSCRIPTION_VERIFY = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'https://third-party-http:1080/test',
+               'method': 'get',
+               'verify_certificate': 'false'},
+    'events': ['trigger']
+}
 SOME_ROUTING_KEY = 'routing-key'
 
 
@@ -83,6 +91,30 @@ class TestHTTPCallback(BaseIntegrationTest):
                         'method': 'GET',
                         'path': '/test',
                         'body': '{"body_keỳ": "body_vàlue"}',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_VERIFY)
+    def test_given_subscription_with_verify_cert_when_bus_event_then_http_callback_with_verify(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # TODO: Delete when /status will be implemented
+        import time
+        time.sleep(3)
+
+        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
                     }
                 )
             except Exception:

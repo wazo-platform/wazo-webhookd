@@ -139,6 +139,10 @@ definitions:
           - delete
       body:
         type: string
+      verify_certificate:
+        description: May be `true`, `false` or a path to the certificate bundle
+        type: string
+        default: true
     required:
       - url
       - method
