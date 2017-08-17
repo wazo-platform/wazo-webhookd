@@ -16,9 +16,4 @@ class SubscriptionBusEventHandler:
         for subscription in self._service.list():
             if event['name'] in subscription.events:
                 if subscription.service == 'http':
-                    http_task.apply_async([
-                        subscription.config['method'],
-                        subscription.config['url'],
-                        subscription.config.get('body'),
-                        subscription.config.get('verify_certificate'),
-                    ])
+                    http_task.apply_async([subscription.config])
