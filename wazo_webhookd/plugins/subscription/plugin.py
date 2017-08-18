@@ -20,4 +20,4 @@ class Plugin(object):
         api.add_resource(SubscriptionsResource, '/subscriptions', resource_class_args=[service])
         api.add_resource(SubscriptionResource, '/subscriptions/<subscription_uuid>', resource_class_args=[service])
         celery_tasks.load(celery_app)
-        SubscriptionBusEventHandler(celery_app, service).subscribe(bus_consumer)
+        SubscriptionBusEventHandler(bus_consumer, celery_app, service).subscribe(bus_consumer)

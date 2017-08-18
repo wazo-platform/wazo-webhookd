@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.core.database.models import Subscription
+from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
 
@@ -16,6 +17,7 @@ class SubscriptionService(object):
         engine = create_engine(config['db_uri'])
         self._Session = scoped_session(sessionmaker())
         self._Session.configure(bind=engine)
+        self.pubsub = Pubsub()
 
     @contextmanager
     def rw_session(self):
@@ -51,7 +53,9 @@ class SubscriptionService(object):
 
     def create(self, subscription):
         with self.rw_session() as session:
-            return session.add(Subscription(**subscription))
+            result = session.add(Subscription(**subscription))
+            self.pubsub.publish('created', subscription)
+            return result
 
     def edit(self, subscription_uuid, new_subscription):
         with self.rw_session() as session:
@@ -63,6 +67,7 @@ class SubscriptionService(object):
             session.flush()
             subscription.update(**new_subscription)
             session.flush()
+            self.pubsub.publish('edited', new_subscription)
 
             session.expunge_all()
             return subscription
@@ -71,4 +76,5 @@ class SubscriptionService(object):
         with self.rw_session() as session:
             if session.query(Subscription).filter(Subscription.uuid == subscription_uuid).first() is None:
                 raise NoSuchSubscription(subscription_uuid)
-            return session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()
+            session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()
+            self.pubsub.publish('deleted', subscription_uuid)

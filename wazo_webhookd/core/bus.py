@@ -19,7 +19,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         self._bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(**global_config['bus'])
         self._exchange = kombu.Exchange(global_config['bus']['exchange_name'],
                                         type=global_config['bus']['exchange_type'])
-        self._queue = kombu.Queue(exclusive=True)
+        self._queue = kombu.Queue('webhookd-wazo-events', auto_delete=True)
 
     def run(self):
         logger.info("Running bus consumer")
@@ -29,6 +29,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             super(CoreBusConsumer, self).run()
 
     def get_consumers(self, Consumer, channel):
+        self._queue = self._queue.bind(channel)
         return [
             Consumer(self._queue, callbacks=[self._on_bus_message])
         ]
@@ -45,8 +46,14 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         return self._is_running
 
     def subscribe_to_all_events(self, callback):
-        self._queue.bindings.add(kombu.binding(self._exchange, routing_key='#'))
+        self._ensure_binding()
         self._all_events_pubsub.subscribe('all_events', callback)
+
+    def _ensure_binding(self):
+        if self._queue.is_bound:  # bound to a connection channel
+            self._queue.bind_to(self._exchange, routing_key='#')
+        else:
+            self._queue.bindings.add(kombu.binding(self._exchange, routing_key='#'))
 
     def _on_bus_message(self, body, message):
         event = body
