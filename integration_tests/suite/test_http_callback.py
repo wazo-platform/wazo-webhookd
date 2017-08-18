@@ -31,6 +31,15 @@ TEST_SUBSCRIPTION_VERIFY = {
                'verify_certificate': 'false'},
     'events': ['trigger']
 }
+TEST_SUBSCRIPTION_CONTENT_TYPE = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'post',
+               'body': 'keỳ: vàlue',
+               'content_type': 'text/yaml'},
+    'events': ['trigger']
+}
 SOME_ROUTING_KEY = 'routing-key'
 
 
@@ -115,6 +124,33 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_CONTENT_TYPE)
+    def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # TODO: Delete when /status will be implemented
+        import time
+        time.sleep(3)
+
+        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'POST',
+                        'path': '/test',
+                        'body': 'keỳ: vàlue',
+                        'headers': [{'name': 'Content-Type',
+                                     'values': ['text/yaml']}],
                     }
                 )
             except Exception:

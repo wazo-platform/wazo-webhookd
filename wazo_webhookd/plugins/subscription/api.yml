@@ -142,7 +142,10 @@ definitions:
       verify_certificate:
         description: May be `true`, `false` or a path to the certificate bundle
         type: string
-        default: true
+        default: 'true'
+      content_type:
+        description: Content-Type of the body
+        type: string
     required:
       - url
       - method
