@@ -19,7 +19,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         self._bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(**global_config['bus'])
         self._exchange = kombu.Exchange(global_config['bus']['exchange_name'],
                                         type=global_config['bus']['exchange_type'])
-        self._all_events_queue = kombu.Queue(exclusive=True, exchange=self._exchange, routing_key='#')
+        self._queue = kombu.Queue(exclusive=True)
 
     def run(self):
         logger.info("Running bus consumer")
@@ -30,7 +30,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
 
     def get_consumers(self, Consumer, channel):
         return [
-            Consumer(self._all_events_queue, callbacks=[self._on_bus_message])
+            Consumer(self._queue, callbacks=[self._on_bus_message])
         ]
 
     def on_connection_error(self, exc, interval):
@@ -45,6 +45,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         return self._is_running
 
     def subscribe_to_all_events(self, callback):
+        self._queue.bindings.add(kombu.binding(self._exchange, routing_key='#'))
         self._all_events_pubsub.subscribe('all_events', callback)
 
     def _on_bus_message(self, body, message):
