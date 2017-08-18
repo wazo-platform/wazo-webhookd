@@ -1,2 +1,3 @@
+db_uri: postgresql://asterisk:proformatique@postgres/asterisk
 service_discovery:
   enabled: false
