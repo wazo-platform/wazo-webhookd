@@ -14,7 +14,7 @@ class HTTPSubscriptionConfigSchema(Schema):
     method = fields.String(validate=OneOf(['head', 'get', 'post', 'put', 'delete']), required=True)
     url = fields.String(required=True)
     verify_certificate = fields.String(validate=Length(max=1024))
-    content_type = fields.String(validate=Length(max=128))
+    content_type = fields.String(validate=Length(max=256))
 
     @validates('verify_certificate')
     def validate_verify(self, data):
