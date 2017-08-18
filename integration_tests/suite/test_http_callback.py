@@ -23,6 +23,14 @@ TEST_SUBSCRIPTION_BODY = {
                'body': '{"body_keỳ": "body_vàlue"}'},
     'events': ['trigger']
 }
+TEST_SUBSCRIPTION_BODY_TEMPLATE = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get',
+               'body': '{{ event_name }} {{ event["variable"] }}'},
+    'events': ['trigger']
+}
 TEST_SUBSCRIPTION_VERIFY = {
     'name': 'test',
     'service': 'http',
@@ -41,6 +49,17 @@ TEST_SUBSCRIPTION_CONTENT_TYPE = {
     'events': ['trigger']
 }
 SOME_ROUTING_KEY = 'routing-key'
+
+
+def trigger_event(**kwargs):
+    return event(name='trigger', **kwargs)
+
+
+def event(**kwargs):
+    kwargs.setdefault('name', 'my-event-name')
+    kwargs.setdefault('data', {})
+    kwargs.setdefault('origin_uuid', 'my-origin-uuid')
+    return kwargs
 
 
 class TestHTTPCallback(BaseIntegrationTest):
@@ -66,7 +85,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         import time
         time.sleep(3)
 
-        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
             try:
@@ -91,7 +110,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         import time
         time.sleep(3)
 
-        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
             try:
@@ -100,6 +119,31 @@ class TestHTTPCallback(BaseIntegrationTest):
                         'method': 'GET',
                         'path': '/test',
                         'body': '{"body_keỳ": "body_vàlue"}',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_BODY_TEMPLATE)
+    def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # TODO: Delete when /status will be implemented
+        import time
+        time.sleep(3)
+
+        bus.publish(trigger_event(data={'variable': 'value'}), routing_key=SOME_ROUTING_KEY)
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': 'trigger value',
                     }
                 )
             except Exception:
@@ -116,7 +160,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         import time
         time.sleep(3)
 
-        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
             try:
@@ -140,7 +184,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         import time
         time.sleep(3)
 
-        bus.publish({'name': 'trigger'}, routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
             try:
