@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/wazo-pbx/wazo-webhookd.svg?branch=master)](https://travis-ci.org/wazo-pbx/wazo-webhookd)
 
-A micro service to manage plugins in the [Wazo PBX](http://wazo.community).
+A micro service to manage and trigger webhooks in the [Wazo PBX](http://wazo.community).
 
 
 wazo-webhookd allow the administrator to manage webhooks (incoming or outgoing)
