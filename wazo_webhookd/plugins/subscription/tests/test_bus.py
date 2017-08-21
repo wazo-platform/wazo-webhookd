@@ -107,4 +107,4 @@ class TestBusEventHandler(TestCase):
             'method': 'get',
             'url': 'http://callback-handler',
             'body': 'my-body',
-        }])
+        }, {'name': 'trigger'}])
