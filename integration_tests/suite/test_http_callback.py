@@ -7,6 +7,7 @@ from xivo_test_helpers.bus import BusClient
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.fixtures import subscription
+from .test_api.wait_strategy import ConnectedWaitStrategy
 
 TEST_SUBSCRIPTION = {
     'name': 'test',
@@ -72,6 +73,7 @@ def event(**kwargs):
 class TestHTTPCallback(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = ConnectedWaitStrategy()
 
     def make_third_party(self):
         url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
@@ -81,10 +83,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):
         third_party = self.make_third_party()
         bus = self.make_bus()
-
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
 
         bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
@@ -136,10 +134,6 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
-
         bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
@@ -160,10 +154,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(self, subscription):
         third_party = self.make_third_party()
         bus = self.make_bus()
-
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
 
         bus.publish(trigger_event(data={'variable': 'value'}), routing_key=SOME_ROUTING_KEY)
 
@@ -186,10 +176,6 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
-
         bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
@@ -209,10 +195,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(self, subscription):
         third_party = self.make_third_party()
         bus = self.make_bus()
-
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
 
         bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
 

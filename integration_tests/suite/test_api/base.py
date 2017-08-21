@@ -10,6 +10,8 @@ from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from xivo_test_helpers.auth import AuthClient
 from xivo_test_helpers.bus import BusClient
 
+from .wait_strategy import NoWaitStrategy
+
 VALID_TOKEN = 'valid-token'
 
 
@@ -17,10 +19,18 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     assets_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
     service = 'webhookd'
+    wait_strategy = NoWaitStrategy()
 
-    def make_webhookd(self, token):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        webhookd = cls.make_webhookd(VALID_TOKEN)
+        cls.wait_strategy.wait(webhookd)
+
+    @classmethod
+    def make_webhookd(cls, token):
         return WebhookdClient('localhost',
-                              self.service_port(9300, 'webhookd'),
+                              cls.service_port(9300, 'webhookd'),
                               token=token,
                               verify_certificate=False)
 
