@@ -26,7 +26,7 @@ TEST_SUBSCRIPTION_BODY = {
 TEST_SUBSCRIPTION_URL_TEMPLATE = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://third-party-http:1080/test/{{ event["variable"] }}',
+    'config': {'url': 'http://third-party-http:1080/test/{{ event["variable"] }}?{{ event|urlencode }}',
                'method': 'get'},
     'events': ['trigger']
 }
@@ -117,7 +117,8 @@ class TestHTTPCallback(BaseIntegrationTest):
         import time
         time.sleep(3)
 
-        bus.publish(trigger_event(data={'variable': 'value'}), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
+                    routing_key=SOME_ROUTING_KEY)
 
         def callback_received():
             try:
@@ -125,6 +126,10 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test/value',
+                        'queryStringParameters': [
+                            {'name': 'variable', 'value': 'value'},
+                            {'name': 'another_variable', 'value': 'another_value'}
+                        ]
                     }
                 )
             except Exception:
