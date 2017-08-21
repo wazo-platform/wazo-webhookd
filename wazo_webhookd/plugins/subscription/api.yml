@@ -15,7 +15,10 @@ paths:
           $ref: '#/responses/AnotherServiceUnavailable'
     post:
       summary: Subscribe to a HTTP callback (webhook)
-      description: '**Required ACL:** `webhookd.subscriptions.create`'
+      description: '**Required ACL:** `webhookd.subscriptions.create`
+      
+
+      For more information: http://documentation.wazo.community/en/stable/api_sdk/rest_api/webhookd/api.html'
       operationId: create
       parameters:
         - $ref: '#/parameters/SubscriptionBody'
