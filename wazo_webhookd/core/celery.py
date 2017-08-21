@@ -21,6 +21,7 @@ class CoreCeleryWorker():
             CELERY_DEFAULT_EXCHANGE=config['celery']['exchange_name'],
             CELERY_DEFAULT_QUEUE=config['celery']['queue_name'],
             CELERYD_HIJACK_ROOT_LOGGER=False,
+            CELERY_IGNORE_RESULT=True,
         )
         self._worker_pid_file = config['celery']['worker_pid_file']
 
