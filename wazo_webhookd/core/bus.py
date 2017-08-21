@@ -29,7 +29,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             super(CoreBusConsumer, self).run()
 
     def get_consumers(self, Consumer, channel):
-        self._queue = self._queue.bind(channel)
+        self._exchange.bind(channel).declare()
         return [
             Consumer(self._queue, callbacks=[self._on_bus_message])
         ]
@@ -50,8 +50,9 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         self._all_events_pubsub.subscribe('all_events', callback)
 
     def _ensure_binding(self):
-        if self._queue.is_bound:  # bound to a connection channel
-            self._queue.bind_to(self._exchange, routing_key='#')
+        if self.connection:
+            with self.connection.channel() as channel:
+                self._queue.bind(channel).bind_to(self._exchange, routing_key='#')
         else:
             self._queue.bindings.add(kombu.binding(self._exchange, routing_key='#'))
 
