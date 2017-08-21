@@ -6,11 +6,13 @@ from hamcrest import has_key
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
+from .test_api.wait_strategy import NoWaitStrategy
 
 
 class TestConfig(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_config(self):
         webhookd = self.make_webhookd(VALID_TOKEN)

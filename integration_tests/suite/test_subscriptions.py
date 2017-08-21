@@ -18,6 +18,7 @@ from xivo_test_helpers.hamcrest.raises import raises
 from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
 from .test_api.fixtures import subscription
+from .test_api.wait_strategy import NoWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 
@@ -43,6 +44,7 @@ INVALID_SUBSCRIPTION = {}
 class TestListSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_wrong_auth_when_list_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
@@ -73,6 +75,7 @@ class TestListSubscriptions(BaseIntegrationTest):
 class TestGetSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_get_subscription_then_503(self):
         webhookd = self.make_webhookd(VALID_TOKEN)
@@ -105,6 +108,7 @@ class TestGetSubscriptions(BaseIntegrationTest):
 class TestCreateSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_create_subscription_then_503(self):
         webhookd = self.make_webhookd(VALID_TOKEN)
@@ -140,6 +144,7 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 class TestEditSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_edit_subscription_then_503(self):
         webhookd = self.make_webhookd(VALID_TOKEN)
@@ -184,6 +189,7 @@ class TestEditSubscriptions(BaseIntegrationTest):
 class TestDeleteSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_delete_subscription_then_503(self):
         webhookd = self.make_webhookd(VALID_TOKEN)

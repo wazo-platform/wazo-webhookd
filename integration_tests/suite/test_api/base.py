@@ -10,7 +10,7 @@ from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from xivo_test_helpers.auth import AuthClient
 from xivo_test_helpers.bus import BusClient
 
-from .wait_strategy import NoWaitStrategy
+from .wait_strategy import WaitStrategy
 
 VALID_TOKEN = 'valid-token'
 
@@ -19,7 +19,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     assets_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
     service = 'webhookd'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = WaitStrategy()
 
     @classmethod
     def setUpClass(cls):

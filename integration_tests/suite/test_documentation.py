@@ -7,11 +7,13 @@ import pprint
 from hamcrest import assert_that, empty
 
 from .test_api.base import BaseIntegrationTest
+from .test_api.wait_strategy import NoWaitStrategy
 
 
 class TestDocumentation(BaseIntegrationTest):
 
     asset = 'documentation'
+    wait_strategy = NoWaitStrategy()
 
     def test_documentation_errors(self):
         api_url = 'https://webhookd:9300/1.0/api/api.yml'

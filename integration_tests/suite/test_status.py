@@ -9,11 +9,13 @@ from xivo_test_helpers import until
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.base import VALID_TOKEN
+from .test_api.wait_strategy import NoWaitStrategy
 
 
 class TestStatusRabbitMQStops(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_rabbitmq_stops_when_status_then_bus_consumer_status_fail(self):
         webhookd = self.make_webhookd(VALID_TOKEN)
@@ -35,6 +37,7 @@ class TestStatusRabbitMQStops(BaseIntegrationTest):
 class TestStatusAllOK(BaseIntegrationTest):
 
     asset = 'base'
+    wait_strategy = NoWaitStrategy()
 
     def test_given_rabbitmq_when_status_then_status_ok(self):
         webhookd = self.make_webhookd(VALID_TOKEN)

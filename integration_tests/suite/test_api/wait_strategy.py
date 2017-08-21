@@ -8,7 +8,7 @@ from hamcrest import (
 from xivo_test_helpers import until
 
 
-class WaitStrategy(object):
+class WaitStrategy:
 
     def wait(self, webhookd):
         raise NotImplementedError()
