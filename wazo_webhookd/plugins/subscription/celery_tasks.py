@@ -3,15 +3,24 @@
 
 import requests
 
+from jinja2 import Environment
+
 
 def load(celery_app):
 
     @celery_app.task
-    def http_callback(options):
+    def http_callback(options, event):
         headers = {}
 
         body = options.get('body')
         if body:
+            template = body
+            values = {
+                'event_name': event['name'],
+                'event': event['data'],
+                'wazo_uuid': event['origin_uuid'],
+            }
+            body = Environment().from_string(template).render(values)
             body = body.encode('utf-8')
 
         verify = options.get('verify_certificate')

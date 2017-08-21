@@ -139,6 +139,7 @@ definitions:
           - delete
       body:
         type: string
+        description: Jinja2 template, where variables come from the event triggering the webhook
       verify_certificate:
         description: May be `true`, `false` or a path to the certificate bundle
         type: string
