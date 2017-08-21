@@ -15,6 +15,7 @@ class TestBusEventHandler(TestCase):
 
     def test_given_one_non_http_subscription_when_event_then_no_http_callback(self):
         task = Mock()
+        bus = Mock()
         celery = Mock()
         celery.tasks = defaultdict(lambda: task)
         subscription_config = {
@@ -24,7 +25,7 @@ class TestBusEventHandler(TestCase):
         subscription = Mock(service='non-http', events=['trigger'], config=subscription_config)
         service = Mock()
         service.list.return_value = [subscription]
-        handler = SubscriptionBusEventHandler(celery, service)
+        handler = SubscriptionBusEventHandler(bus, celery, service)
 
         handler.on_wazo_event({'name': 'trigger'})
 
@@ -32,9 +33,10 @@ class TestBusEventHandler(TestCase):
 
     def test_given_two_http_subscription_when_event_then_two_http_callback(self):
         task = Mock()
+        bus = Mock()
         celery = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(celery, service)
+        handler = SubscriptionBusEventHandler(bus, celery, service)
         celery.tasks = defaultdict(lambda: task)
         subscription_config = {
             'url': 'http://callback-handler',
@@ -49,9 +51,10 @@ class TestBusEventHandler(TestCase):
 
     def test_given_http_subscription_when_two_events_then_two_http_callback(self):
         task = Mock()
+        bus = Mock()
         celery = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(celery, service)
+        handler = SubscriptionBusEventHandler(bus, celery, service)
         celery.tasks = defaultdict(lambda: task)
         subscription_config = {
             'url': 'http://callback-handler',
@@ -67,9 +70,10 @@ class TestBusEventHandler(TestCase):
 
     def test_given_http_subscription_when_non_triggering_event_then_no_http_callback(self):
         task = Mock()
+        bus = Mock()
         celery = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(celery, service)
+        handler = SubscriptionBusEventHandler(bus, celery, service)
         celery.tasks = defaultdict(lambda: task)
         subscription_config = {
             'url': 'http://callback-handler',
@@ -84,9 +88,10 @@ class TestBusEventHandler(TestCase):
 
     def test_given_http_subscription_with_body_when_event_then_http_callback_with_body(self):
         task = Mock()
+        bus = Mock()
         celery = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(celery, service)
+        handler = SubscriptionBusEventHandler(bus, celery, service)
         celery.tasks = defaultdict(lambda: task)
         subscription_config = {
             'url': 'http://callback-handler',
