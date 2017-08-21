@@ -1,5 +1,5 @@
 paths:
-  status:
+  /status:
     get:
       summary: Print infos about internal status of wazo-webhookd
       description: '**Required ACL:** `webhookd.status.read`'
