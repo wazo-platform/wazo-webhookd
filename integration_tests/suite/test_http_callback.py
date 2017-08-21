@@ -23,6 +23,13 @@ TEST_SUBSCRIPTION_BODY = {
                'body': '{"body_keỳ": "body_vàlue"}'},
     'events': ['trigger']
 }
+TEST_SUBSCRIPTION_URL_TEMPLATE = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test/{{ event["variable"] }}?{{ event|urlencode }}',
+               'method': 'get'},
+    'events': ['trigger']
+}
 TEST_SUBSCRIPTION_BODY_TEMPLATE = {
     'name': 'test',
     'service': 'http',
@@ -94,6 +101,35 @@ class TestHTTPCallback(BaseIntegrationTest):
                         'method': 'GET',
                         'path': '/test',
                         'body': '',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_URL_TEMPLATE)
+    def test_given_http_subscription_with_url_template_when_bus_event_then_callback_with_url_templated(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # TODO: Delete when /status will be implemented
+        import time
+        time.sleep(3)
+
+        bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
+                    routing_key=SOME_ROUTING_KEY)
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test/value',
+                        'queryStringParameters': [
+                            {'name': 'variable', 'value': 'value'},
+                            {'name': 'another_variable', 'value': 'another_value'}
+                        ]
                     }
                 )
             except Exception:
