@@ -9,6 +9,7 @@ from multiprocessing import Process
 from threading import Thread
 from xivo.consul_helpers import ServiceCatalogRegistration
 from wazo_webhookd.core import plugin_manager
+from wazo_webhookd.core import service_manager
 from wazo_webhookd.core.bus import CoreBusConsumer
 from wazo_webhookd.core.celery import CoreCeleryWorker
 from wazo_webhookd.core.celery import app as celery_app
@@ -31,6 +32,10 @@ class Controller:
         self._bus_consumer = CoreBusConsumer(config)
         self._celery_worker = CoreCeleryWorker(config)
         self.rest_api = CoreRestApi(config)
+        service_load_args = [{
+            'api': api,
+        }]
+        self._service_manager = service_manager.load_services(config['enabled_services'], service_load_args)
         self._load_plugins(config)
 
     def run(self):
@@ -60,6 +65,7 @@ class Controller:
             'bus_consumer': self._bus_consumer,
             'celery': celery_app,
             'config': global_config,
+            'service_manager': self._service_manager,
         }]
         plugin_manager.load_plugins(global_config['enabled_plugins'], load_args)
 

@@ -90,5 +90,9 @@ service_discovery:
 enabled_plugins:
   api: true
   config: true
+  services: true
   status: true
   subscriptions: true
+
+enabled_services:
+  http: True

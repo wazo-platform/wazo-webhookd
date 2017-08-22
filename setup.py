@@ -25,6 +25,10 @@ setup(
             'config = wazo_webhookd.plugins.config.plugin:Plugin',
             'status = wazo_webhookd.plugins.status.plugin:Plugin',
             'subscriptions = wazo_webhookd.plugins.subscription.plugin:Plugin',
+            'services = wazo_webhookd.plugins.services.plugin:Plugin',
         ],
+        'wazo_webhookd.services': [
+            'http = wazo_webhookd.services.http.plugin:Plugin',
+        ]
     },
 )
