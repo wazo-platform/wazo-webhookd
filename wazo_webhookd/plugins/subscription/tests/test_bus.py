@@ -16,16 +16,17 @@ class TestBusEventHandler(TestCase):
     def test_given_one_non_http_subscription_when_event_then_no_http_callback(self):
         task = Mock()
         bus = Mock()
-        celery = Mock()
-        celery.tasks = defaultdict(lambda: task)
+        subscription_service = Mock()
+        service = Mock()
+        service.obj.callback.return_value = task
+        service_manager = {'http': service}
+        handler = SubscriptionBusEventHandler(bus, service_manager, subscription_service)
         subscription_config = {
             'url': 'http://callback-handler',
             'method': 'get'
         }
         subscription = Mock(service='non-http', events=['trigger'], config=subscription_config)
-        service = Mock()
-        service.list.return_value = [subscription]
-        handler = SubscriptionBusEventHandler(bus, celery, service)
+        subscription_service.list.return_value = [subscription]
 
         handler.on_wazo_event({'name': 'trigger'})
 
@@ -34,16 +35,17 @@ class TestBusEventHandler(TestCase):
     def test_given_two_http_subscription_when_event_then_two_http_callback(self):
         task = Mock()
         bus = Mock()
-        celery = Mock()
+        subscription_service = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(bus, celery, service)
-        celery.tasks = defaultdict(lambda: task)
+        service.obj.callback.return_value = task
+        service_manager = {'http': service}
+        handler = SubscriptionBusEventHandler(bus, service_manager, subscription_service)
         subscription_config = {
             'url': 'http://callback-handler',
             'method': 'get'
         }
         subscription = Mock(service='http', config=subscription_config, events=['trigger'])
-        service.list.return_value = [subscription] * 2
+        subscription_service.list.return_value = [subscription] * 2
 
         handler.on_wazo_event({'name': 'trigger'})
 
@@ -52,16 +54,17 @@ class TestBusEventHandler(TestCase):
     def test_given_http_subscription_when_two_events_then_two_http_callback(self):
         task = Mock()
         bus = Mock()
-        celery = Mock()
+        subscription_service = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(bus, celery, service)
-        celery.tasks = defaultdict(lambda: task)
+        service.obj.callback.return_value = task
+        service_manager = {'http': service}
+        handler = SubscriptionBusEventHandler(bus, service_manager, subscription_service)
         subscription_config = {
             'url': 'http://callback-handler',
             'method': 'get'
         }
         subscription = Mock(service='http', config=subscription_config, events=['trigger'])
-        service.list.return_value = [subscription]
+        subscription_service.list.return_value = [subscription]
 
         handler.on_wazo_event({'name': 'trigger'})
         handler.on_wazo_event({'name': 'trigger'})
@@ -71,16 +74,17 @@ class TestBusEventHandler(TestCase):
     def test_given_http_subscription_when_non_triggering_event_then_no_http_callback(self):
         task = Mock()
         bus = Mock()
-        celery = Mock()
+        subscription_service = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(bus, celery, service)
-        celery.tasks = defaultdict(lambda: task)
+        service.obj.callback.return_value = task
+        service_manager = {'http': service}
+        handler = SubscriptionBusEventHandler(bus, service_manager, subscription_service)
         subscription_config = {
             'url': 'http://callback-handler',
             'method': 'get'
         }
         subscription = Mock(service='http', config=subscription_config, events=['trigger'])
-        service.list.return_value = [subscription]
+        subscription_service.list.return_value = [subscription]
 
         handler.on_wazo_event({'name': 'no-trigger'})
 
@@ -89,17 +93,18 @@ class TestBusEventHandler(TestCase):
     def test_given_http_subscription_with_body_when_event_then_http_callback_with_body(self):
         task = Mock()
         bus = Mock()
-        celery = Mock()
+        subscription_service = Mock()
         service = Mock()
-        handler = SubscriptionBusEventHandler(bus, celery, service)
-        celery.tasks = defaultdict(lambda: task)
+        service.obj.callback.return_value = task
+        service_manager = {'http': service}
+        handler = SubscriptionBusEventHandler(bus, service_manager, subscription_service)
         subscription_config = {
             'url': 'http://callback-handler',
             'method': 'get',
             'body': 'my-body',
         }
         subscription = Mock(service='http', config=subscription_config, events=['trigger'])
-        service.list.return_value = [subscription]
+        subscription_service.list.return_value = [subscription]
 
         handler.on_wazo_event({'name': 'trigger'})
 
