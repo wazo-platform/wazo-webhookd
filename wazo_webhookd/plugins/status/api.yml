@@ -1,0 +1,28 @@
+paths:
+  /status:
+    get:
+      summary: Print infos about internal status of wazo-webhookd
+      description: '**Required ACL:** `webhookd.status.read`'
+      tags:
+        - status
+      responses:
+        '200':
+          description: The internal infos of wazo-webhookd
+          schema:
+            $ref: '#/definitions/StatusSummary'
+definitions:
+  StatusSummary:
+    type: object
+    properties:
+      connections:
+        $ref: '#/definitions/ConnectionsStatusSummary'
+  ConnectionsStatusSummary:
+    type: object
+    properties:
+      bus_consumer:
+        $ref: '#/definitions/StatusValue'
+  StatusValue:
+    type: string
+    enum:
+      - fail
+      - ok
