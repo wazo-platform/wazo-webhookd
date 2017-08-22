@@ -34,6 +34,7 @@ class Controller:
         self.rest_api = CoreRestApi(config)
         service_load_args = [{
             'api': api,
+            'celery': celery_app,
         }]
         self._service_manager = service_manager.load_services(config['enabled_services'], service_load_args)
         self._load_plugins(config)
@@ -63,7 +64,6 @@ class Controller:
         load_args = [{
             'api': api,
             'bus_consumer': self._bus_consumer,
-            'celery': celery_app,
             'config': global_config,
             'service_manager': self._service_manager,
         }]

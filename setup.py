@@ -28,7 +28,7 @@ setup(
             'services = wazo_webhookd.plugins.services.plugin:Plugin',
         ],
         'wazo_webhookd.services': [
-            'http = wazo_webhookd.services.http.plugin:Plugin',
+            'http = wazo_webhookd.services.http.plugin:Service',
         ]
     },
 )
