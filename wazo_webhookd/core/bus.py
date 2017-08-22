@@ -15,6 +15,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
     def __init__(self, global_config):
         self._all_events_pubsub = Pubsub()
         self._is_running = False
+        self.connection = None
 
         self._bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(**global_config['bus'])
         self._exchange = kombu.Exchange(global_config['bus']['exchange_name'],
