@@ -16,5 +16,8 @@ paths:
 definitions:
   Services:
     type: object
-    description: The keys are the service names.
+    properties:
+      services:
+        description: The keys are the service names.
+        type: object
 
