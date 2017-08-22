@@ -1,6 +1,6 @@
 .PHONY: test-setup test egg-info pull-images webhookd db
 
-test-setup: pull-images webhookd db
+test-setup: egg-info pull-images webhookd db
 
 test:
 	nosetests -x

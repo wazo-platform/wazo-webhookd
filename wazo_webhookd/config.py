@@ -69,8 +69,12 @@ _DEFAULT_CONFIG = {
     'enabled_plugins': {
         'api': True,
         'config': True,
+        'services': True,
         'status': True,
         'subscriptions': True,
+    },
+    'enabled_services': {
+        'http': True,
     },
 }
 

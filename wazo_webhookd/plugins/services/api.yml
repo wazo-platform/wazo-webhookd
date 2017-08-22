@@ -1,0 +1,23 @@
+paths:
+  /subscriptions/services:
+    get:
+      produces:
+        - application/json
+      summary: Show the available subscription services
+      description: '**Required ACL:** `webhookd.subscriptions.services.read`'
+      operationId: getSubscriptionsServices
+      tags:
+        - subscriptions
+      responses:
+        200:
+          description: The available services
+          schema:
+            $ref: '#/definitions/Services'
+definitions:
+  Services:
+    type: object
+    properties:
+      services:
+        description: The keys are the service names.
+        type: object
+

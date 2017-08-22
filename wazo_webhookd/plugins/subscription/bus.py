@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 
 class SubscriptionBusEventHandler:
 
-    def __init__(self, bus_consumer, celery_app, subscription_service):
+    def __init__(self, bus_consumer, service_manager, subscription_service):
         self._bus_consumer = bus_consumer
-        self._celery_app = celery_app
         self._service = subscription_service
         self._service.pubsub.subscribe('created', self.on_subscription_created)
+        self._service_manager = service_manager
         self._is_subscribed = False
 
     def subscribe(self, bus_consumer):
@@ -29,8 +29,10 @@ class SubscriptionBusEventHandler:
             self._bus_consumer.subscribe_to_all_events(self.on_wazo_event)
 
     def on_wazo_event(self, event):
-        http_task = self._celery_app.tasks['wazo_webhookd.plugins.subscription.celery_tasks.http_callback']
         for subscription in self._service.list():
             if event['name'] in subscription.events:
-                if subscription.service == 'http':
-                    http_task.apply_async([subscription.config, event])
+                try:
+                    service = self._service_manager[subscription.service]
+                except KeyError:
+                    continue
+                service.obj.callback().apply_async([subscription.config, event])

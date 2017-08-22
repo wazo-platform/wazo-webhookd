@@ -41,3 +41,5 @@ def load(celery_app):
                          data=body,
                          verify=verify,
                          headers=headers)
+
+    return http_callback
