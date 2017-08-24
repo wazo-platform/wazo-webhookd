@@ -7,9 +7,8 @@ import signal
 from functools import partial
 from multiprocessing import Process
 from threading import Thread
+from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
-from wazo_webhookd.core import plugin_manager
-from wazo_webhookd.core import service_manager
 from wazo_webhookd.core.bus import CoreBusConsumer
 from wazo_webhookd.core.celery import CoreCeleryWorker
 from wazo_webhookd.core.celery import app as celery_app
@@ -32,12 +31,24 @@ class Controller:
         self._bus_consumer = CoreBusConsumer(config)
         self._celery_worker = CoreCeleryWorker(config)
         self.rest_api = CoreRestApi(config)
-        service_load_args = [{
-            'api': api,
-            'celery': celery_app,
-        }]
-        self._service_manager = service_manager.load_services(config['enabled_services'], service_load_args)
-        self._load_plugins(config)
+        self._service_manager = plugin_helpers.load(
+            namespace='wazo_webhookd.services',
+            names=config['enabled_services'],
+            dependencies={
+                'api': api,
+                'celery': celery_app,
+            }
+        )
+        plugin_helpers.load(
+            namespace='wazo_webhookd.plugins',
+            names=config['enabled_plugins'],
+            dependencies={
+                'api': api,
+                'bus_consumer': self._bus_consumer,
+                'config': config,
+                'service_manager': self._service_manager,
+            }
+        )
 
     def run(self):
         logger.info('wazo-webhookd starting...')
@@ -59,15 +70,6 @@ class Controller:
     def stop(self, reason):
         logger.warning('Stopping wazo-webhookd: %s', reason)
         self.rest_api.stop()
-
-    def _load_plugins(self, global_config):
-        load_args = [{
-            'api': api,
-            'bus_consumer': self._bus_consumer,
-            'config': global_config,
-            'service_manager': self._service_manager,
-        }]
-        plugin_manager.load_plugins(global_config['enabled_plugins'], load_args)
 
 
 def _sigterm_handler(controller, signum, frame):
