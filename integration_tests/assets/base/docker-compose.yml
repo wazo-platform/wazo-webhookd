@@ -40,6 +40,7 @@ webhookd:
     - "../../..:/usr/src/wazo-webhookd"
     - "./etc/wazo-webhookd:/etc/wazo-webhookd"
     - "./ssl:/usr/local/share/ssl"
+    # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/usr/local/lib/python3.4/site-packages/xivo"
   ports:
     - "9300"
   links:
