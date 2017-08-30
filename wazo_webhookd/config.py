@@ -89,7 +89,7 @@ def load_config(args):
 def _get_reinterpreted_raw_values(*configs):
     config = ChainMap(*configs)
     return dict(
-        log_level=get_log_level_by_name(config['log_level']),
+        log_level=get_log_level_by_name('debug' if config['debug'] else config['log_level']),
     )
 
 

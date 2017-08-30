@@ -14,7 +14,7 @@ class CoreCeleryWorker():
 
     def __init__(self, config):
         app.conf.update(
-            CELERYD_LOG_LEVEL='debug' if config['debug'] else config['log_level'],
+            CELERYD_LOG_LEVEL=logging.getLevelName(config['log_level']),
             CELERY_TASK_SERIALIZER='json',
             CELERY_ACCEPT_CONTENT=['json'],
             BROKER_URL=config['celery']['broker'],
