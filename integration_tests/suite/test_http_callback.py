@@ -5,6 +5,7 @@ from mockserver import MockServerClient
 from xivo_test_helpers import until
 
 from .test_api.base import BaseIntegrationTest
+from .test_api.base import VALID_TOKEN
 from .test_api.fixtures import subscription
 from .test_api.wait_strategy import ConnectedWaitStrategy
 
@@ -88,6 +89,33 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
+        third_party = self.make_third_party()
+
+        self.restart_service('rabbitmq')
+
+        ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
+
+        bus = self.make_bus()
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME})
