@@ -116,7 +116,7 @@ definitions:
       service:
         type: string
       config:
-        type: object
+        $ref: '#/definitions/ServiceConfig'
       events:
         type: array
         items:
@@ -127,6 +127,10 @@ definitions:
       - service
       - config
       - events
+  ServiceConfig:
+    type: object
+    additionalProperties:
+      type: string
   HTTPServiceConfig:
     type: object
     properties:
