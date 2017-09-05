@@ -88,7 +88,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -114,7 +116,8 @@ class TestHTTPCallback(BaseIntegrationTest):
         time.sleep(3)
 
         bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
-                    routing_key=SOME_ROUTING_KEY)
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -138,7 +141,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -159,7 +164,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(data={'variable': 'value'}), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(data={'variable': 'value'}),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -180,7 +187,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -200,7 +207,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
