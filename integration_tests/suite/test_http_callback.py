@@ -3,7 +3,6 @@
 
 from mockserver import MockServerClient
 from xivo_test_helpers import until
-from xivo_test_helpers.bus import BusClient
 
 from .test_api.base import BaseIntegrationTest
 from .test_api.fixtures import subscription
@@ -57,10 +56,11 @@ TEST_SUBSCRIPTION_CONTENT_TYPE = {
     'events': ['trigger']
 }
 SOME_ROUTING_KEY = 'routing-key'
+TRIGGER_EVENT_NAME = 'trigger'
 
 
 def trigger_event(**kwargs):
-    return event(name='trigger', **kwargs)
+    return event(name=TRIGGER_EVENT_NAME, **kwargs)
 
 
 def event(**kwargs):
@@ -78,6 +78,10 @@ class TestHTTPCallback(BaseIntegrationTest):
     def make_third_party(self):
         url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         return MockServerClient(url)
+
+    def setUp(self):
+        third_party = self.make_third_party()
+        third_party.reset()
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):
