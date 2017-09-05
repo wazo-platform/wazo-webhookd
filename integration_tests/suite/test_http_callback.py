@@ -111,10 +111,6 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
-
         bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME})
