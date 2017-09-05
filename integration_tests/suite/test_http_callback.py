@@ -1,6 +1,8 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+import time
+
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
@@ -115,11 +117,12 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         webhookd.subscriptions.delete(subscription_to_remove['uuid'])
+        time.sleep(1)  # wait for the subscription to be removed
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
+        def callback_received_once():
             try:
                 third_party.verify(
                     request={
@@ -133,7 +136,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             except Exception:
                 raise AssertionError()
 
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(callback_received_once, tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
