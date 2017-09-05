@@ -12,6 +12,7 @@ class SubscriptionBusEventHandler:
         self._bus_consumer = bus_consumer
         self._service = subscription_service
         self._service.pubsub.subscribe('created', self.on_subscription_created)
+        self._service.pubsub.subscribe('deleted', self.on_subscription_deleted)
         self._service_manager = service_manager
 
     def subscribe(self, bus_consumer):
@@ -20,6 +21,9 @@ class SubscriptionBusEventHandler:
 
     def on_subscription_created(self, subscription):
         self._add_one_subscription_to_bus(subscription)
+
+    def on_subscription_deleted(self, subscription):
+        self._bus_consumer.unsubscribe_from_event_names(subscription.uuid)
 
     def _add_one_subscription_to_bus(self, subscription):
         try:
@@ -33,4 +37,4 @@ class SubscriptionBusEventHandler:
         def callback(body, _):
             service.obj.callback().apply_async([config, body])
 
-        self._bus_consumer.subscribe_to_event_names(subscription.events, callback)
+        self._bus_consumer.subscribe_to_event_names(subscription.uuid, subscription.events, callback)

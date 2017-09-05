@@ -108,6 +108,34 @@ class TestHTTPCallback(BaseIntegrationTest):
         until.assert_(callback_received, tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_two_http_subscription_when_one_deleted_then_one_http_callback(self, subscription, subscription_to_remove):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        webhookd.subscriptions.delete(subscription_to_remove['uuid'])
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
         third_party = self.make_third_party()
 

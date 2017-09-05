@@ -6,11 +6,14 @@ import kombu
 import kombu.mixins
 import threading
 
+from collections import namedtuple
 from contextlib import contextmanager
 from werkzeug.datastructures import MultiDict
 from xivo.pubsub import Pubsub
 
 logger = logging.getLogger(__name__)
+
+ConsumerProperties = namedtuple('ConsumerProperties', ['event_names', 'callback'])
 
 
 class CoreBusConsumer(kombu.mixins.ConsumerMixin):
@@ -25,8 +28,9 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
                                                  type=global_config['bus']['exchange_type'])
         self._exchange = kombu.Exchange(global_config['bus']['exchange_headers_name'],
                                         type='headers')
-        self._consumers = []
+        self._consumers = {}
         self._new_consumers = {}
+        self._stale_consumers = set()
         self._new_consumers_lock = threading.Lock()
 
     def run(self):
@@ -73,7 +77,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
 
     def on_iteration(self):
         with self._new_consumers_lock:
-            for event_names, callback in self._new_consumers.items():
+            for uuid, (event_names, callback) in self._new_consumers.items():
                 logger.debug('Adding consumer for events %s', event_names)
 
                 binding_args = MultiDict()
@@ -88,14 +92,29 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
                                           queues=queue,
                                           callbacks=[callback])
                 consumer.consume()
-                self._consumers.append(consumer)
+                self._consumers[uuid] = consumer
             self._new_consumers = {}
+
+            for uuid in self._stale_consumers:
+                try:
+                    consumer = self._consumers.pop(uuid)
+                except KeyError:
+                    logger.warning('Tried to remove unknown consumer (uuid: %s)', uuid)
+                    continue
+
+                consumer.cancel()
+            self._stale_consumers.clear()
 
     def is_running(self):
         return self._is_running
 
-    def subscribe_to_event_names(self, event_names, callback):
-        logger.debug('Subscribing new callback to events %s', event_names)
-        self._new_consumers_lock.acquire()
-        self._new_consumers[tuple(event_names)] = callback
-        self._new_consumers_lock.release()
+    def subscribe_to_event_names(self, uuid, event_names, callback):
+        logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
+        with self._new_consumers_lock:
+            self._new_consumers[uuid] = ConsumerProperties(tuple(event_names), callback)
+
+    def unsubscribe_from_event_names(self, uuid):
+        logger.debug('Unsubscribing callback %s', uuid)
+        with self._new_consumers_lock:
+            self._new_consumers.pop(uuid, None)
+            self._stale_consumers.add(uuid)
