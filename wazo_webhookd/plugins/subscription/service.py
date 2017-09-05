@@ -53,9 +53,10 @@ class SubscriptionService(object):
 
     def create(self, subscription):
         with self.rw_session() as session:
-            result = session.add(Subscription(**subscription))
-            self.pubsub.publish('created', subscription)
-            return result
+            new_subscription = Subscription(**subscription)
+            session.add(new_subscription)
+            self.pubsub.publish('created', new_subscription)
+            return new_subscription
 
     def edit(self, subscription_uuid, new_subscription):
         with self.rw_session() as session:
@@ -67,14 +68,15 @@ class SubscriptionService(object):
             session.flush()
             subscription.update(**new_subscription)
             session.flush()
-            self.pubsub.publish('edited', new_subscription)
+            self.pubsub.publish('edited', subscription)
 
             session.expunge_all()
             return subscription
 
     def delete(self, subscription_uuid):
         with self.rw_session() as session:
-            if session.query(Subscription).filter(Subscription.uuid == subscription_uuid).first() is None:
+            subscription = session.query(Subscription).get(subscription_uuid)
+            if subscription is None:
                 raise NoSuchSubscription(subscription_uuid)
             session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()
-            self.pubsub.publish('deleted', subscription_uuid)
+            self.pubsub.publish('deleted', subscription)
