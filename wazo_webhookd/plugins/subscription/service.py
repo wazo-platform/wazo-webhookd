@@ -58,7 +58,7 @@ class SubscriptionService(object):
             self.pubsub.publish('created', new_subscription)
             return new_subscription
 
-    def edit(self, subscription_uuid, new_subscription):
+    def update(self, subscription_uuid, new_subscription):
         with self.rw_session() as session:
             subscription = session.query(Subscription).get(subscription_uuid)
             if subscription is None:
@@ -68,7 +68,7 @@ class SubscriptionService(object):
             session.flush()
             subscription.update(**new_subscription)
             session.flush()
-            self.pubsub.publish('edited', subscription)
+            self.pubsub.publish('updated', subscription)
 
             session.expunge_all()
             return subscription
