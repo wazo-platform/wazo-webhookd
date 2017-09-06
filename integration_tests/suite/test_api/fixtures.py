@@ -19,6 +19,7 @@ def subscription(subscription_args):
                 result = decorated(self, *args, **kwargs)
             finally:
                 try:
+                    webhookd = self.make_webhookd(VALID_TOKEN)
                     webhookd.subscriptions.delete(new_subscription['uuid'])
                 except WebhookdError as e:
                     if e.status_code != 404:

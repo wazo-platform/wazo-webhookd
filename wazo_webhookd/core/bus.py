@@ -74,15 +74,11 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
 
     def on_iteration(self):
         while self._new_consumers:
-            uuid = self._new_consumers.pop()
+            uuid, consumer = self._new_consumers.pop()
             logger.debug('Adding consumer (uuid: %s)', uuid)
-            try:
-                consumer = self._consumers[uuid]
-            except KeyError:
-                logger.error('%s: consumer not found')
-                continue
             consumer.revive(self._active_connection)
             consumer.consume()
+            self._consumers[uuid] = consumer
 
         while self._updated_consumers:
             uuid, new_binding = self._updated_consumers.pop()
@@ -117,8 +113,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
         queue = kombu.Queue(exclusive=True, bindings=[self._create_binding(event_names)])
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
-        self._consumers[uuid] = consumer
-        self._new_consumers.append(uuid)
+        self._new_consumers.append((uuid, consumer))
 
     def change_subscription(self, uuid, event_names):
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
