@@ -76,6 +76,7 @@ class SubscriptionSchema(Schema):
     name = fields.String(validate=Length(max=128), required=True)
     service = fields.String(validate=Length(max=128), allow_none=False, required=True)
     events = fields.List(fields.String(validate=Length(max=128), allow_none=False), allow_none=False, required=True)
+    events_user_uuid = fields.String(validate=Length(equal=36), missing=None)
     config = ConfigField(allow_none=False, required=True)
 
 
