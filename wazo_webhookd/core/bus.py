@@ -28,6 +28,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         self._consumers = {}
         self._new_consumers = deque()
         self._stale_consumers = deque()
+        self._updated_consumers = deque()
 
     def run(self):
         logger.info("Running bus consumer")
@@ -83,6 +84,21 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             consumer.revive(self._active_connection)
             consumer.consume()
 
+        while self._updated_consumers:
+            uuid, new_binding = self._updated_consumers.pop()
+            logger.debug('Changing consumer binding (uuid: %s)', uuid)
+            try:
+                consumer = self._consumers[uuid]
+            except KeyError:
+                logger.error('%s: consumer not found')
+                continue
+
+            for queue in consumer.queues:
+                new_binding.bind(queue)
+                for binding in queue.bindings:
+                    binding.unbind(queue)
+                queue.bindings = [new_binding]
+
         while self._stale_consumers:
             uuid = self._stale_consumers.pop()
             logger.debug('Removing consumer (uuid: %s)', uuid)
@@ -99,19 +115,25 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
 
     def subscribe_to_event_names(self, uuid, event_names, callback):
         logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
-        binding_args = MultiDict()
-        binding_args['x-match'] = 'any'
-        for event_name in event_names:
-            binding_args['name'] = event_name
-        queue = kombu.Queue(exclusive=True,
-                            exchange=self._exchange,
-                            binding_arguments=binding_args)
-        consumer = kombu.Consumer(channel=None,
-                                  queues=queue,
-                                  callbacks=[callback])
+        queue = kombu.Queue(exclusive=True, bindings=[self._create_binding(event_names)])
+        consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._consumers[uuid] = consumer
         self._new_consumers.append(uuid)
+
+    def change_subscription(self, uuid, event_names):
+        logger.debug('Changing subscription for callback (uuid: %s)', uuid)
+        self._updated_consumers.append((uuid, self._create_binding(event_names)))
 
     def unsubscribe_from_event_names(self, uuid):
         logger.debug('Unsubscribing callback (uuid: %s)', uuid)
         self._stale_consumers.append(uuid)
+
+    def _create_binding(self, event_names):
+        arguments = MultiDict()
+        arguments['x-match'] = 'any'
+        for event_name in event_names:
+            arguments['name'] = event_name
+
+        return kombu.binding(exchange=self._exchange,
+                             arguments=arguments,
+                             unbind_arguments=arguments)

@@ -58,8 +58,18 @@ TEST_SUBSCRIPTION_CONTENT_TYPE = {
                'content_type': 'text/yaml'},
     'events': ['trigger']
 }
+TEST_SUBSCRIPTION_NO_TRIGGER = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get'},
+    'events': ['dont-trigger']
+}
 SOME_ROUTING_KEY = 'routing-key'
 TRIGGER_EVENT_NAME = 'trigger'
+ANOTHER_TRIGGER_EVENT_NAME = 'another-trigger'
+DONT_TRIGGER_EVENT_NAME = 'dont-trigger'
+STILL_DONT_TRIGGER_EVENT_NAME = 'still-dont-trigger'
 
 
 def trigger_event(**kwargs):
@@ -103,6 +113,40 @@ class TestHTTPCallback(BaseIntegrationTest):
                         'path': '/test',
                         'body': '',
                     }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        webhookd = self.make_webhookd(VALID_TOKEN)
+        old_trigger_name = TRIGGER_EVENT_NAME
+
+        subscription['events'] = [ANOTHER_TRIGGER_EVENT_NAME]
+        webhookd.subscriptions.update(subscription['uuid'], subscription)
+        time.sleep(1)  # wait for the subscription to be updated
+
+        bus.publish(event(name=old_trigger_name),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': old_trigger_name})
+        bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': ANOTHER_TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    },
+                    count=1,
+                    exact=True
                 )
             except Exception:
                 raise AssertionError()

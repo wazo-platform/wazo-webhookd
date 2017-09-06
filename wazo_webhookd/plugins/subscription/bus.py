@@ -12,6 +12,7 @@ class SubscriptionBusEventHandler:
         self._bus_consumer = bus_consumer
         self._service = subscription_service
         self._service.pubsub.subscribe('created', self.on_subscription_created)
+        self._service.pubsub.subscribe('updated', self.on_subscription_updated)
         self._service.pubsub.subscribe('deleted', self.on_subscription_deleted)
         self._service_manager = service_manager
 
@@ -21,6 +22,9 @@ class SubscriptionBusEventHandler:
 
     def on_subscription_created(self, subscription):
         self._add_one_subscription_to_bus(subscription)
+
+    def on_subscription_updated(self, subscription):
+        self._bus_consumer.change_subscription(subscription.uuid, subscription.events)
 
     def on_subscription_deleted(self, subscription):
         self._bus_consumer.unsubscribe_from_event_names(subscription.uuid)
