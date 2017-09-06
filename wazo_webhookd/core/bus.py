@@ -7,7 +7,6 @@ import kombu.mixins
 
 from collections import deque
 from contextlib import contextmanager
-from werkzeug.datastructures import MultiDict
 from xivo.pubsub import Pubsub
 
 logger = logging.getLogger(__name__)
@@ -81,7 +80,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             self._consumers[uuid] = consumer
 
         while self._updated_consumers:
-            uuid, new_binding = self._updated_consumers.pop()
+            uuid, new_bindings = self._updated_consumers.pop()
             logger.debug('Changing consumer binding (uuid: %s)', uuid)
             try:
                 consumer = self._consumers[uuid]
@@ -90,10 +89,11 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
                 continue
 
             for queue in consumer.queues:
-                new_binding.bind(queue)
+                for new_binding in new_bindings:
+                    new_binding.bind(queue)
                 for binding in queue.bindings:
                     binding.unbind(queue)
-                queue.bindings = [new_binding]
+                queue.bindings = new_bindings
 
         while self._stale_consumers:
             uuid = self._stale_consumers.pop()
@@ -109,26 +109,33 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
     def is_running(self):
         return self._is_running
 
-    def subscribe_to_event_names(self, uuid, event_names, callback):
+    def subscribe_to_event_names(self, uuid, event_names, user_uuid, callback):
         logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
-        queue = kombu.Queue(exclusive=True, bindings=[self._create_binding(event_names)])
+        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._new_consumers.append((uuid, consumer))
 
-    def change_subscription(self, uuid, event_names):
+    def change_subscription(self, uuid, event_names, user_uuid):
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
-        self._updated_consumers.append((uuid, self._create_binding(event_names)))
+        self._updated_consumers.append((uuid, self._create_bindings(event_names, user_uuid)))
 
     def unsubscribe_from_event_names(self, uuid):
         logger.debug('Unsubscribing callback (uuid: %s)', uuid)
         self._stale_consumers.append(uuid)
 
-    def _create_binding(self, event_names):
-        arguments = MultiDict()
-        arguments['x-match'] = 'any'
-        for event_name in event_names:
-            arguments['name'] = event_name
+    def _create_bindings(self, event_names, user_uuid):
+        result = []
+        for name in event_names:
+            arguments = {
+                'x-match': 'all',
+                'name': name,
+            }
+            if user_uuid:
+                arguments['user_uuid'] = user_uuid
 
-        return kombu.binding(exchange=self._exchange,
-                             arguments=arguments,
-                             unbind_arguments=arguments)
+            binding = kombu.binding(exchange=self._exchange,
+                                    arguments=arguments,
+                                    unbind_arguments=arguments)
+            result.append(binding)
+
+        return result
