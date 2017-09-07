@@ -150,26 +150,26 @@ class TestEditSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         with self.auth_stopped():
-            assert_that(calling(webhookd.subscriptions.edit).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
+            assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
                         raises(WebhookdError, has_property('status_code', 503)))
 
     def test_given_wrong_auth_when_edit_subscription_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.edit).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
+        assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
                     raises(WebhookdError, has_property('status_code', 401)))
 
     def test_given_no_subscription_when_edit_http_subscription_then_404(self):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.edit).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
+        assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
                     raises(WebhookdError, has_property('status_code', 404)))
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_subscription_when_edit_invalid_http_subscription_then_400(self, subscription_):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.edit).with_args(SOME_SUBSCRIPTION_UUID, INVALID_SUBSCRIPTION),
+        assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, INVALID_SUBSCRIPTION),
                     raises(WebhookdError, has_property('status_code', 400)))
 
     @subscription(TEST_SUBSCRIPTION)
@@ -177,7 +177,7 @@ class TestEditSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(VALID_TOKEN)
         expected_subscription = dict(uuid=subscription_['uuid'], **ANOTHER_TEST_SUBSCRIPTION)
 
-        webhookd.subscriptions.edit(subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION)
+        webhookd.subscriptions.update(subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION)
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
         assert_that(response, has_entries(expected_subscription))
