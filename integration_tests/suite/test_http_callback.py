@@ -1,11 +1,13 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+import time
+
 from mockserver import MockServerClient
 from xivo_test_helpers import until
-from xivo_test_helpers.bus import BusClient
 
 from .test_api.base import BaseIntegrationTest
+from .test_api.base import VALID_TOKEN
 from .test_api.fixtures import subscription
 from .test_api.wait_strategy import ConnectedWaitStrategy
 
@@ -56,11 +58,22 @@ TEST_SUBSCRIPTION_CONTENT_TYPE = {
                'content_type': 'text/yaml'},
     'events': ['trigger']
 }
+TEST_SUBSCRIPTION_NO_TRIGGER = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get'},
+    'events': ['dont-trigger']
+}
 SOME_ROUTING_KEY = 'routing-key'
+TRIGGER_EVENT_NAME = 'trigger'
+ANOTHER_TRIGGER_EVENT_NAME = 'another-trigger'
+DONT_TRIGGER_EVENT_NAME = 'dont-trigger'
+STILL_DONT_TRIGGER_EVENT_NAME = 'still-dont-trigger'
 
 
 def trigger_event(**kwargs):
-    return event(name='trigger', **kwargs)
+    return event(name=TRIGGER_EVENT_NAME, **kwargs)
 
 
 def event(**kwargs):
@@ -79,12 +92,133 @@ class TestHTTPCallback(BaseIntegrationTest):
         url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         return MockServerClient(url)
 
+    def setUp(self):
+        third_party = self.make_third_party()
+        third_party.reset()
+
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        webhookd = self.make_webhookd(VALID_TOKEN)
+        old_trigger_name = TRIGGER_EVENT_NAME
+
+        subscription['events'] = [ANOTHER_TRIGGER_EVENT_NAME]
+        webhookd.subscriptions.update(subscription['uuid'], subscription)
+        time.sleep(1)  # wait for the subscription to be updated
+
+        bus.publish(event(name=old_trigger_name),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': old_trigger_name})
+        bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': ANOTHER_TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    },
+                    count=1,
+                    exact=True
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_two_http_subscription_when_one_deleted_then_one_http_callback(self, subscription, subscription_to_remove):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        webhookd.subscriptions.delete(subscription_to_remove['uuid'])
+        time.sleep(1)  # wait for the subscription to be removed
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def callback_received_once():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received_once, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_restart_webhookd_then_callback_still_triggered(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        self.restart_service('webhookd')
+        ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
+
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
+        third_party = self.make_third_party()
+
+        self.restart_service('rabbitmq')
+        ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
+
+        bus = self.make_bus()
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -105,12 +239,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        # TODO: Delete when /status will be implemented
-        import time
-        time.sleep(3)
-
         bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
-                    routing_key=SOME_ROUTING_KEY)
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -134,7 +265,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -155,7 +288,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(data={'variable': 'value'}), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(data={'variable': 'value'}),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -176,7 +311,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
@@ -196,7 +331,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         third_party = self.make_third_party()
         bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:

@@ -32,6 +32,7 @@ _DEFAULT_CONFIG = {
         'port': 5672,
         'exchange_name': 'xivo',
         'exchange_type': 'topic',
+        'exchange_headers_name': 'wazo-headers',
     },
     'celery': {
         'broker': 'amqp://guest:guest@localhost:5672',

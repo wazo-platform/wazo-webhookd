@@ -12,27 +12,33 @@ class SubscriptionBusEventHandler:
         self._bus_consumer = bus_consumer
         self._service = subscription_service
         self._service.pubsub.subscribe('created', self.on_subscription_created)
+        self._service.pubsub.subscribe('updated', self.on_subscription_updated)
+        self._service.pubsub.subscribe('deleted', self.on_subscription_deleted)
         self._service_manager = service_manager
-        self._is_subscribed = False
 
     def subscribe(self, bus_consumer):
-        if self._service.list():
-            self.subscribe_once()
-
-    def on_subscription_created(self, _):
-        self.subscribe_once()
-
-    def subscribe_once(self):
-        if not self._is_subscribed:
-            logger.debug('Subscribing to all events...')
-            self._is_subscribed = True
-            self._bus_consumer.subscribe_to_all_events(self.on_wazo_event)
-
-    def on_wazo_event(self, event):
         for subscription in self._service.list():
-            if event['name'] in subscription.events:
-                try:
-                    service = self._service_manager[subscription.service]
-                except KeyError:
-                    continue
-                service.obj.callback().apply_async([subscription.config, event])
+            self._add_one_subscription_to_bus(subscription)
+
+    def on_subscription_created(self, subscription):
+        self._add_one_subscription_to_bus(subscription)
+
+    def on_subscription_updated(self, subscription):
+        self._bus_consumer.change_subscription(subscription.uuid, subscription.events)
+
+    def on_subscription_deleted(self, subscription):
+        self._bus_consumer.unsubscribe_from_event_names(subscription.uuid)
+
+    def _add_one_subscription_to_bus(self, subscription):
+        try:
+            service = self._service_manager[subscription.service]
+        except KeyError:
+            logger.error('%s: no such service plugin. Subscription "%s" disabled',
+                         subscription.service,
+                         subscription.name)
+        config = dict(subscription.config)
+
+        def callback(body, _):
+            service.obj.callback().apply_async([config, body])
+
+        self._bus_consumer.subscribe_to_event_names(subscription.uuid, subscription.events, callback)
