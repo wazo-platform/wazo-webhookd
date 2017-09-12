@@ -166,6 +166,50 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
+    def test_given_two_http_subscriptions_when_update_config_then_callback_triggered_with_new_config(self, subscription, _):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        subscription['config']['url'] = 'http://third-party-http:1080/new-url'
+        webhookd.subscriptions.update(subscription['uuid'], subscription)
+        time.sleep(1)  # wait for the subscription to be updated
+
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def new_callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/new-url',
+                        'body': '',
+                    },
+                )
+            except Exception:
+                raise AssertionError()
+
+        def old_callback_received_once():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(new_callback_received, tries=10, interval=0.5)
+        until.assert_(old_callback_received_once, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    @subscription(TEST_SUBSCRIPTION)
     def test_given_two_http_subscription_when_one_deleted_then_one_http_callback(self, subscription, subscription_to_remove):
         bus = self.make_bus()
         third_party = self.make_third_party()

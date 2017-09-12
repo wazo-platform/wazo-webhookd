@@ -80,20 +80,18 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             self._consumers[uuid] = consumer
 
         while self._updated_consumers:
-            uuid, new_bindings = self._updated_consumers.pop()
+            uuid, new_consumer = self._updated_consumers.pop()
             logger.debug('Changing consumer binding (uuid: %s)', uuid)
             try:
-                consumer = self._consumers[uuid]
+                old_consumer = self._consumers[uuid]
             except KeyError:
                 logger.error('%s: consumer not found')
                 continue
 
-            for queue in consumer.queues:
-                for new_binding in new_bindings:
-                    new_binding.bind(queue)
-                for binding in queue.bindings:
-                    binding.unbind(queue)
-                queue.bindings = new_bindings
+            new_consumer.revive(self._active_connection)
+            new_consumer.consume()
+            old_consumer.cancel()
+            self._consumers[uuid] = new_consumer
 
         while self._stale_consumers:
             uuid = self._stale_consumers.pop()
@@ -115,9 +113,11 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._new_consumers.append((uuid, consumer))
 
-    def change_subscription(self, uuid, event_names, user_uuid):
+    def change_subscription(self, uuid, event_names, user_uuid, callback):
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
-        self._updated_consumers.append((uuid, self._create_bindings(event_names, user_uuid)))
+        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid))
+        consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
+        self._updated_consumers.append((uuid, consumer))
 
     def unsubscribe_from_event_names(self, uuid):
         logger.debug('Unsubscribing callback (uuid: %s)', uuid)
