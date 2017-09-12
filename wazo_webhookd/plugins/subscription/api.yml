@@ -136,6 +136,7 @@ definitions:
     properties:
       url:
         type: string
+        description: Jinja2 template, where variables come from the event triggering the webhook. For more details, see http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/templates.html
       method:
         type: string
         enum:
@@ -146,7 +147,7 @@ definitions:
           - delete
       body:
         type: string
-        description: Jinja2 template, where variables come from the event triggering the webhook
+        description: Jinja2 template, where variables come from the event triggering the webhook. For more details, see http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/templates.html
       verify_certificate:
         description: May be `true`, `false` or a path to the certificate bundle
         type: string
