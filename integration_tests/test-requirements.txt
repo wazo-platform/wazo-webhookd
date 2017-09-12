@@ -9,7 +9,7 @@ stevedore
 https://github.com/wazo-pbx/wazo-webhookd-client/archive/master.zip
 https://github.com/wazo-pbx/xivo-test-helpers/archive/master.zip
 https://github.com/wazo-pbx/xivo-lib-rest-client/archive/master.zip
-https://github.com/jobevers/mockserver-client-python/archive/master.zip
+https://github.com/wazo-pbx/mockserver-client-python/archive/default-exact.zip
 
 # for database tests
 -e ..
