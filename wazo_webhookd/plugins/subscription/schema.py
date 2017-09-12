@@ -1,6 +1,7 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+from marshmallow import pre_load
 from marshmallow import Schema
 from marshmallow import validates
 from marshmallow import ValidationError
@@ -15,6 +16,14 @@ class HTTPSubscriptionConfigSchema(Schema):
     url = fields.String(required=True)
     verify_certificate = fields.String(validate=Length(max=1024))
     content_type = fields.String(validate=Length(max=256))
+
+    @pre_load
+    def remove_none_values(self, config):
+        optional_keys = (name for name, field in self.fields.items() if not field.required)
+        for optional_key in optional_keys:
+            if config.get(optional_key) is None:
+                config.pop(optional_key, None)
+        return config
 
     @validates('verify_certificate')
     def validate_verify(self, data):

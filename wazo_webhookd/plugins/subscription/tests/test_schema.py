@@ -91,6 +91,14 @@ class TestSubscriptionSchema(TestCase):
         assert_that(calling(subscription_schema.load).with_args(subscription),
                     not_(raises(ValidationError)))
 
+    def test_given_http_service_and_verify_certificate_none_when_load_then_pass(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['verify_certificate'] = 'true'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    not_(raises(ValidationError)))
+
     def test_given_http_service_and_verify_certificate_bool_when_load_then_pass(self):
         subscription = dict(VALID_SUBSCRIPTION)
         subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
@@ -114,3 +122,12 @@ class TestSubscriptionSchema(TestCase):
 
         assert_that(calling(subscription_schema.load).with_args(subscription),
                     raises(ValidationError))
+
+    def test_given_http_service_and_body_none_when_load_then_body_stripped(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['body'] = None
+
+        result = subscription_schema.load(subscription)
+
+        assert_that(result, not_(has_key('body')))
