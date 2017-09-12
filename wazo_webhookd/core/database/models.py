@@ -15,6 +15,7 @@ class Subscription(Base):
     uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
     name = Column(Text())
     service = Column(Text())
+    events_user_uuid = Column(String(36))
     events_rel = relationship('SubscriptionEvent', lazy='joined', cascade='all, delete-orphan')
     options_rel = relationship('SubscriptionOption', lazy='joined', cascade='all, delete-orphan')
 

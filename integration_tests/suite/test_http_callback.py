@@ -11,6 +11,9 @@ from .test_api.base import VALID_TOKEN
 from .test_api.fixtures import subscription
 from .test_api.wait_strategy import ConnectedWaitStrategy
 
+ALICE_USER_UUID = '19f216be-916c-415c-83b5-6a13af92dd86'
+ALICE_USER_UUID_EXTENDED = '19f216be-916c-415c-83b5-6a13af92dd86-suffix'
+BOB_USER_UUID = '19f216be-916c-415c-83b5-6a13af92dd87'
 TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
@@ -64,6 +67,14 @@ TEST_SUBSCRIPTION_NO_TRIGGER = {
     'config': {'url': 'http://third-party-http:1080/test',
                'method': 'get'},
     'events': ['dont-trigger']
+}
+TEST_SUBSCRIPTION_FILTER_USER_ALICE = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get'},
+    'events': ['trigger'],
+    'events_user_uuid': ALICE_USER_UUID,
 }
 SOME_ROUTING_KEY = 'routing-key'
 TRIGGER_EVENT_NAME = 'trigger'
@@ -152,6 +163,50 @@ class TestHTTPCallback(BaseIntegrationTest):
                 raise AssertionError()
 
         until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_two_http_subscriptions_when_update_config_then_callback_triggered_with_new_config(self, subscription, _):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        subscription['config']['url'] = 'http://third-party-http:1080/new-url'
+        webhookd.subscriptions.update(subscription['uuid'], subscription)
+        time.sleep(1)  # wait for the subscription to be updated
+
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def new_callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/new-url',
+                        'body': '',
+                    },
+                )
+            except Exception:
+                raise AssertionError()
+
+        def old_callback_received_once():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(new_callback_received, tries=10, interval=0.5)
+        until.assert_(old_callback_received_once, tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
@@ -348,3 +403,39 @@ class TestHTTPCallback(BaseIntegrationTest):
                 raise AssertionError()
 
         until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_FILTER_USER_ALICE)
+    def test_given_http_subscription_with_user_uuid_when_bus_events_then_only_callback_when_user_uuid_match(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # Non-matching events
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'user_uuid': BOB_USER_UUID})
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'user_uuid': ALICE_USER_UUID_EXTENDED})
+        # Matching event
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'user_uuid': ALICE_USER_UUID})
+
+        def callback_received_once():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received_once, tries=10, interval=0.5)
