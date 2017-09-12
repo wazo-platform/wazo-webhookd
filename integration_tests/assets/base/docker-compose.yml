@@ -18,7 +18,7 @@ auth:
     - "./ssl:/usr/local/share/ssl"
 
 third-party-http:
-  image: jamesdbloom/mockserver
+  image: jamesdbloom/mockserver:mockserver-3.10.8
   ports:
     - "1080"
 
