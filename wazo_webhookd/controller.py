@@ -10,10 +10,10 @@ from multiprocessing import Process
 from threading import Thread
 from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
-from wazo_webhookd.core.bus import CoreBusConsumer
-from wazo_webhookd.core.celery import CoreCeleryWorker
-from wazo_webhookd.core.celery import app as celery_app
-from wazo_webhookd.core.rest_api import api, CoreRestApi
+from .bus import CoreBusConsumer
+from .celery import CoreCeleryWorker
+from .celery import app as celery_app
+from .rest_api import api, CoreRestApi
 
 logger = logging.getLogger(__name__)
 

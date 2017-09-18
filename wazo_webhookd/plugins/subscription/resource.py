@@ -3,7 +3,7 @@
 
 import uuid
 from flask import request
-from wazo_webhookd.core.rest_api import AuthResource
+from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 
 from .schema import subscription_schema

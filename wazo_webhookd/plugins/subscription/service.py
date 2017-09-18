@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
-from wazo_webhookd.core.database.models import Subscription
+from wazo_webhookd.database.models import Subscription
 from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
