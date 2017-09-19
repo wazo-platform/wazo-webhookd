@@ -22,6 +22,7 @@ from .test_api.fixtures import subscription
 from .test_api.wait_strategy import NoWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
+USER_1_UUID = '2eeb57e9-0506-4866-bce6-b626411fd133'
 
 TEST_SUBSCRIPTION = {
     'name': 'test',
@@ -39,13 +40,13 @@ ANOTHER_TEST_SUBSCRIPTION = {
     'events': ['test2']
 }
 
-USER_TEST_SUBSCRIPTION = {
+USER_1_TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
     'config': {'url': 'http://test.example.com',
                'method': 'get'},
     'events': ['test'],
-    'events_user_uuid': '2eeb57e9-0506-4866-bce6-b626411fd133',
+    'events_user_uuid': USER_1_UUID,
 }
 
 INVALID_SUBSCRIPTION = {}
@@ -78,6 +79,27 @@ class TestListSubscriptions(BaseIntegrationTest):
 
         assert_that(response, has_entries({
             'items': contains(has_entries(**subscription_)),
+            'total': 1
+        }))
+
+
+class TestListUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(TEST_SUBSCRIPTION)
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_subscriptions_when_user_list_then_list_only_subscriptions_of_this_user(self, _, user_subscription):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.list_as_user()
+
+        assert_that(response, has_entries({
+            'items': contains(has_entries(**user_subscription)),
             'total': 1
         }))
 
@@ -174,7 +196,7 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
         auth.set_token(MockUserToken(token, user_uuid))
         webhookd = self.make_webhookd(token)
 
-        response = webhookd.subscriptions.create_as_user(USER_TEST_SUBSCRIPTION)
+        response = webhookd.subscriptions.create_as_user(USER_1_TEST_SUBSCRIPTION)
 
         assert_that(response, has_entry('events_user_uuid', user_uuid))
 

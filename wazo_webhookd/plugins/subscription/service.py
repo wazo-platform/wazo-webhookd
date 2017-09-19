@@ -39,9 +39,12 @@ class SubscriptionService(object):
         finally:
             self._Session.remove()
 
-    def list(self):
+    def list(self, user_uuid=None):
         with self.ro_session() as session:
-            return session.query(Subscription).all()
+            query = session.query(Subscription)
+            if user_uuid:
+                query = query.filter(Subscription.events_user_uuid == user_uuid)
+            return query.all()
 
     def get(self, subscription_uuid):
         with self.ro_session() as session:

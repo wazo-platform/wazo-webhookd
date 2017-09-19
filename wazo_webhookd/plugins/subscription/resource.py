@@ -59,6 +59,13 @@ class UserSubscriptionsResource(AuthResource):
         self._auth_client = auth_client
         self._service = service
 
+    @required_acl('webhookd.users.me.subscriptions.read')
+    def get(self):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        subscriptions = list(self._service.list(user_uuid=user_uuid))
+        return {'items': subscription_schema.dump(subscriptions, many=True).data,
+                'total': len(subscriptions)}
+
     @required_acl('webhookd.users.me.subscriptions.create')
     def post(self):
         subscription = user_subscription_schema.load(request.json).data

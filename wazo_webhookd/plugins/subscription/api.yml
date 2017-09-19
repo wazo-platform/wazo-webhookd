@@ -85,6 +85,20 @@ paths:
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /users/me/subscriptions:
+    get:
+      summary: List subscriptions of a user to HTTP callbacks
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.read`'
+      operationId: user_list
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '200':
+          description: List of the subscriptions of the user
+          schema:
+            $ref: '#/definitions/SubscriptionList'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
     post:
       summary: Subscribe to a HTTP callback (webhook) as a user
       description: '**Required ACL:** `webhookd.users.me.subscriptions.create`
