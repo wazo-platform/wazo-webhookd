@@ -137,6 +137,33 @@ class TestGetSubscriptions(BaseIntegrationTest):
         assert_that(response, equal_to(subscription_))
 
 
+class TestGetUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_non_user_subscription_when_user_get_http_subscription_then_404(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        assert_that(calling(webhookd.subscriptions.get_as_user).with_args(subscription_['uuid']),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_user_subscription_when_user_get_http_subscription_then_return_the_subscription(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.get_as_user(subscription_['uuid'])
+
+        assert_that(response, equal_to(subscription_))
+
+
 class TestCreateSubscriptions(BaseIntegrationTest):
 
     asset = 'base'

@@ -119,8 +119,26 @@ paths:
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /users/me/subscriptions/{subscription_uuid}:
+    get:
+      summary: Get a user subscription
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.read`'
+      operationId: get
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '200':
+          description: Details of the requested subscription
+          schema:
+            $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
     delete:
-      summary: Delete a subscription
+      summary: Delete a user subscription
       description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.delete`'
       operationId: user_delete
       parameters:

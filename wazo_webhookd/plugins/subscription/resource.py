@@ -81,6 +81,12 @@ class UserSubscriptionResource(AuthResource):
         self._auth_client = auth_client
         self._service = service
 
+    @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.read')
+    def get(self, subscription_uuid):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        subscription = self._service.get(subscription_uuid, user_uuid=user_uuid)
+        return subscription_schema.dump(subscription).data
+
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.delete')
     def delete(self, subscription_uuid):
         user_uuid = get_token_user_uuid_from_request(self._auth_client)

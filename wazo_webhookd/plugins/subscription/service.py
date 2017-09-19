@@ -46,9 +46,12 @@ class SubscriptionService(object):
                 query = query.filter(Subscription.events_user_uuid == user_uuid)
             return query.all()
 
-    def get(self, subscription_uuid):
+    def get(self, subscription_uuid, user_uuid=None):
         with self.ro_session() as session:
-            result = session.query(Subscription).get(subscription_uuid)
+            query = session.query(Subscription).filter(Subscription.uuid == subscription_uuid)
+            if user_uuid:
+                query = query.filter(Subscription.events_user_uuid == user_uuid)
+            result = query.first()
             if result is None:
                 raise NoSuchSubscription(subscription_uuid)
 
