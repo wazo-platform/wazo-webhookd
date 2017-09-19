@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import uuid
+
 from flask import request
+from wazo_webhookd.auth import get_token_user_uuid_from_request
 from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 
 from .schema import subscription_schema
+from .schema import user_subscription_schema
 
 
 class SubscriptionsResource(AuthResource):
@@ -48,3 +51,18 @@ class SubscriptionResource(AuthResource):
     def delete(self, subscription_uuid):
         self._service.delete(subscription_uuid)
         return '', 204
+
+
+class UserSubscriptionsResource(AuthResource):
+
+    def __init__(self, auth_client, service):
+        self._auth_client = auth_client
+        self._service = service
+
+    @required_acl('webhookd.users.me.subscriptions.create')
+    def post(self):
+        subscription = user_subscription_schema.load(request.json).data
+        subscription['events_user_uuid'] = get_token_user_uuid_from_request(self._auth_client)
+        subscription['uuid'] = str(uuid.uuid4())
+        self._service.create(subscription)
+        return subscription, 201

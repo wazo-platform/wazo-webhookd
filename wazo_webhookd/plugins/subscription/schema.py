@@ -80,4 +80,13 @@ class SubscriptionSchema(Schema):
     config = ConfigField(allow_none=False, required=True)
 
 
+class UserSubscriptionSchema(Schema):
+    uuid = fields.UUID(dump_only=True)
+    name = fields.String(validate=Length(max=128), required=True)
+    service = fields.String(validate=Length(max=128), allow_none=False, required=True)
+    events = fields.List(fields.String(validate=Length(max=128), allow_none=False), allow_none=False, required=True)
+    config = ConfigField(allow_none=False, required=True)
+
+
 subscription_schema = SubscriptionSchema(strict=True)
+user_subscription_schema = UserSubscriptionSchema(strict=True)

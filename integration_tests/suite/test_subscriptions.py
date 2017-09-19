@@ -13,6 +13,7 @@ from hamcrest import has_item
 from hamcrest import has_property
 from hamcrest import not_
 from wazo_webhookd_client.exceptions import WebhookdError
+from xivo_test_helpers.auth import MockUserToken
 from xivo_test_helpers.hamcrest.raises import raises
 
 from .test_api.base import BaseIntegrationTest
@@ -36,6 +37,15 @@ ANOTHER_TEST_SUBSCRIPTION = {
     'config': {'url': 'http://test2.example.com',
                'method': 'post'},
     'events': ['test2']
+}
+
+USER_TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com',
+               'method': 'get'},
+    'events': ['test'],
+    'events_user_uuid': '2eeb57e9-0506-4866-bce6-b626411fd133',
 }
 
 INVALID_SUBSCRIPTION = {}
@@ -139,6 +149,34 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_uuid))))
+
+
+class TestCreateUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    def test_when_create_http_user_subscription_then_subscription_no_error(self):
+        token = 'my-token'
+        user_uuid = '575630df-5334-4e99-86d7-56596d77228d'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, user_uuid))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.create_as_user(TEST_SUBSCRIPTION)
+
+        assert_that(response, has_entry('events_user_uuid', user_uuid))
+
+    def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(self):
+        token = 'my-token'
+        user_uuid = '575630df-5334-4e99-86d7-56596d77228d'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, user_uuid))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.create_as_user(USER_TEST_SUBSCRIPTION)
+
+        assert_that(response, has_entry('events_user_uuid', user_uuid))
 
 
 class TestEditSubscriptions(BaseIntegrationTest):
