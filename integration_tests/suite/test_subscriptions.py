@@ -278,3 +278,31 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))
+
+
+class TestDeleteUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_non_user_subscription_when_user_delete_http_subscription_then_404(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        assert_that(calling(webhookd.subscriptions.delete_as_user).with_args(subscription_['uuid']),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_user_subscription_when_user_delete_http_subscription_then_deleted(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        webhookd.subscriptions.delete_as_user(subscription_['uuid'])
+
+        response = webhookd.subscriptions.list_as_user()
+        assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))

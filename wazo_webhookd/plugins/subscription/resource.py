@@ -73,3 +73,16 @@ class UserSubscriptionsResource(AuthResource):
         subscription['uuid'] = str(uuid.uuid4())
         self._service.create(subscription)
         return subscription, 201
+
+
+class UserSubscriptionResource(AuthResource):
+
+    def __init__(self, auth_client, service):
+        self._auth_client = auth_client
+        self._service = service
+
+    @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.delete')
+    def delete(self, subscription_uuid):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        self._service.delete_as_user(subscription_uuid, user_uuid)
+        return '', 204

@@ -118,6 +118,23 @@ paths:
           $ref: '#/responses/InvalidRequest'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+  /users/me/subscriptions/{subscription_uuid}:
+    delete:
+      summary: Delete a subscription
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.delete`'
+      operationId: user_delete
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '204':
+          description: The requested subscription was deleted
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
 definitions:
   SubscriptionRequest:
     type: object

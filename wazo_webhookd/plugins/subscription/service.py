@@ -83,3 +83,15 @@ class SubscriptionService(object):
                 raise NoSuchSubscription(subscription_uuid)
             session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()
             self.pubsub.publish('deleted', subscription)
+
+    def delete_as_user(self, subscription_uuid, user_uuid):
+        with self.ro_session() as session:
+            subscription = (session
+                            .query(Subscription)
+                            .filter(Subscription.uuid == subscription_uuid)
+                            .filter(Subscription.events_user_uuid == user_uuid)
+                            .first())
+            if subscription is None:
+                raise NoSuchSubscription(subscription_uuid)
+
+        self.delete(subscription_uuid)
