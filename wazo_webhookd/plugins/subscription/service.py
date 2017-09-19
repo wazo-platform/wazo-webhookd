@@ -79,6 +79,18 @@ class SubscriptionService(object):
             session.expunge_all()
             return subscription
 
+    def update_as_user(self, subscription_uuid, new_subscription, user_uuid):
+        with self.ro_session() as session:
+            subscription = (session
+                            .query(Subscription)
+                            .filter(Subscription.uuid == subscription_uuid)
+                            .filter(Subscription.events_user_uuid == user_uuid)
+                            .first())
+            if subscription is None:
+                raise NoSuchSubscription(subscription_uuid)
+
+        self.update(subscription_uuid, new_subscription)
+
     def delete(self, subscription_uuid):
         with self.rw_session() as session:
             subscription = session.query(Subscription).get(subscription_uuid)

@@ -273,6 +273,42 @@ class TestEditSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('items', has_item(has_entries(expected_subscription))))
 
 
+class TestEditUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_non_user_subscription_when_user_edit_http_subscription_then_404(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        assert_that(calling(webhookd.subscriptions.update_as_user).with_args(subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_user_subscription_when_user_edit_http_subscription_then_updated(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+        new_subscription = dict(subscription_)
+        new_subscription['uuid'] = 'should-be-ignored'
+        new_subscription['events_user_uuid'] = 'should-be-ignored'
+        new_subscription['name'] = 'new-name'
+
+        webhookd.subscriptions.update_as_user(subscription_['uuid'], new_subscription)
+
+        response = webhookd.subscriptions.list_as_user()
+        assert_that(response, has_entry('items', has_item(has_entries({
+            'uuid': subscription_['uuid'],
+            'events_user_uuid': subscription_['events_user_uuid'],
+            'name': 'new-name',
+        }))))
+
+
 class TestDeleteSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
