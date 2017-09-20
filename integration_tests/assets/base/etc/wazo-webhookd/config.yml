@@ -8,3 +8,5 @@ bus:
   host: rabbitmq
 celery:
   broker: amqp://guest:guest@rabbitmq:5672
+enabled_plugins:
+  sentinel: True

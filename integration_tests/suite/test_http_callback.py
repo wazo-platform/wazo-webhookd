@@ -1,6 +1,7 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+import requests
 import time
 
 from mockserver import MockServerClient
@@ -102,6 +103,19 @@ class TestHTTPCallback(BaseIntegrationTest):
     def make_third_party(self):
         url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         return MockServerClient(url)
+
+    def make_sentinel(self):
+        class Sentinel:
+            def __init__(self, url):
+                self._url = url
+
+            def called(self):
+                response = requests.get(self._url, verify=False)
+                response.raise_for_status()
+                return response.json()['called']
+
+        url = 'https://localhost:{port}/1.0/sentinel'.format(port=self.service_port(9300, 'webhookd'))
+        return Sentinel(url)
 
     def setUp(self):
         third_party = self.make_third_party()

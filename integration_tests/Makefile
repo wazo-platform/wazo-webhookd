@@ -7,6 +7,7 @@ test:
 
 egg-info:
 	cd .. && python setup.py egg_info
+	cd plugins/sentinel && python setup.py egg_info
 
 pull-images:
 	docker pull n3llyb0y/wait
@@ -17,6 +18,9 @@ pull-images:
 webhookd:
 	docker pull python:3.4.2
 	docker build -t wazopbx/wazo-webhookd ..
+	$(MAKE) webhookd-test
+
+webhookd-test: egg-info
 	docker build --no-cache -t wazo-webhookd-test -f Dockerfile ..
 
 db:
