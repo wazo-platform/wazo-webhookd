@@ -45,9 +45,12 @@ class SubscriptionBusEventHandler:
             logger.error('%s: no such service plugin. Subscription "%s" disabled',
                          subscription.service,
                          subscription.name)
+            return
+
         config = dict(subscription.config)
+        owner = subscription.owner_user_uuid
 
         def callback(body, _):
-            service.obj.callback().apply_async([config, body])
+            service.obj.callback().apply_async([config, body, owner])
 
         return callback

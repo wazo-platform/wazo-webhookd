@@ -4,6 +4,8 @@
 import requests
 import time
 
+from hamcrest import assert_that
+from hamcrest import is_
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
@@ -69,12 +71,38 @@ TEST_SUBSCRIPTION_NO_TRIGGER = {
                'method': 'get'},
     'events': ['dont-trigger']
 }
+TEST_SUBSCRIPTION_ANOTHER_TRIGGER = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get'},
+    'events': ['another-trigger']
+}
 TEST_SUBSCRIPTION_FILTER_USER_ALICE = {
     'name': 'test',
     'service': 'http',
     'config': {'url': 'http://third-party-http:1080/test',
                'method': 'get'},
     'events': ['trigger'],
+    'events_user_uuid': ALICE_USER_UUID,
+}
+TEST_SUBSCRIPTION_LOCALHOST_SENTINEL = {
+    'name': 'localhost',
+    'service': 'http',
+    'config': {'url': 'https://localhost:9300/1.0/sentinel',
+               'method': 'post',
+               'verify_certificate': 'false'},
+    'events': ['trigger'],
+    'events_user_uuid': ALICE_USER_UUID,
+}
+TEST_USER_SUBSCRIPTION_LOCALHOST_SENTINEL = {
+    'name': 'localhost',
+    'service': 'http',
+    'config': {'url': 'https://localhost:9300/1.0/sentinel',
+               'method': 'post',
+               'verify_certificate': 'false'},
+    'events': ['trigger'],
+    'owner_user_uuid': ALICE_USER_UUID,
     'events_user_uuid': ALICE_USER_UUID,
 }
 SOME_ROUTING_KEY = 'routing-key'
@@ -453,3 +481,52 @@ class TestHTTPCallback(BaseIntegrationTest):
                 raise AssertionError()
 
         until.assert_(callback_received_once, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_ANOTHER_TRIGGER)
+    @subscription(TEST_USER_SUBSCRIPTION_LOCALHOST_SENTINEL)
+    def test_given_http_user_subscription_to_localhost_when_bus_event_then_callback_not_called(self, control_subscription, sentinel_subscription):
+        bus = self.make_bus()
+        third_party = self.make_third_party()
+        sentinel = self.make_sentinel()
+
+        # sentinel should not be triggered
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'user_uuid': ALICE_USER_UUID})
+        # trigger control webhook
+        bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': ANOTHER_TRIGGER_EVENT_NAME,
+                             'user_uuid': ALICE_USER_UUID})
+
+        def control_callback_received_once():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(control_callback_received_once, tries=10, interval=0.5)
+        assert_that(sentinel.called(), is_(False))
+
+    @subscription(TEST_SUBSCRIPTION_LOCALHOST_SENTINEL)
+    def test_given_http_subscription_to_localhost_when_bus_event_then_callback_called(self, subscription):
+        bus = self.make_bus()
+        sentinel = self.make_sentinel()
+
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'user_uuid': ALICE_USER_UUID})
+
+        def sentinel_was_called():
+            assert_that(sentinel.called(), is_(True))
+
+        until.assert_(sentinel_was_called, tries=10, interval=0.5)
