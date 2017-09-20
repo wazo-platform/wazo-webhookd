@@ -39,18 +39,18 @@ class SubscriptionService(object):
         finally:
             self._Session.remove()
 
-    def list(self, user_uuid=None):
+    def list(self, owner_user_uuid=None):
         with self.ro_session() as session:
             query = session.query(Subscription)
-            if user_uuid:
-                query = query.filter(Subscription.events_user_uuid == user_uuid)
+            if owner_user_uuid:
+                query = query.filter(Subscription.owner_user_uuid == owner_user_uuid)
             return query.all()
 
-    def get(self, subscription_uuid, user_uuid=None):
+    def get(self, subscription_uuid, owner_user_uuid=None):
         with self.ro_session() as session:
             query = session.query(Subscription).filter(Subscription.uuid == subscription_uuid)
-            if user_uuid:
-                query = query.filter(Subscription.events_user_uuid == user_uuid)
+            if owner_user_uuid:
+                query = query.filter(Subscription.owner_user_uuid == owner_user_uuid)
             result = query.first()
             if result is None:
                 raise NoSuchSubscription(subscription_uuid)
@@ -79,12 +79,12 @@ class SubscriptionService(object):
             session.expunge_all()
             return subscription
 
-    def update_as_user(self, subscription_uuid, new_subscription, user_uuid):
+    def update_as_user(self, subscription_uuid, new_subscription, owner_user_uuid):
         with self.ro_session() as session:
             subscription = (session
                             .query(Subscription)
                             .filter(Subscription.uuid == subscription_uuid)
-                            .filter(Subscription.events_user_uuid == user_uuid)
+                            .filter(Subscription.owner_user_uuid == owner_user_uuid)
                             .first())
             if subscription is None:
                 raise NoSuchSubscription(subscription_uuid)
@@ -104,7 +104,7 @@ class SubscriptionService(object):
             subscription = (session
                             .query(Subscription)
                             .filter(Subscription.uuid == subscription_uuid)
-                            .filter(Subscription.events_user_uuid == user_uuid)
+                            .filter(Subscription.owner_user_uuid == user_uuid)
                             .first())
             if subscription is None:
                 raise NoSuchSubscription(subscription_uuid)

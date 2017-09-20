@@ -46,6 +46,16 @@ USER_1_TEST_SUBSCRIPTION = {
     'config': {'url': 'http://test.example.com',
                'method': 'get'},
     'events': ['test'],
+    'owner_user_uuid': USER_1_UUID,
+    'events_user_uuid': USER_1_UUID,
+}
+
+UNOWNED_USER_1_TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com',
+               'method': 'get'},
+    'events': ['test'],
     'events_user_uuid': USER_1_UUID,
 }
 
@@ -88,7 +98,7 @@ class TestListUserSubscriptions(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = NoWaitStrategy()
 
-    @subscription(TEST_SUBSCRIPTION)
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
     @subscription(USER_1_TEST_SUBSCRIPTION)
     def test_given_subscriptions_when_user_list_then_list_only_subscriptions_of_this_user(self, _, user_subscription):
         token = 'my-token'
@@ -142,7 +152,7 @@ class TestGetUserSubscriptions(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = NoWaitStrategy()
 
-    @subscription(TEST_SUBSCRIPTION)
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
     def test_given_non_user_subscription_when_user_get_http_subscription_then_404(self, subscription_):
         token = 'my-token'
         auth = self.make_auth()
@@ -225,7 +235,10 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.create_as_user(USER_1_TEST_SUBSCRIPTION)
 
-        assert_that(response, has_entry('events_user_uuid', user_uuid))
+        assert_that(response, has_entries({
+            'events_user_uuid': user_uuid,
+            'owner_user_uuid': user_uuid,
+        }))
 
 
 class TestEditSubscriptions(BaseIntegrationTest):
@@ -278,7 +291,7 @@ class TestEditUserSubscriptions(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = NoWaitStrategy()
 
-    @subscription(TEST_SUBSCRIPTION)
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
     def test_given_non_user_subscription_when_user_edit_http_subscription_then_404(self, subscription_):
         token = 'my-token'
         auth = self.make_auth()
@@ -348,7 +361,7 @@ class TestDeleteUserSubscriptions(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = NoWaitStrategy()
 
-    @subscription(TEST_SUBSCRIPTION)
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
     def test_given_non_user_subscription_when_user_delete_http_subscription_then_404(self, subscription_):
         token = 'my-token'
         auth = self.make_auth()
