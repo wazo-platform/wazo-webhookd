@@ -18,6 +18,7 @@ class Subscription(Base):
     events_user_uuid = Column(String(36))
     events_rel = relationship('SubscriptionEvent', lazy='joined', cascade='all, delete-orphan')
     options_rel = relationship('SubscriptionOption', lazy='joined', cascade='all, delete-orphan')
+    owner_user_uuid = Column(String(36))
 
     @property
     def config(self):
