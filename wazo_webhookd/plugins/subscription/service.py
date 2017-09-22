@@ -39,9 +39,12 @@ class SubscriptionService(object):
         finally:
             self._Session.remove()
 
-    def list(self):
+    def list(self, owner_user_uuid=None):
         with self.ro_session() as session:
-            return session.query(Subscription).all()
+            query = session.query(Subscription)
+            if owner_user_uuid:
+                query = query.filter(Subscription.owner_user_uuid == owner_user_uuid)
+            return query.all()
 
     def get(self, subscription_uuid):
         with self.ro_session() as session:
@@ -50,6 +53,10 @@ class SubscriptionService(object):
                 raise NoSuchSubscription(subscription_uuid)
 
             return result
+
+    def get_as_user(self, subscription_uuid, owner_user_uuid):
+        self._assert_subscription_owned_by_user(subscription_uuid, owner_user_uuid)
+        return self.get(subscription_uuid)
 
     def create(self, subscription):
         with self.rw_session() as session:
@@ -73,6 +80,10 @@ class SubscriptionService(object):
             session.expunge_all()
             return subscription
 
+    def update_as_user(self, subscription_uuid, new_subscription, owner_user_uuid):
+        self._assert_subscription_owned_by_user(subscription_uuid, owner_user_uuid)
+        self.update(subscription_uuid, new_subscription)
+
     def delete(self, subscription_uuid):
         with self.rw_session() as session:
             subscription = session.query(Subscription).get(subscription_uuid)
@@ -80,3 +91,17 @@ class SubscriptionService(object):
                 raise NoSuchSubscription(subscription_uuid)
             session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()
             self.pubsub.publish('deleted', subscription)
+
+    def delete_as_user(self, subscription_uuid, owner_user_uuid):
+        self._assert_subscription_owned_by_user(subscription_uuid, owner_user_uuid)
+        self.delete(subscription_uuid)
+
+    def _assert_subscription_owned_by_user(self, subscription_uuid, user_uuid):
+        with self.ro_session() as session:
+            subscription = (session
+                            .query(Subscription)
+                            .filter(Subscription.uuid == subscription_uuid)
+                            .filter(Subscription.owner_user_uuid == user_uuid)
+                            .first())
+            if subscription is None:
+                raise NoSuchSubscription(subscription_uuid)

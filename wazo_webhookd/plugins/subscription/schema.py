@@ -78,6 +78,16 @@ class SubscriptionSchema(Schema):
     events = fields.List(fields.String(validate=Length(max=128), allow_none=False), allow_none=False, required=True)
     events_user_uuid = fields.String(validate=Length(equal=36), missing=None)
     config = ConfigField(allow_none=False, required=True)
+    owner_user_uuid = fields.String(validate=Length(equal=36), missing=None)
+
+
+class UserSubscriptionSchema(Schema):
+    uuid = fields.UUID(dump_only=True)
+    name = fields.String(validate=Length(max=128), required=True)
+    service = fields.String(validate=Length(max=128), allow_none=False, required=True)
+    events = fields.List(fields.String(validate=Length(max=128), allow_none=False), allow_none=False, required=True)
+    config = ConfigField(allow_none=False, required=True)
 
 
 subscription_schema = SubscriptionSchema(strict=True)
+user_subscription_schema = UserSubscriptionSchema(strict=True)

@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import uuid
+
 from flask import request
+from wazo_webhookd.auth import get_token_user_uuid_from_request
 from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 
 from .schema import subscription_schema
+from .schema import user_subscription_schema
 
 
 class SubscriptionsResource(AuthResource):
@@ -47,4 +50,53 @@ class SubscriptionResource(AuthResource):
     @required_acl('webhookd.subscriptions.{subscription_uuid}.delete')
     def delete(self, subscription_uuid):
         self._service.delete(subscription_uuid)
+        return '', 204
+
+
+class UserSubscriptionsResource(AuthResource):
+
+    def __init__(self, auth_client, service):
+        self._auth_client = auth_client
+        self._service = service
+
+    @required_acl('webhookd.users.me.subscriptions.read')
+    def get(self):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        subscriptions = list(self._service.list(owner_user_uuid=user_uuid))
+        return {'items': subscription_schema.dump(subscriptions, many=True).data,
+                'total': len(subscriptions)}
+
+    @required_acl('webhookd.users.me.subscriptions.create')
+    def post(self):
+        subscription = user_subscription_schema.load(request.json).data
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = user_uuid
+        subscription['uuid'] = str(uuid.uuid4())
+        self._service.create(subscription)
+        return subscription, 201
+
+
+class UserSubscriptionResource(AuthResource):
+
+    def __init__(self, auth_client, service):
+        self._auth_client = auth_client
+        self._service = service
+
+    @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.read')
+    def get(self, subscription_uuid):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        subscription = self._service.get_as_user(subscription_uuid, user_uuid)
+        return subscription_schema.dump(subscription).data
+
+    @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.update')
+    def put(self, subscription_uuid):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        subscription = user_subscription_schema.load(request.json).data
+        subscription = self._service.update_as_user(subscription_uuid, subscription, user_uuid)
+        return subscription_schema.dump(subscription).data
+
+    @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.delete')
+    def delete(self, subscription_uuid):
+        user_uuid = get_token_user_uuid_from_request(self._auth_client)
+        self._service.delete_as_user(subscription_uuid, user_uuid)
         return '', 204

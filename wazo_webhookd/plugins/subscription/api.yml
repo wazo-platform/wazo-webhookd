@@ -84,6 +84,75 @@ paths:
           $ref: '#/responses/NotFoundError'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+  /users/me/subscriptions:
+    get:
+      summary: List subscriptions of a user to HTTP callbacks
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.read`'
+      operationId: user_list
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '200':
+          description: List of the subscriptions of the user
+          schema:
+            $ref: '#/definitions/SubscriptionList'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+    post:
+      summary: Subscribe to a HTTP callback (webhook) as a user
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.create`
+
+
+      For more information: http://documentation.wazo.community/en/stable/api_sdk/rest_api/webhookd/api.html'
+      operationId: user_create
+      parameters:
+        - $ref: '#/parameters/UserSubscriptionBody'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '201':
+          'description': The subscription has been completed
+        '400':
+          $ref: '#/responses/InvalidRequest'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+  /users/me/subscriptions/{subscription_uuid}:
+    get:
+      summary: Get a user subscription
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.read`'
+      operationId: get
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '200':
+          description: Details of the requested subscription
+          schema:
+            $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
+    delete:
+      summary: Delete a user subscription
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.delete`'
+      operationId: user_delete
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '204':
+          description: The requested subscription was deleted
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
 definitions:
   SubscriptionRequest:
     type: object
@@ -108,6 +177,26 @@ definitions:
       - service
       - config
       - events
+  UserSubscriptionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+      service:
+        type: string
+        description: >
+          Known services: http. The service may be arbitrary, but it must be bound to an installed plugin in order to be effective.
+      config:
+        $ref: '#/definitions/HTTPServiceConfig'
+      events:
+        type: array
+        items:
+          type: string
+    required:
+      - name
+      - service
+      - config
+      - events
   Subscription:
     type: object
     properties:
@@ -127,6 +216,10 @@ definitions:
       events_user_uuid:
         type: string
         description: "Only trigger webhook when an event occurs related to this user. Not compatible with all events. For more details, see: http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/api.html"
+      owner_user_uuid:
+        type: string
+        readOnly: true
+        description: "The user who owns this subscription. Admin-created subscriptions are not owned."
     required:
       - uuid
       - name

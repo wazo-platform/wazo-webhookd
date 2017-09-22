@@ -13,6 +13,7 @@ from hamcrest import has_item
 from hamcrest import has_property
 from hamcrest import not_
 from wazo_webhookd_client.exceptions import WebhookdError
+from xivo_test_helpers.auth import MockUserToken
 from xivo_test_helpers.hamcrest.raises import raises
 
 from .test_api.base import BaseIntegrationTest
@@ -21,6 +22,7 @@ from .test_api.fixtures import subscription
 from .test_api.wait_strategy import NoWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
+USER_1_UUID = '2eeb57e9-0506-4866-bce6-b626411fd133'
 
 TEST_SUBSCRIPTION = {
     'name': 'test',
@@ -36,6 +38,25 @@ ANOTHER_TEST_SUBSCRIPTION = {
     'config': {'url': 'http://test2.example.com',
                'method': 'post'},
     'events': ['test2']
+}
+
+USER_1_TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com',
+               'method': 'get'},
+    'events': ['test'],
+    'owner_user_uuid': USER_1_UUID,
+    'events_user_uuid': USER_1_UUID,
+}
+
+UNOWNED_USER_1_TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com',
+               'method': 'get'},
+    'events': ['test'],
+    'events_user_uuid': USER_1_UUID,
 }
 
 INVALID_SUBSCRIPTION = {}
@@ -72,6 +93,27 @@ class TestListSubscriptions(BaseIntegrationTest):
         }))
 
 
+class TestListUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_subscriptions_when_user_list_then_list_only_subscriptions_of_this_user(self, _, user_subscription):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.list_as_user()
+
+        assert_that(response, has_entries({
+            'items': contains(has_entries(**user_subscription)),
+            'total': 1
+        }))
+
+
 class TestGetSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
@@ -101,6 +143,33 @@ class TestGetSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
+
+        assert_that(response, equal_to(subscription_))
+
+
+class TestGetUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
+    def test_given_non_user_subscription_when_user_get_http_subscription_then_404(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        assert_that(calling(webhookd.subscriptions.get_as_user).with_args(subscription_['uuid']),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_user_subscription_when_user_get_http_subscription_then_return_the_subscription(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.get_as_user(subscription_['uuid'])
 
         assert_that(response, equal_to(subscription_))
 
@@ -139,6 +208,37 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_uuid))))
+
+
+class TestCreateUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    def test_when_create_http_user_subscription_then_subscription_no_error(self):
+        token = 'my-token'
+        user_uuid = '575630df-5334-4e99-86d7-56596d77228d'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, user_uuid))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.create_as_user(TEST_SUBSCRIPTION)
+
+        assert_that(response, has_entry('events_user_uuid', user_uuid))
+
+    def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(self):
+        token = 'my-token'
+        user_uuid = '575630df-5334-4e99-86d7-56596d77228d'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, user_uuid))
+        webhookd = self.make_webhookd(token)
+
+        response = webhookd.subscriptions.create_as_user(USER_1_TEST_SUBSCRIPTION)
+
+        assert_that(response, has_entries({
+            'events_user_uuid': user_uuid,
+            'owner_user_uuid': user_uuid,
+        }))
 
 
 class TestEditSubscriptions(BaseIntegrationTest):
@@ -186,6 +286,42 @@ class TestEditSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('items', has_item(has_entries(expected_subscription))))
 
 
+class TestEditUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
+    def test_given_non_user_subscription_when_user_edit_http_subscription_then_404(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        assert_that(calling(webhookd.subscriptions.update_as_user).with_args(subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_user_subscription_when_user_edit_http_subscription_then_updated(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+        new_subscription = dict(subscription_)
+        new_subscription['uuid'] = 'should-be-ignored'
+        new_subscription['events_user_uuid'] = 'should-be-ignored'
+        new_subscription['name'] = 'new-name'
+
+        webhookd.subscriptions.update_as_user(subscription_['uuid'], new_subscription)
+
+        response = webhookd.subscriptions.list_as_user()
+        assert_that(response, has_entry('items', has_item(has_entries({
+            'uuid': subscription_['uuid'],
+            'events_user_uuid': subscription_['events_user_uuid'],
+            'name': 'new-name',
+        }))))
+
+
 class TestDeleteSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
@@ -217,4 +353,32 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
         webhookd.subscriptions.delete(subscription_['uuid'])
 
         response = webhookd.subscriptions.list()
+        assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))
+
+
+class TestDeleteUserSubscriptions(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION)
+    def test_given_non_user_subscription_when_user_delete_http_subscription_then_404(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        assert_that(calling(webhookd.subscriptions.delete_as_user).with_args(subscription_['uuid']),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(USER_1_TEST_SUBSCRIPTION)
+    def test_given_user_subscription_when_user_delete_http_subscription_then_deleted(self, subscription_):
+        token = 'my-token'
+        auth = self.make_auth()
+        auth.set_token(MockUserToken(token, USER_1_UUID))
+        webhookd = self.make_webhookd(token)
+
+        webhookd.subscriptions.delete_as_user(subscription_['uuid'])
+
+        response = webhookd.subscriptions.list_as_user()
         assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))
