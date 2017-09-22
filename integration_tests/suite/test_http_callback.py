@@ -142,12 +142,17 @@ class TestHTTPCallback(BaseIntegrationTest):
                 response.raise_for_status()
                 return response.json()['called']
 
+            def reset(self):
+                requests.delete(self._url, verify=False)
+
         url = 'https://localhost:{port}/1.0/sentinel'.format(port=self.service_port(9300, 'webhookd'))
         return Sentinel(url)
 
     def setUp(self):
         third_party = self.make_third_party()
         third_party.reset()
+        sentinel = self.make_sentinel()
+        sentinel.reset()
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):

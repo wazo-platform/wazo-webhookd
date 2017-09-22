@@ -15,6 +15,10 @@ class SentinelResource(Resource):
         global called
         called = True
 
+    def delete(self):
+        global called
+        called = False
+
 
 class Plugin(object):
 
