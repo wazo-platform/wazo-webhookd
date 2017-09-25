@@ -169,7 +169,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
-                        'body': '',
                     }
                 )
             except Exception:
@@ -201,7 +200,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
-                        'body': '',
                     },
                     count=1,
                     exact=True
@@ -232,7 +230,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/new-url',
-                        'body': '',
                     },
                 )
             except Exception:
@@ -244,7 +241,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
-                        'body': '',
                     },
                     count=1,
                     exact=True,
@@ -274,7 +270,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
-                        'body': '',
                     },
                     count=1,
                     exact=True,
@@ -302,7 +297,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
-                        'body': '',
                     }
                 )
             except Exception:
@@ -328,7 +322,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                     request={
                         'method': 'GET',
                         'path': '/test',
-                        'body': '',
                     }
                 )
             except Exception:
@@ -355,6 +348,31 @@ class TestHTTPCallback(BaseIntegrationTest):
                             {'name': 'variable', 'value': 'value'},
                             {'name': 'another_variable', 'value': 'another_value'}
                         ]
+                    }
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_with_no_body_when_bus_event_then_http_callback_with_default_body(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        bus.publish(trigger_event(data={'keý': 'vàlue'}),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME})
+
+        def callback_received():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                        'body': '{"ke\\u00fd": "v\\u00e0lue"}',
+                        'headers': [{'name': 'Content-Type',
+                                     'values': ['application/json']}],
                     }
                 )
             except Exception:
