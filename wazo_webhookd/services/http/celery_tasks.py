@@ -1,6 +1,7 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+import json
 import logging
 import requests
 import socket
@@ -31,20 +32,24 @@ def load(celery_app):
             logger.warning('Rejecting callback from user "%s" to url "%s": remote host is localhost!', owner_user_uuid, url)
             return
 
+        content_type = options.get('content_type')
+
         body = options.get('body')
         if body:
             template = body
             body = Environment().from_string(template).render(values)
             body = body.encode('utf-8')
+        else:
+            body = json.dumps(event['data'])
+            content_type = 'application/json'
+
+        if content_type:
+            headers['Content-Type'] = content_type
 
         verify = options.get('verify_certificate')
         if verify:
             verify = True if verify == 'true' else verify
             verify = False if verify == 'false' else verify
-
-        content_type = options.get('content_type')
-        if content_type:
-            headers['Content-Type'] = content_type
 
         requests.request(options['method'],
                          url,
