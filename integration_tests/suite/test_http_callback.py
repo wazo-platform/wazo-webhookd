@@ -461,16 +461,16 @@ class TestHTTPCallback(BaseIntegrationTest):
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid': BOB_USER_UUID})
+                             'user_uuid:{uuid}'.format(uuid=BOB_USER_UUID): True})
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid': ALICE_USER_UUID_EXTENDED})
+                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID_EXTENDED): True})
         # Matching event
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid': ALICE_USER_UUID})
+                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
         def callback_received_once():
             try:
@@ -498,12 +498,12 @@ class TestHTTPCallback(BaseIntegrationTest):
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid': ALICE_USER_UUID})
+                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
         # trigger control webhook
         bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': ANOTHER_TRIGGER_EVENT_NAME,
-                             'user_uuid': ALICE_USER_UUID})
+                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
         def control_callback_received_once():
             try:
@@ -529,7 +529,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid': ALICE_USER_UUID})
+                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
         def sentinel_was_called():
             assert_that(sentinel.called(), is_(True))

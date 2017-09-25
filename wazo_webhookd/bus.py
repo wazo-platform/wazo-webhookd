@@ -131,7 +131,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
                 'name': name,
             }
             if user_uuid:
-                arguments['user_uuid'] = user_uuid
+                arguments['user_uuid:{uuid}'.format(uuid=user_uuid)] = True
 
             binding = kombu.binding(exchange=self._exchange,
                                     arguments=arguments,
