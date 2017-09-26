@@ -25,6 +25,7 @@ class TestDatabase(AssetLaunchingTestCase):
 
     asset = 'database'
     assets_root = os.path.join(os.path.dirname(__file__), '..', 'assets')
+    service = 'postgresql'
 
     def setUp(self):
         super(TestDatabase, self).setUp()
