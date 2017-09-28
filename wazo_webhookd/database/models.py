@@ -16,6 +16,7 @@ class Subscription(Base):
     name = Column(Text())
     service = Column(Text())
     events_user_uuid = Column(String(36))
+    events_wazo_uuid = Column(String(36))
     events_rel = relationship('SubscriptionEvent', lazy='joined', cascade='all, delete-orphan')
     options_rel = relationship('SubscriptionOption', lazy='joined', cascade='all, delete-orphan')
     owner_user_uuid = Column(String(36))
