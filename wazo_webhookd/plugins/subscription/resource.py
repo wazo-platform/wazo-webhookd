@@ -7,6 +7,7 @@ from flask import request
 from wazo_webhookd.auth import get_token_user_uuid_from_request
 from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
+from wazo_webhookd.auth import Token
 
 from .schema import subscription_schema
 from .schema import user_subscription_schema
@@ -69,8 +70,9 @@ class UserSubscriptionsResource(AuthResource):
     @required_acl('webhookd.users.me.subscriptions.create')
     def post(self):
         subscription = user_subscription_schema.load(request.json).data
-        user_uuid = get_token_user_uuid_from_request(self._auth_client)
-        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = user_uuid
+        token = Token.from_request(self._auth_client)
+        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = token.user_uuid
+        subscription['events_wazo_uuid'] = token.wazo_uuid
         subscription['uuid'] = str(uuid.uuid4())
         self._service.create(subscription)
         return subscription, 201

@@ -107,15 +107,15 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
     def is_running(self):
         return self._is_running
 
-    def subscribe_to_event_names(self, uuid, event_names, user_uuid, callback):
+    def subscribe_to_event_names(self, uuid, event_names, user_uuid, wazo_uuid, callback):
         logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
-        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid))
+        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._new_consumers.append((uuid, consumer))
 
-    def change_subscription(self, uuid, event_names, user_uuid, callback):
+    def change_subscription(self, uuid, event_names, user_uuid, wazo_uuid, callback):
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
-        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid))
+        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._updated_consumers.append((uuid, consumer))
 
@@ -123,7 +123,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         logger.debug('Unsubscribing callback (uuid: %s)', uuid)
         self._stale_consumers.append(uuid)
 
-    def _create_bindings(self, event_names, user_uuid):
+    def _create_bindings(self, event_names, user_uuid, wazo_uuid):
         result = []
         for name in event_names:
             arguments = {
@@ -132,6 +132,8 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             }
             if user_uuid:
                 arguments['user_uuid:{uuid}'.format(uuid=user_uuid)] = True
+            if wazo_uuid:
+                arguments['origin_uuid'] = wazo_uuid
 
             binding = kombu.binding(exchange=self._exchange,
                                     arguments=arguments,

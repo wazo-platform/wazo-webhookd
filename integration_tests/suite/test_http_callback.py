@@ -17,6 +17,9 @@ from .test_api.wait_strategy import ConnectedWaitStrategy
 ALICE_USER_UUID = '19f216be-916c-415c-83b5-6a13af92dd86'
 ALICE_USER_UUID_EXTENDED = '19f216be-916c-415c-83b5-6a13af92dd86-suffix'
 BOB_USER_UUID = '19f216be-916c-415c-83b5-6a13af92dd87'
+WAZO_UUID = 'cd030e68-ace9-4ad4-bc4e-13c8dec67898'
+WAZO_UUID_EXTENDED = 'cd030e68-ace9-4ad4-bc4e-13c8dec67898-suffix'
+OTHER_WAZO_UUID = 'cae3a160-6b01-4746-acd2-8588a768e54c'
 TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
@@ -104,6 +107,14 @@ TEST_USER_SUBSCRIPTION_LOCALHOST_SENTINEL = {
     'events': ['trigger'],
     'owner_user_uuid': ALICE_USER_UUID,
     'events_user_uuid': ALICE_USER_UUID,
+}
+TEST_SUBSCRIPTION_FILTER_WAZO_UUID = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://third-party-http:1080/test',
+               'method': 'get'},
+    'events': ['trigger'],
+    'events_wazo_uuid': WAZO_UUID,
 }
 SOME_ROUTING_KEY = 'routing-key'
 TRIGGER_EVENT_NAME = 'trigger'
@@ -553,3 +564,39 @@ class TestHTTPCallback(BaseIntegrationTest):
             assert_that(sentinel.called(), is_(True))
 
         until.assert_(sentinel_was_called, tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION_FILTER_WAZO_UUID)
+    def test_given_http_subscription_with_wazo_uuid_when_bus_events_then_only_callback_when_wazo_uuid_match(self, subscription):
+        third_party = self.make_third_party()
+        bus = self.make_bus()
+
+        # Non-matching events
+        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'origin_uuid': OTHER_WAZO_UUID})
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'origin_uuid': WAZO_UUID_EXTENDED})
+        # Matching event
+        bus.publish(trigger_event(),
+                    routing_key=SOME_ROUTING_KEY,
+                    headers={'name': TRIGGER_EVENT_NAME,
+                             'origin_uuid': WAZO_UUID})
+
+        def callback_received_once():
+            try:
+                third_party.verify(
+                    request={
+                        'method': 'GET',
+                        'path': '/test',
+                    },
+                    count=1,
+                    exact=True,
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(callback_received_once, tries=10, interval=0.5)
