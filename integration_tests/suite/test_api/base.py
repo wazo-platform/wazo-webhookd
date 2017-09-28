@@ -49,7 +49,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         yield
         self.start_service('auth')
         auth = self.make_auth()
-        until.true(auth.is_up, tries=5, message='xivo-auth did not come back up')
+        until.true(auth.is_up, tries=5, message='wazo-auth did not come back up')
 
     @contextmanager
     def rabbitmq_stopped(self):
