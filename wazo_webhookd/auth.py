@@ -39,6 +39,7 @@ class Token:
         user_uuid = self._token_infos['xivo_user_uuid']
         if not user_uuid:
             raise TokenWithUserUUIDRequiredError()
+        return user_uuid
 
     def wazo_uuid(self):
         return self._token_infos['xivo_uuid']

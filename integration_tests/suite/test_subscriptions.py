@@ -23,6 +23,7 @@ from .test_api.wait_strategy import NoWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 USER_1_UUID = '2eeb57e9-0506-4866-bce6-b626411fd133'
+WAZO_UUID = 'cd030e68-ace9-4ad4-bc4e-13c8dec67898'
 
 TEST_SUBSCRIPTION = {
     'name': 'test',
@@ -48,6 +49,7 @@ USER_1_TEST_SUBSCRIPTION = {
     'events': ['test'],
     'owner_user_uuid': USER_1_UUID,
     'events_user_uuid': USER_1_UUID,
+    'events_wazo_uuid': WAZO_UUID,
 }
 
 UNOWNED_USER_1_TEST_SUBSCRIPTION = {
@@ -218,25 +220,32 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
     def test_when_create_http_user_subscription_then_subscription_no_error(self):
         token = 'my-token'
         user_uuid = '575630df-5334-4e99-86d7-56596d77228d'
+        wazo_uuid = '50265257-9dcf-4e9d-b6ce-3a1c0ae3b733'
         auth = self.make_auth()
-        auth.set_token(MockUserToken(token, user_uuid))
+        auth.set_token(MockUserToken(token, user_uuid, wazo_uuid))
         webhookd = self.make_webhookd(token)
 
         response = webhookd.subscriptions.create_as_user(TEST_SUBSCRIPTION)
 
-        assert_that(response, has_entry('events_user_uuid', user_uuid))
+        assert_that(response, has_entries({
+            'events_user_uuid': user_uuid,
+            'events_wazo_uuid': wazo_uuid,
+            'owner_user_uuid': user_uuid,
+        }))
 
     def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(self):
         token = 'my-token'
         user_uuid = '575630df-5334-4e99-86d7-56596d77228d'
+        wazo_uuid = '50265257-9dcf-4e9d-b6ce-3a1c0ae3b733'
         auth = self.make_auth()
-        auth.set_token(MockUserToken(token, user_uuid))
+        auth.set_token(MockUserToken(token, user_uuid, wazo_uuid))
         webhookd = self.make_webhookd(token)
 
         response = webhookd.subscriptions.create_as_user(USER_1_TEST_SUBSCRIPTION)
 
         assert_that(response, has_entries({
             'events_user_uuid': user_uuid,
+            'events_wazo_uuid': wazo_uuid,
             'owner_user_uuid': user_uuid,
         }))
 

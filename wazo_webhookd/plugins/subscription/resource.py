@@ -71,8 +71,8 @@ class UserSubscriptionsResource(AuthResource):
     def post(self):
         subscription = user_subscription_schema.load(request.json).data
         token = Token.from_request(self._auth_client)
-        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = token.user_uuid
-        subscription['events_wazo_uuid'] = token.wazo_uuid
+        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = token.user_uuid()
+        subscription['events_wazo_uuid'] = token.wazo_uuid()
         subscription['uuid'] = str(uuid.uuid4())
         self._service.create(subscription)
         return subscription, 201
