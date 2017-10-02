@@ -27,6 +27,7 @@ class SubscriptionBusEventHandler:
         self._bus_consumer.change_subscription(subscription.uuid,
                                                subscription.events,
                                                subscription.events_user_uuid,
+                                               subscription.events_wazo_uuid,
                                                self._make_callback(subscription))
 
     def on_subscription_deleted(self, subscription):
@@ -36,6 +37,7 @@ class SubscriptionBusEventHandler:
         self._bus_consumer.subscribe_to_event_names(subscription.uuid,
                                                     subscription.events,
                                                     subscription.events_user_uuid,
+                                                    subscription.events_wazo_uuid,
                                                     self._make_callback(subscription))
 
     def _make_callback(self, subscription):

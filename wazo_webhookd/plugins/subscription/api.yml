@@ -172,6 +172,9 @@ definitions:
       events_user_uuid:
         type: string
         description: "Only trigger webhook when an event occurs related to this user. Not compatible with all events. For more details, see: http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/api.html."
+      events_wazo_uuid:
+        type: string
+        description: "Only trigger webhook when an event occurs on this Wazo."
     required:
       - name
       - service
