@@ -1,2 +1,2 @@
 etc/wazo-webhookd/conf.d
-etc/nginx/locations/https-available/wazo-webhookd
+etc/nginx/locations/https-enabled/wazo-webhookd
