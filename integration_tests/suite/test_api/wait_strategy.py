@@ -5,6 +5,7 @@ from hamcrest import (
     assert_that,
     has_entries,
 )
+from requests import RequestException
 from xivo_test_helpers import until
 
 
@@ -25,7 +26,10 @@ class ConnectedWaitStrategy(WaitStrategy):
     def wait(self, webhookd):
 
         def webhookd_is_connected():
-            status = webhookd.status.get()
+            try:
+                status = webhookd.status.get()
+            except RequestException:
+                raise AssertionError('wazo-webhookd is not up yet')
             assert_that(status['connections'], has_entries({'bus_consumer': 'ok'}))
 
         until.assert_(webhookd_is_connected, tries=10)
