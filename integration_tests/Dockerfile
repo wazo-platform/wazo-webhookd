@@ -1,6 +1,6 @@
 FROM wazopbx/wazo-webhookd
 
-ENV PYTHONDONTWRITEBYTECODE='disabled'
+ENV PYTHONDONTWRITEBYTECODE='true'
 
 COPY . /usr/src/wazo-webhookd
 
