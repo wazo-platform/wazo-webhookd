@@ -67,7 +67,17 @@ class ConfigField(fields.Field):
 
     def _deserialize(self, value, attr, data):
         service = data.get('service')
-        concrete_options = self._options.get(service, self._default_options)
+        try:
+            concrete_options = self._options.get(service, self._default_options)
+        except TypeError:
+            raise ValidationError({
+                'message': 'Invalid destination',
+                'constraint_id': 'destination-type',
+                'constraint': {
+                    'type': 'string',
+                }
+            })
+
         return concrete_options.deserialize(value, attr, data)
 
 
