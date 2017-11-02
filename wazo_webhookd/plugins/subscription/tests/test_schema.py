@@ -137,4 +137,21 @@ class TestSubscriptionSchema(TestCase):
 
         result = subscription_schema.load(subscription)
 
-        assert_that(result, not_(has_key('body')))
+        assert_that(result.data['config'], not_(has_key('body')))
+
+    def test_given_invalid_method_when_load_then_fail(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['method'] = 'invalid'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    raises(ValidationError))
+
+    def test_given_http_service_when_load_then_method_case_ignored(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['method'] = 'POST'
+
+        result = subscription_schema.load(subscription)
+
+        assert_that(result.data['config'], has_entry('method', 'post'))
