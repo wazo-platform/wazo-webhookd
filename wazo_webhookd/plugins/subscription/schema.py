@@ -1,7 +1,10 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
-from marshmallow import pre_load
+from marshmallow import (
+    pre_load,
+    post_load
+)
 from marshmallow import Schema
 from marshmallow import validates
 from marshmallow import ValidationError
@@ -9,11 +12,13 @@ from xivo.mallow import fields
 from xivo.mallow.validate import OneOf
 from xivo.mallow.validate import Length
 
+VALID_METHODS = ['head', 'get', 'post', 'put', 'delete']
+
 
 class HTTPSubscriptionConfigSchema(Schema):
     body = fields.String(validate=Length(max=16384))
-    method = fields.String(validate=OneOf(['head', 'get', 'post', 'put', 'delete']), required=True)
-    url = fields.String(required=True)
+    method = fields.String(required=True, validate=Length(max=64))
+    url = fields.String(required=True, validate=Length(max=8192))
     verify_certificate = fields.String(validate=Length(max=1024))
     content_type = fields.String(validate=Length(max=256))
 
@@ -24,6 +29,14 @@ class HTTPSubscriptionConfigSchema(Schema):
             if config.get(optional_key) is None:
                 config.pop(optional_key, None)
         return config
+
+    @post_load
+    def lowercase_method(self, data):
+        data['method'] = data['method'].lower()
+
+    @validates('method')
+    def validate_method(self, data):
+        OneOf(VALID_METHODS)(data.lower())
 
     @validates('verify_certificate')
     def validate_verify(self, data):
@@ -67,7 +80,17 @@ class ConfigField(fields.Field):
 
     def _deserialize(self, value, attr, data):
         service = data.get('service')
-        concrete_options = self._options.get(service, self._default_options)
+        try:
+            concrete_options = self._options.get(service, self._default_options)
+        except TypeError:
+            raise ValidationError({
+                'message': 'Invalid destination',
+                'constraint_id': 'destination-type',
+                'constraint': {
+                    'type': 'string',
+                }
+            })
+
         return concrete_options.deserialize(value, attr, data)
 
 

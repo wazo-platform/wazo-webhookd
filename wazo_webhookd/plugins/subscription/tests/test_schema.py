@@ -83,6 +83,13 @@ class TestSubscriptionSchema(TestCase):
         assert_that(calling(subscription_schema.load).with_args(subscription),
                     raises(ValidationError))
 
+    def test_given_invalid_service_when_load_then_raise(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['service'] = {'invalid': 'invalid'}
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    raises(ValidationError))
+
     def test_given_http_service_and_url_with_no_dots_when_load_then_pass(self):
         subscription = dict(VALID_SUBSCRIPTION)
         subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
@@ -130,4 +137,21 @@ class TestSubscriptionSchema(TestCase):
 
         result = subscription_schema.load(subscription)
 
-        assert_that(result, not_(has_key('body')))
+        assert_that(result.data['config'], not_(has_key('body')))
+
+    def test_given_invalid_method_when_load_then_fail(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['method'] = 'invalid'
+
+        assert_that(calling(subscription_schema.load).with_args(subscription),
+                    raises(ValidationError))
+
+    def test_given_http_service_when_load_then_method_case_ignored(self):
+        subscription = dict(VALID_SUBSCRIPTION)
+        subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
+        subscription['config']['method'] = 'POST'
+
+        result = subscription_schema.load(subscription)
+
+        assert_that(result.data['config'], has_entry('method', 'post'))
