@@ -6,9 +6,9 @@ from hamcrest import equal_to
 from hamcrest import has_entries
 from xivo_test_helpers import until
 
-from .test_api.base import BaseIntegrationTest
-from .test_api.base import VALID_TOKEN
-from .test_api.wait_strategy import NoWaitStrategy
+from .helpers.base import BaseIntegrationTest
+from .helpers.base import VALID_TOKEN
+from .helpers.wait_strategy import NoWaitStrategy
 
 
 class TestStatusRabbitMQStops(BaseIntegrationTest):

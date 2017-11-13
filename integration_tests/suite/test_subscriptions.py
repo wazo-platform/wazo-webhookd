@@ -16,10 +16,10 @@ from wazo_webhookd_client.exceptions import WebhookdError
 from xivo_test_helpers.auth import MockUserToken
 from xivo_test_helpers.hamcrest.raises import raises
 
-from .test_api.base import BaseIntegrationTest
-from .test_api.base import VALID_TOKEN
-from .test_api.fixtures import subscription
-from .test_api.wait_strategy import NoWaitStrategy
+from .helpers.base import BaseIntegrationTest
+from .helpers.base import VALID_TOKEN
+from .helpers.fixtures import subscription
+from .helpers.wait_strategy import NoWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 USER_1_UUID = '2eeb57e9-0506-4866-bce6-b626411fd133'

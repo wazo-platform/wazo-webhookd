@@ -9,10 +9,10 @@ from hamcrest import is_
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
-from .test_api.base import BaseIntegrationTest
-from .test_api.base import VALID_TOKEN
-from .test_api.fixtures import subscription
-from .test_api.wait_strategy import ConnectedWaitStrategy
+from .helpers.base import BaseIntegrationTest
+from .helpers.base import VALID_TOKEN
+from .helpers.fixtures import subscription
+from .helpers.wait_strategy import ConnectedWaitStrategy
 
 ALICE_USER_UUID = '19f216be-916c-415c-83b5-6a13af92dd86'
 ALICE_USER_UUID_EXTENDED = '19f216be-916c-415c-83b5-6a13af92dd86-suffix'

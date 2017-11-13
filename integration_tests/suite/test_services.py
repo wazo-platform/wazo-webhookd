@@ -5,9 +5,9 @@ from hamcrest import assert_that
 from hamcrest import has_entry
 from hamcrest import has_key
 
-from .test_api.base import BaseIntegrationTest
-from .test_api.base import VALID_TOKEN
-from .test_api.wait_strategy import NoWaitStrategy
+from .helpers.base import BaseIntegrationTest
+from .helpers.base import VALID_TOKEN
+from .helpers.wait_strategy import NoWaitStrategy
 
 
 class TestConfig(BaseIntegrationTest):
