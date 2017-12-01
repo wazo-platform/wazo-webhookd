@@ -39,6 +39,7 @@ class Controller:
             dependencies={
                 'api': api,
                 'celery': celery_app,
+                'config': config,
             }
         )
         plugin_helpers.load(
