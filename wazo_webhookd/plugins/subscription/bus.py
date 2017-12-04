@@ -3,6 +3,8 @@
 
 import logging
 
+from .schema import subscription_schema
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,10 +51,9 @@ class SubscriptionBusEventHandler:
                          subscription.name)
             return
 
-        config = dict(subscription.config)
-        owner = subscription.owner_user_uuid
+        subscription = subscription_schema.dump(subscription).data
 
         def callback(body, _):
-            service.obj.callback().apply_async([config, body, owner])
+            service.obj.callback().apply_async([subscription, body])
 
         return callback

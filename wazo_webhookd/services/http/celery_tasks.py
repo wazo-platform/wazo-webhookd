@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 def load(celery_app):
 
     @celery_app.task
-    def http_callback(options, event, owner_user_uuid):
+    def http_callback(subscription, event):
+        options = subscription['config']
         headers = {}
         values = {
             'event_name': event['name'],
@@ -27,9 +28,11 @@ def load(celery_app):
         template = url
         url = Environment().from_string(template).render(values)
 
-        if owner_user_uuid and url_is_localhost(url):
+        if subscription['owner_user_uuid'] and url_is_localhost(url):
             # some services only listen on 127.0.0.1 and should not be accessible to users
-            logger.warning('Rejecting callback from user "%s" to url "%s": remote host is localhost!', owner_user_uuid, url)
+            logger.warning('Rejecting callback from user "%s" to url "%s": remote host is localhost!',
+                           subscription['owner_user_uuid'],
+                           url)
             return
 
         content_type = options.get('content_type')
