@@ -38,6 +38,7 @@ class Controller:
             names=config['enabled_services'],
             dependencies={
                 'api': api,
+                'bus_consumer': self._bus_consumer,
                 'celery': celery_app,
                 'config': config,
             }
