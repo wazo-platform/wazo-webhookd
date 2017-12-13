@@ -107,7 +107,7 @@ paths:
       For more information: http://documentation.wazo.community/en/stable/api_sdk/rest_api/webhookd/api.html'
       operationId: user_create
       parameters:
-        - $ref: '#/parameters/UserSubscriptionRequest'
+        - $ref: '#/parameters/UserSubscriptionBody'
       tags:
         - subscriptions
         - users
@@ -287,3 +287,9 @@ parameters:
     required: true
     schema:
       $ref: '#/definitions/SubscriptionRequest'
+  UserSubscriptionBody:
+    name: body
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/UserSubscriptionRequest'
