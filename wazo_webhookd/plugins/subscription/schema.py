@@ -103,6 +103,7 @@ class SubscriptionSchema(Schema):
     events_wazo_uuid = fields.String(validate=Length(equal=36), missing=None)
     config = ConfigField(allow_none=False, required=True)
     owner_user_uuid = fields.String(validate=Length(equal=36), missing=None)
+    metadata = fields.Dict(attribute='metadata_')
 
 
 class UserSubscriptionSchema(Schema):
@@ -111,6 +112,7 @@ class UserSubscriptionSchema(Schema):
     service = fields.String(validate=Length(max=128), allow_none=False, required=True)
     events = fields.List(fields.String(validate=Length(max=128), allow_none=False), allow_none=False, required=True)
     config = ConfigField(allow_none=False, required=True)
+    metadata_ = fields.Dict(load_from='metadata')
 
 
 subscription_schema = SubscriptionSchema(strict=True)

@@ -175,6 +175,8 @@ definitions:
       events_wazo_uuid:
         type: string
         description: "Only trigger webhook when an event occurs on this Wazo."
+      tags:
+        type: object
     required:
       - name
       - service
@@ -195,6 +197,8 @@ definitions:
         type: array
         items:
           type: string
+      tags:
+        $ref: "#/definitions/SubscriptionMetadata"
     required:
       - name
       - service
@@ -274,6 +278,9 @@ definitions:
     required:
       - items
       - total
+  SubscriptionMetadata:
+    type: object
+    description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions.
 parameters:
   SubscriptionUUID:
     type: string

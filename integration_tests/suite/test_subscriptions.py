@@ -33,6 +33,18 @@ TEST_SUBSCRIPTION = {
     'events': ['test']
 }
 
+TEST_SUBSCRIPTION_METADATA = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com',
+               'method': 'get'},
+    'events': ['test'],
+    'metadata': {
+        'key1': 'value1',
+        'key2': 'value2',
+    },
+}
+
 ANOTHER_TEST_SUBSCRIPTION = {
     'name': 'test2',
     'service': 'http',
@@ -210,6 +222,17 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_uuid))))
+
+    def given_metadata_when_create_subscription_then_metadata_are_attached(self):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        response = webhookd.subscriptions.create(TEST_SUBSCRIPTION_METADATA)
+        subscription_uuid = response['uuid']
+
+        assert_that(response, has_key('uuid'))
+
+        response = webhookd.subscriptions.get(subscription_uuid)
+        assert_that(response, has_entry('metadata', TEST_SUBSCRIPTION_METADATA['metadata']))
 
 
 class TestCreateUserSubscriptions(BaseIntegrationTest):

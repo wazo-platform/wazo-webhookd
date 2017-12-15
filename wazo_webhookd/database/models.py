@@ -20,6 +20,7 @@ class Subscription(Base):
     events_rel = relationship('SubscriptionEvent', lazy='joined', cascade='all, delete-orphan')
     options_rel = relationship('SubscriptionOption', lazy='joined', cascade='all, delete-orphan')
     owner_user_uuid = Column(String(36))
+    metadata_rel = relationship('SubscriptionMetadatum', lazy='joined', cascade='all, delete-orphan')
 
     @property
     def config(self):
@@ -37,6 +38,15 @@ class Subscription(Base):
     @events.setter
     def events(self, events):
         self.events_rel = [SubscriptionEvent(event_name=event) for event in events]
+
+    @property
+    def metadata_(self):
+        return {metadatum.key: metadatum.value for metadatum in self.metadata_rel}
+
+    @metadata_.setter
+    def metadata_(self, metadata):
+        self.metadata_rel = [SubscriptionMetadatum(key=key, value=value)
+                             for (key, value) in metadata.items()]
 
     def clear_relations(self):
         self.events_rel.clear()
@@ -73,4 +83,16 @@ class SubscriptionOption(Base):
                                ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
                                nullable=False)
     name = Column(Text(), nullable=False)
+    value = Column(Text())
+
+
+class SubscriptionMetadatum(Base):
+
+    __tablename__ = 'webhookd_subscription_metadatum'
+
+    uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
+    subscription_uuid = Column(String(38),
+                               ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
+                               nullable=False)
+    key = Column(Text(), nullable=False)
     value = Column(Text())
