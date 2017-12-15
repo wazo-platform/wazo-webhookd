@@ -280,7 +280,7 @@ definitions:
       - total
   SubscriptionMetadata:
     type: object
-    description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions.
+    description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions. PUT replaces all metadata.
 parameters:
   SubscriptionUUID:
     type: string

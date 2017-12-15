@@ -317,6 +317,18 @@ class TestEditSubscriptions(BaseIntegrationTest):
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', has_item(has_entries(expected_subscription))))
 
+    @subscription(TEST_SUBSCRIPTION_METADATA)
+    def given_metadata_when_edit_subscription_then_metadata_are_replaced(self, subscription_):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+        subscription_uuid = subscription_['uuid']
+
+        subscription_['metadata'] = {'new_key': 'new_value', 'another_new_key': 'value'}
+
+        webhookd.subscriptions.update(subscription_uuid, subscription_)
+
+        response = webhookd.subscriptions.get(subscription_['uuid'])
+        assert_that(response, has_entry('metadata', subscription_['metadata']))
+
 
 class TestEditUserSubscriptions(BaseIntegrationTest):
 
