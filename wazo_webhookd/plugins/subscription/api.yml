@@ -6,6 +6,8 @@ paths:
       operationId: list
       tags:
         - subscriptions
+      parameters:
+        - $ref: "#/parameters/SearchMetadata"
       responses:
         '200':
           description: List of the subscriptions
@@ -89,6 +91,8 @@ paths:
       summary: List subscriptions of a user to HTTP callbacks
       description: '**Required ACL:** `webhookd.users.me.subscriptions.read`'
       operationId: user_list
+      parameters:
+        - $ref: "#/parameters/SearchMetadata"
       tags:
         - subscriptions
         - users
@@ -282,6 +286,11 @@ definitions:
     type: object
     description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions. PUT replaces all metadata.
 parameters:
+  SearchMetadata:
+    name: search_metadata
+    in: query
+    type: string
+    description: A search term formatted like "key:value" that will only match subscriptions having a metadata entry "key=value". May be given multiple times to filter more precisely on different metadata keys.
   SubscriptionUUID:
     type: string
     name: subscription_uuid

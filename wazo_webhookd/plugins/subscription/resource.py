@@ -9,8 +9,11 @@ from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 from wazo_webhookd.auth import Token
 
-from .schema import subscription_schema
-from .schema import user_subscription_schema
+from .schema import (
+    subscription_schema,
+    subscription_list_params_schema,
+    user_subscription_schema,
+)
 
 
 class SubscriptionsResource(AuthResource):
@@ -20,7 +23,8 @@ class SubscriptionsResource(AuthResource):
 
     @required_acl('webhookd.subscriptions.read')
     def get(self):
-        subscriptions = list(self._service.list())
+        params = subscription_list_params_schema.load(request.args).data
+        subscriptions = list(self._service.list(**params))
         return {'items': subscription_schema.dump(subscriptions, many=True).data,
                 'total': len(subscriptions)}
 
@@ -63,7 +67,8 @@ class UserSubscriptionsResource(AuthResource):
     @required_acl('webhookd.users.me.subscriptions.read')
     def get(self):
         user_uuid = get_token_user_uuid_from_request(self._auth_client)
-        subscriptions = list(self._service.list(owner_user_uuid=user_uuid))
+        params = subscription_list_params_schema.load(request.args).data
+        subscriptions = list(self._service.list(owner_user_uuid=user_uuid, **params))
         return {'items': subscription_schema.dump(subscriptions, many=True).data,
                 'total': len(subscriptions)}
 

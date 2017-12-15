@@ -2,10 +2,19 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 from contextlib import contextmanager
-from sqlalchemy import create_engine
+from sqlalchemy import (
+    and_,
+    create_engine,
+    distinct,
+    func,
+    or_,
+)
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
-from wazo_webhookd.database.models import Subscription
+from wazo_webhookd.database.models import (
+    Subscription,
+    SubscriptionMetadatum,
+)
 from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
@@ -39,11 +48,19 @@ class SubscriptionService(object):
         finally:
             self._Session.remove()
 
-    def list(self, owner_user_uuid=None):
+    def list(self, owner_user_uuid=None, search_metadata=None):
         with self.ro_session() as session:
             query = session.query(Subscription)
             if owner_user_uuid:
                 query = query.filter(Subscription.owner_user_uuid == owner_user_uuid)
+            if search_metadata:
+                subquery = (session.query(SubscriptionMetadatum.subscription_uuid)
+                            .filter(or_(*[and_(SubscriptionMetadatum.key == key,
+                                               SubscriptionMetadatum.value == value)
+                                          for key, value in search_metadata.items()]))
+                            .group_by(SubscriptionMetadatum.subscription_uuid)
+                            .having(func.count(distinct(SubscriptionMetadatum.key)) == len(search_metadata)))
+                query = query.filter(Subscription.uuid.in_(subquery))
             return query.all()
 
     def get(self, subscription_uuid):

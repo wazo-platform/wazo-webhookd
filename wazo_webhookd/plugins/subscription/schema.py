@@ -115,5 +115,23 @@ class UserSubscriptionSchema(Schema):
     metadata_ = fields.Dict(load_from='metadata')
 
 
+class SubscriptionListParamsSchema(Schema):
+    search_metadata = fields.Dict()
+
+    @pre_load
+    def aggregate_search_metadata(self, data):
+        metadata = {}
+        for search in data.getlist('search_metadata'):
+            try:
+                key, value = search.split(':', 1)
+            except ValueError:
+                continue
+            metadata[key] = value
+        result = dict(data)
+        result['search_metadata'] = metadata
+        return result
+
+
 subscription_schema = SubscriptionSchema(strict=True)
+subscription_list_params_schema = SubscriptionListParamsSchema(strict=True)
 user_subscription_schema = UserSubscriptionSchema(strict=True)

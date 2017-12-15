@@ -106,6 +106,17 @@ class TestListSubscriptions(BaseIntegrationTest):
             'total': 1
         }))
 
+    @subscription(TEST_SUBSCRIPTION)
+    @subscription(TEST_SUBSCRIPTION_METADATA)
+    def test_given_search_metadata_when_list_then_list_filtered(self, subscription_, subscription_metadata_):
+        webhookd = self.make_webhookd(VALID_TOKEN)
+
+        response = webhookd.subscriptions.list(search_metadata=TEST_SUBSCRIPTION_METADATA['metadata'])
+
+        assert_that(response, has_entries({
+            'items': contains(has_entries(**TEST_SUBSCRIPTION_METADATA)),
+        }))
+
 
 class TestListUserSubscriptions(BaseIntegrationTest):
 

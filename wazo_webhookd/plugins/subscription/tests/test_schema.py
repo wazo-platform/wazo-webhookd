@@ -2,15 +2,20 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 from marshmallow import ValidationError
-from hamcrest import assert_that
-from hamcrest import calling
-from hamcrest import not_
-from hamcrest import has_key
-from hamcrest import has_entry
-from hamcrest import raises
+from hamcrest import (
+    assert_that,
+    calling,
+    equal_to,
+    not_,
+    has_key,
+    has_entry,
+    raises,
+)
 from unittest import TestCase
+from werkzeug.datastructures import MultiDict
 
 from ..schema import subscription_schema
+from ..schema import subscription_list_params_schema
 
 VALID_SUBSCRIPTION = {
     'name': 'test',
@@ -155,3 +160,14 @@ class TestSubscriptionSchema(TestCase):
         result = subscription_schema.load(subscription)
 
         assert_that(result.data['config'], has_entry('method', 'post'))
+
+
+class TestSubscriptionListParamsSchema(TestCase):
+
+    def test_given_multiple_search_metadata_when_load_then_one_dict(self):
+        params = MultiDict([('search_metadata', 'key1:value1'),
+                            ('search_metadata', 'key2:value2')])
+
+        result = subscription_list_params_schema.load(params)
+
+        assert_that(result.data['search_metadata'], equal_to({'key1': 'value1', 'key2': 'value2'}))
