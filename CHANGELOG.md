@@ -1,6 +1,19 @@
 Changelog
 =========
 
+18.01
+------
+
+* New attribute for subscriptions:
+
+  * `metadata`
+
+* The following resources accept a new `search_metadata` query parameter:
+
+  * GET `/1.0/subscriptions`
+  * GET `/1.0/users/me/subscriptions`
+
+
 17.14
 -----
 
