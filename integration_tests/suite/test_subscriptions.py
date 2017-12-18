@@ -169,7 +169,7 @@ class TestGetSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
 
-        assert_that(response, equal_to(subscription_))
+        assert_that(response, has_entries(subscription_))
 
 
 class TestGetUserSubscriptions(BaseIntegrationTest):
@@ -196,7 +196,7 @@ class TestGetUserSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.get_as_user(subscription_['uuid'])
 
-        assert_that(response, equal_to(subscription_))
+        assert_that(response, has_entries(subscription_))
 
 
 class TestCreateSubscriptions(BaseIntegrationTest):
