@@ -1,8 +1,6 @@
-Changelog
-=========
+# Changelog
 
-18.01
-------
+## 18.01
 
 * New attribute for subscriptions:
 
@@ -14,8 +12,7 @@ Changelog
   * GET `/1.0/users/me/subscriptions`
 
 
-17.14
------
+## 17.14
 
 * New resources to manage webhooks as a user:
 
@@ -34,16 +31,14 @@ Changelog
   * `body` defaults to the JSON-encoded form of `event[data]`. When the default value is used, `content-type` is set to `application/json`.
 
 
-17.13
------
+## 17.13
 
 * New options for subscriptions:
 
   * `events_user_uuid`
 
 
-17.12
------
+## 17.12
 
 * New config options for subscriptions with service `http`:
 
@@ -59,8 +54,7 @@ Changelog
 
   * GET `/1.0/subscriptions/services`
 
-17.11
------
+## 17.11
 
 * New resources to manage webhook subscriptions
 
@@ -71,7 +65,6 @@ Changelog
   * DELETE `/1.0/subscriptions/<uuid>`
 
 
-17.09
------
+## 17.09
 
 * A new resource has been added to fetch the current configuration of wazo-webhookd
