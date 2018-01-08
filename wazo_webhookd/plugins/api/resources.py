@@ -1,11 +1,11 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2018 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 import yaml
 import logging
 
 from flask import make_response
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from xivo.chain_map import ChainMap
 from xivo.rest_api_helpers import load_all_api_specs
 

@@ -1,7 +1,7 @@
-# Copyright (C) 2015-2016 Avencall
+# Copyright 2017-2018 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
-from flask.ext.restful import Resource
+from flask_restful import Resource
 
 called = False
 
