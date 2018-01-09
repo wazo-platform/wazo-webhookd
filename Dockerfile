@@ -1,4 +1,4 @@
-FROM python:3.4.2
+FROM python:3.5.3
 
 ADD . /usr/src/wazo-webhookd
 ADD ./contribs/docker/certs /usr/share/xivo-certs
