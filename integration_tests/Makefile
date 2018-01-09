@@ -16,7 +16,7 @@ pull-images:
 	docker pull jamesdbloom/mockserver:mockserver-5.2.3
 
 webhookd:
-	docker pull python:3.4.2
+	docker pull python:3.5.3
 	docker build -t wazopbx/wazo-webhookd ..
 	$(MAKE) webhookd-test
 
