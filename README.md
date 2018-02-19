@@ -1,6 +1,6 @@
 # wazo-webhookd
 
-[![Build Status](https://travis-ci.org/wazo-pbx/wazo-webhookd.svg?branch=master)](https://travis-ci.org/wazo-pbx/wazo-webhookd)
+[![Build Status](https://jenkins.wazo.community/buildStatus/icon?job=wazo-webhookd)](https://jenkins.wazo.community/job/wazo-webhookd)
 
 A micro service to manage and trigger webhooks in the [Wazo PBX](http://wazo.community).
 
