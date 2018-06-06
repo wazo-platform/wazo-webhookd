@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -11,6 +11,8 @@ USER_HOME="/var/lib/${USER}"
 
 case "$1" in
     configure)
+        previous_version="$2"
+
         # add/update user
         if ! getent passwd $USER > /dev/null; then
             echo "Adding system user $USER" 1>&2
@@ -19,10 +21,6 @@ case "$1" in
                 --no-create-home --disabled-login \
                 $USER
         fi
-
-        # /home/wazo-webhookd was created in Wazo 17.09-10
-        usermod --home "$USER_HOME" "$USER"
-        rm -rf /home/wazo-webhookd
 
         adduser --quiet $USER www-data
 
@@ -38,7 +36,7 @@ case "$1" in
             (cd $ALEMBIC_INI_PATH && alembic -c alembic.ini upgrade head)
         fi
 
-        if dpkg --compare-versions "$2" lt '17.10'; then
+        if [[ -z "${previous_version}" ]]; then
             ln -sf /etc/nginx/locations/https-available/$DAEMONNAME \
                    /etc/nginx/locations/https-enabled/$DAEMONNAME
         fi
