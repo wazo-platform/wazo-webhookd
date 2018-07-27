@@ -10,3 +10,5 @@ celery:
   broker: amqp://guest:guest@rabbitmq:5672
 enabled_plugins:
   sentinel: True
+service_discovery:
+  enabled: false

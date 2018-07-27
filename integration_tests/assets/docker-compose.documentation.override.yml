@@ -1,0 +1,18 @@
+version: '3'
+services:
+  sync:
+    depends_on:
+      - postgres
+      - swagger-validator
+      - webhookd
+    environment:
+      TARGETS: "postgres:5432 webhookd:9300 swagger-validator:8080"
+
+  webhookd:
+    volumes:
+      - "./etc/wazo-webhookd/conf.d/config.documentation.yml:/etc/wazo-webhookd/conf.d/config.yml"
+
+  swagger-validator:
+    image: swaggerapi/swagger-validator
+    ports:
+      - "8080"
