@@ -10,10 +10,10 @@ egg-info:
 	cd plugins/sentinel && python setup.py egg_info
 
 pull-images:
-	docker pull n3llyb0y/wait
-	docker pull swaggerapi/swagger-validator
-	docker pull wazopbx/xivo-auth-mock
 	docker pull jamesdbloom/mockserver:mockserver-5.2.3
+	docker pull swaggerapi/swagger-validator
+	docker pull waisbrot/wait
+	docker pull wazopbx/xivo-auth-mock
 
 webhookd:
 	docker pull python:3.5.3
