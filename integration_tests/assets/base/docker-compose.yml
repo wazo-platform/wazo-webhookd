@@ -1,50 +1,47 @@
-sync:
-  image: n3llyb0y/wait
-  links:
-    - auth
-    - postgres
-    - rabbitmq
-    - third-party-http
-    - webhookd
-  environment:
-    PORTS: "1080 5432 5672 9300 9497"
-    TIMEOUT: "${INTEGRATION_TEST_TIMEOUT}"
+version: '3'
+services:
+  sync:
+    image: waisbrot/wait
+    depends_on:
+      - auth
+      - postgres
+      - rabbitmq
+      - third-party-http
+      - webhookd
+    environment:
+      TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497"
+      TIMEOUT: "${INTEGRATION_TEST_TIMEOUT}"
 
-auth:
-  image: "wazopbx/xivo-auth-mock"
-  ports:
-    - "9497"
-  volumes:
-    - "./ssl:/usr/local/share/ssl"
+  auth:
+    image: "wazopbx/xivo-auth-mock"
+    ports:
+      - "9497"
+    volumes:
+      - "./ssl:/usr/local/share/ssl"
 
-third-party-http:
-  image: jamesdbloom/mockserver:mockserver-5.2.3
-  ports:
-    - "1080"
+  third-party-http:
+    image: jamesdbloom/mockserver:mockserver-5.2.3
+    ports:
+      - "1080"
 
-postgres:
-  image: wazopbx/wazo-webhookd-db
-  expose:
-    - "5432"
+  postgres:
+    image: wazopbx/wazo-webhookd-db
+    expose:
+      - "5432"
 
-rabbitmq:
-  image: rabbitmq
-  ports:
-    - "5672"
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - "5672"
 
-webhookd:
-  image: "wazo-webhookd-test"
-  environment:
-    - XIVO_UUID=cd030e68-ace9-4ad4-bc4e-13c8dec67898
-  volumes:
-    - "../../..:/usr/src/wazo-webhookd"
-    - "./etc/wazo-webhookd:/etc/wazo-webhookd"
-    - "./ssl:/usr/local/share/ssl"
-    # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/usr/local/lib/python3.4/site-packages/xivo"
-  ports:
-    - "9300"
-  links:
-    - auth
-    - postgres
-    - rabbitmq
-    - third-party-http
+  webhookd:
+    image: "wazo-webhookd-test"
+    environment:
+      XIVO_UUID: "cd030e68-ace9-4ad4-bc4e-13c8dec67898"
+    volumes:
+      - "../../..:/usr/src/wazo-webhookd"
+      - "./etc/wazo-webhookd:/etc/wazo-webhookd"
+      - "./ssl:/usr/local/share/ssl"
+      # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/usr/local/lib/python3.4/site-packages/xivo"
+    ports:
+      - "9300"
