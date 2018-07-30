@@ -1,0 +1,11 @@
+version: '3'
+services:
+  sync:
+    depends_on:
+      - auth
+      - postgres
+      - rabbitmq
+      - third-party-http
+      - webhookd
+    environment:
+      TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497"

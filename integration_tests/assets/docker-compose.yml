@@ -1,0 +1,40 @@
+version: '3'
+services:
+  sync:
+    image: waisbrot/wait
+    environment:
+      TIMEOUT: "${INTEGRATION_TEST_TIMEOUT}"
+
+  auth:
+    image: "wazopbx/xivo-auth-mock"
+    ports:
+      - "9497"
+    volumes:
+      - "./ssl:/usr/local/share/ssl"
+
+  third-party-http:
+    image: jamesdbloom/mockserver:mockserver-5.2.3
+    ports:
+      - "1080"
+
+  postgres:
+    image: wazopbx/wazo-webhookd-db
+    ports:
+      - "5432"
+
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - "5672"
+
+  webhookd:
+    image: "wazo-webhookd-test"
+    environment:
+      XIVO_UUID: "cd030e68-ace9-4ad4-bc4e-13c8dec67898"
+    volumes:
+      - "../..:/usr/src/wazo-webhookd"
+      - "./ssl:/usr/local/share/ssl"
+      - "./etc/wazo-webhookd/conf.d/50-default-config.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"
+      # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/usr/local/lib/python3.4/site-packages/xivo"
+    ports:
+      - "9300"

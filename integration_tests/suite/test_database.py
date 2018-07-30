@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2018 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 import os
@@ -26,6 +26,14 @@ class TestDatabase(AssetLaunchingTestCase):
     asset = 'database'
     assets_root = os.path.join(os.path.dirname(__file__), '..', 'assets')
     service = 'postgresql'
+
+    @classmethod
+    def _docker_compose_options(cls):
+        return [
+            '--file', os.path.join(cls.assets_root, 'docker-compose.yml'),
+            '--file', os.path.join(cls.assets_root, 'docker-compose.{}.override.yml'.format(cls.asset)),
+            '--project-name', cls.service,
+        ]
 
     def setUp(self):
         super(TestDatabase, self).setUp()
