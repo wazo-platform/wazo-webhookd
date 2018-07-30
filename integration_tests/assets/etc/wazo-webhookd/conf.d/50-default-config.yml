@@ -1,0 +1,12 @@
+auth:
+  host: auth
+  verify_certificate: /usr/local/share/ssl/auth/server.crt
+db_uri: postgresql://asterisk:proformatique@postgres/asterisk
+bus:
+  host: rabbitmq
+celery:
+  broker: amqp://guest:guest@rabbitmq:5672
+enabled_plugins:
+  sentinel: True
+service_discovery:
+  enabled: false

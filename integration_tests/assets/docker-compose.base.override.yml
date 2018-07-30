@@ -9,7 +9,3 @@ services:
       - webhookd
     environment:
       TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497"
-
-  webhookd:
-    volumes:
-      - "./etc/wazo-webhookd/conf.d/config.base.yml:/etc/wazo-webhookd/conf.d/config.yml"
