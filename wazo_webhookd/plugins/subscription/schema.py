@@ -9,8 +9,11 @@ from marshmallow import Schema
 from marshmallow import validates
 from marshmallow import ValidationError
 from xivo.mallow import fields
-from xivo.mallow.validate import OneOf
-from xivo.mallow.validate import Length
+from xivo.mallow.validate import (
+    Length,
+    OneOf,
+    validate_string_dict,
+)
 
 VALID_METHODS = ['head', 'get', 'post', 'put', 'delete']
 
@@ -52,28 +55,9 @@ class HTTPSubscriptionConfigSchema(Schema):
             })
 
 
-def validate_config_dict(dict_):
-    for key, value in dict_.items():
-        if not (isinstance(key, str) and isinstance(value, str)):
-            raise ValidationError({
-                'message': 'Not a mapping with string keys and string values',
-                'constraint_id': 'key-value-type',
-                'constraint': 'string',
-            })
-        if len(key) > 128 or len(value) > 2048:
-            raise ValidationError({
-                'message': 'Key or value too long',
-                'constraint_id': 'key-value-length',
-                'constraint': {
-                    'key-max': 128,
-                    'value-max': 2048,
-                }
-            })
-
-
 class ConfigField(fields.Field):
 
-    _default_options = fields.Dict(validate=validate_config_dict, allow_none=False, required=True)
+    _default_options = fields.Dict(validate=validate_string_dict, allow_none=False, required=True)
     _options = {
         'http': fields.Nested(HTTPSubscriptionConfigSchema, required=True),
     }
