@@ -7,8 +7,8 @@ celery==3.1.23
 cheroot==5.5.0
 flask-cors==3.0.2
 flask-restful==0.3.5
-flask==0.12.1
-jinja2==2.8
+flask==1.0.2
+jinja2==2.10
 kombu==3.0.35
 marshmallow==2.15.3
 netifaces==0.10.4
