@@ -14,12 +14,12 @@ definitions:
   StatusSummary:
     type: object
     properties:
-      connections:
-        $ref: '#/definitions/ConnectionsStatusSummary'
-  ConnectionsStatusSummary:
+      bus_consumer:
+        $ref: '#/definitions/ComponentWithStatus'
+  ComponentWithStatus:
     type: object
     properties:
-      bus_consumer:
+      status:
         $ref: '#/definitions/StatusValue'
   StatusValue:
     type: string

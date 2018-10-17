@@ -13,8 +13,8 @@ class StatusResource(AuthResource):
     @required_acl('webhookd.status.read')
     def get(self):
         result = {
-            'connections': {
-                'bus_consumer': 'ok' if self._bus_consumer.is_running() else 'fail',
+            'bus_consumer': {
+                'status': 'ok' if self._bus_consumer.is_running() else 'fail',
             }
         }
         return result, 200
