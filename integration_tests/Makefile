@@ -12,7 +12,7 @@ egg-info:
 pull-images:
 	docker pull jamesdbloom/mockserver:mockserver-5.2.3
 	docker pull swaggerapi/swagger-validator
-	docker pull waisbrot/wait
+	docker pull wazopbx/wait
 	docker pull wazopbx/xivo-auth-mock
 
 webhookd:
