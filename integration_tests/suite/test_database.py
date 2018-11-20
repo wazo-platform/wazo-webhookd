@@ -27,14 +27,6 @@ class TestDatabase(AssetLaunchingTestCase):
     assets_root = os.path.join(os.path.dirname(__file__), '..', 'assets')
     service = 'postgresql'
 
-    @classmethod
-    def _docker_compose_options(cls):
-        return [
-            '--file', os.path.join(cls.assets_root, 'docker-compose.yml'),
-            '--file', os.path.join(cls.assets_root, 'docker-compose.{}.override.yml'.format(cls.asset)),
-            '--project-name', cls.service,
-        ]
-
     def setUp(self):
         super(TestDatabase, self).setUp()
         self._Session = scoped_session(sessionmaker())

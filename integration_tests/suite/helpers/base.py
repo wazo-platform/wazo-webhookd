@@ -22,14 +22,6 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     wait_strategy = WaitStrategy()
 
     @classmethod
-    def _docker_compose_options(cls):
-        return [
-            '--file', os.path.join(cls.assets_root, 'docker-compose.yml'),
-            '--file', os.path.join(cls.assets_root, 'docker-compose.{}.override.yml'.format(cls.asset)),
-            '--project-name', cls.service,
-        ]
-
-    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         webhookd = cls.make_webhookd(VALID_TOKEN)
