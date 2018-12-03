@@ -13,7 +13,7 @@ pull-images:
 	docker pull jamesdbloom/mockserver:mockserver-5.2.3
 	docker pull swaggerapi/swagger-validator
 	docker pull wazopbx/wait
-	docker pull wazopbx/xivo-auth-mock
+	docker pull wazopbx/wazo-auth-mock
 
 webhookd:
 	docker pull python:3.5.3
