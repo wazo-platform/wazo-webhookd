@@ -26,7 +26,7 @@ Depends:
  python3-sqlalchemy,
  python3-stevedore,
  python3-yaml,
- xivo-dbms (>= 18.09~20180813.122139.5a1dcf0.deb9),
+ xivo-dbms (>= 19.03~20190218.142812.1fd1d24.deb9),
  xivo-lib-python-python3
 Description: Wazo webhookd server
  Wazo is a system based on a powerful IPBX, to bring an easy to
