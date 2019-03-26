@@ -1,4 +1,4 @@
-FROM python:3.5.3
+FROM python:3.5-stretch
 
 ADD . /usr/src/wazo-webhookd
 ADD ./contribs/docker/certs /usr/share/xivo-certs
@@ -15,7 +15,8 @@ RUN true \
     && python setup.py install \
     && cp -r etc/* /etc \
     && apt-get -yqq autoremove \
-    && openssl req -x509 -newkey rsa:4096 -keyout /usr/share/xivo-certs/server.key -out /usr/share/xivo-certs/server.crt -nodes -config /usr/share/xivo-certs/openssl.cfg -days 3650
+    && openssl req -x509 -newkey rsa:4096 -keyout /usr/share/xivo-certs/server.key -out /usr/share/xivo-certs/server.crt -nodes -config /usr/share/xivo-certs/openssl.cfg -days 3650 \
+    && chown wazo-webhookd:wazo-webhookd /usr/share/xivo-certs/*
 
 EXPOSE 9300
 
