@@ -29,12 +29,9 @@ case "$1" in
         fi
         chown "$USER:$GROUP" "$LOG_FILENAME"
 
-        # Database initialization and migrations
-        if wazo-pg-is-running ; then
-            wazo-webhookd-init-db --user postgres
-            echo "Upgrading wazo-webhookd database ..."
-            (cd $ALEMBIC_INI_PATH && alembic -c alembic.ini upgrade head)
-        fi
+        wazo-webhookd-init-db --user postgres
+        echo "Upgrading wazo-webhookd database ..."
+        (cd $ALEMBIC_INI_PATH && alembic -c alembic.ini upgrade head)
 
         if [[ -z "${previous_version}" ]]; then
             ln -sf /etc/nginx/locations/https-available/$DAEMONNAME \
