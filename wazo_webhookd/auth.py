@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -32,7 +32,7 @@ class Token:
         try:
             self._token_infos = auth_client.token.get(token_id)
         except HTTPError as e:
-            logger.warning('HTTP error from xivo-auth while getting token: %s', e)
+            logger.warning('HTTP error from wazo-auth while getting token: %s', e)
             raise AuthServerUnreachable(auth_client.host, auth_client.port, e)
 
     def user_uuid(self):
