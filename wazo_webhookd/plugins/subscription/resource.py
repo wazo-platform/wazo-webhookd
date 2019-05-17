@@ -17,7 +17,6 @@ from .schema import (
 
 
 class SubscriptionsResource(AuthResource):
-
     def __init__(self, service):
         self._service = service
 
@@ -25,8 +24,10 @@ class SubscriptionsResource(AuthResource):
     def get(self):
         params = subscription_list_params_schema.load(request.args).data
         subscriptions = list(self._service.list(**params))
-        return {'items': subscription_schema.dump(subscriptions, many=True).data,
-                'total': len(subscriptions)}
+        return {
+            'items': subscription_schema.dump(subscriptions, many=True).data,
+            'total': len(subscriptions),
+        }
 
     @required_acl('webhookd.subscriptions.create')
     def post(self):
@@ -37,7 +38,6 @@ class SubscriptionsResource(AuthResource):
 
 
 class SubscriptionResource(AuthResource):
-
     def __init__(self, service):
         self._service = service
 
@@ -59,7 +59,6 @@ class SubscriptionResource(AuthResource):
 
 
 class UserSubscriptionsResource(AuthResource):
-
     def __init__(self, auth_client, service):
         self._auth_client = auth_client
         self._service = service
@@ -69,14 +68,18 @@ class UserSubscriptionsResource(AuthResource):
         user_uuid = get_token_user_uuid_from_request(self._auth_client)
         params = subscription_list_params_schema.load(request.args).data
         subscriptions = list(self._service.list(owner_user_uuid=user_uuid, **params))
-        return {'items': subscription_schema.dump(subscriptions, many=True).data,
-                'total': len(subscriptions)}
+        return {
+            'items': subscription_schema.dump(subscriptions, many=True).data,
+            'total': len(subscriptions),
+        }
 
     @required_acl('webhookd.users.me.subscriptions.create')
     def post(self):
         subscription = user_subscription_schema.load(request.json).data
         token = Token.from_request(self._auth_client)
-        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = token.user_uuid()
+        subscription['events_user_uuid'] = subscription[
+            'owner_user_uuid'
+        ] = token.user_uuid()
         subscription['events_wazo_uuid'] = token.wazo_uuid()
         subscription['uuid'] = str(uuid.uuid4())
         self._service.create(subscription)
@@ -84,7 +87,6 @@ class UserSubscriptionsResource(AuthResource):
 
 
 class UserSubscriptionResource(AuthResource):
-
     def __init__(self, auth_client, service):
         self._auth_client = auth_client
         self._service = service
@@ -99,7 +101,9 @@ class UserSubscriptionResource(AuthResource):
     def put(self, subscription_uuid):
         user_uuid = get_token_user_uuid_from_request(self._auth_client)
         subscription = user_subscription_schema.load(request.json).data
-        subscription = self._service.update_as_user(subscription_uuid, subscription, user_uuid)
+        subscription = self._service.update_as_user(
+            subscription_uuid, subscription, user_uuid
+        )
         return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.delete')

@@ -5,7 +5,6 @@ from . import celery_tasks
 
 
 class Service:
-
     def load(self, dependencies):
         celery_app = dependencies['celery']
         self._callback = celery_tasks.load(celery_app)

@@ -14,8 +14,6 @@ setup(
     url='http://wazo.community',
     packages=find_packages(),
     entry_points={
-        'wazo_webhookd.plugins': [
-            'sentinel = wazo_webhookd_sentinel.plugin:Plugin',
-        ],
+        'wazo_webhookd.plugins': ['sentinel = wazo_webhookd_sentinel.plugin:Plugin']
     },
 )

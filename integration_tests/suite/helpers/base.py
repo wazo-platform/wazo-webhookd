@@ -5,11 +5,7 @@ import os
 
 import requests
 
-from hamcrest import (
-    assert_that,
-    is_in,
-    not_
-)
+from hamcrest import assert_that, is_in, not_
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
@@ -25,30 +21,33 @@ VALID_TOKEN = 'valid-token'
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
 
-    assets_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
+    assets_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..', 'assets')
+    )
     service = 'webhookd'
     wait_strategy = WaitStrategy()
 
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(BaseIntegrationTest, cls).setUpClass()
         webhookd = cls.make_webhookd(VALID_TOKEN)
         cls.wait_strategy.wait(webhookd)
 
     @classmethod
     def make_webhookd(cls, token):
-        return WebhookdClient('localhost',
-                              cls.service_port(9300, 'webhookd'),
-                              token=token,
-                              verify_certificate=False)
+        return WebhookdClient(
+            'localhost',
+            cls.service_port(9300, 'webhookd'),
+            token=token,
+            verify_certificate=False,
+        )
 
     def make_auth(self):
         return AuthClient('localhost', self.service_port(9497, 'auth'))
 
     def make_bus(self):
         return BusClient.from_connection_fields(
-            host='localhost',
-            port=self.service_port(5672, 'rabbitmq')
+            host='localhost', port=self.service_port(5672, 'rabbitmq')
         )
 
     def make_sentinel(self):
@@ -69,11 +68,14 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             def reset(self):
                 requests.delete(self._url, verify=False)
 
-        url = 'https://localhost:{port}/1.0/sentinel'.format(port=self.service_port(9300, 'webhookd'))
+        url = 'https://localhost:{port}/1.0/sentinel'.format(
+            port=self.service_port(9300, 'webhookd')
+        )
         return Sentinel(url)
 
     def ensure_webhookd_consume_uuid(self, uuid):
         sentinel = self.make_sentinel()
+
         def subscribed():
             try:
                 assert_that(uuid, is_in(sentinel.consumers()))
@@ -84,6 +86,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     def ensure_webhookd_not_consume_uuid(self, uuid):
         sentinel = self.make_sentinel()
+
         def subscribed():
             try:
                 assert_that(uuid, not_(is_in(sentinel.consumers())))

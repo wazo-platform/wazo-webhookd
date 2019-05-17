@@ -5,7 +5,6 @@ from xivo.rest_api_helpers import APIException
 
 
 class TokenWithUserUUIDRequiredError(APIException):
-
     def __init__(self):
         super(TokenWithUserUUIDRequiredError, self).__init__(
             status_code=400,

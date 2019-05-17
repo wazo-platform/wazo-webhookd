@@ -7,7 +7,6 @@ called = False
 
 
 class SentinelResource(Resource):
-
     def __init__(self, bus_consumer):
         self._bus_consumer = bus_consumer
 
@@ -17,10 +16,7 @@ class SentinelResource(Resource):
             set(self._bus_consumer._consumers.keys())
             - set([uuid for uuid, _ in self._bus_consumer._updated_consumers])
         )
-        return {
-            'called': called,
-            'consumers': consumers,
-        }
+        return {'called': called, 'consumers': consumers}
 
     def post(self):
         global called
@@ -32,9 +28,9 @@ class SentinelResource(Resource):
 
 
 class Plugin(object):
-
     def load(self, dependencies):
         api = dependencies['api']
         bus_consumer = dependencies['bus_consumer']
-        api.add_resource(SentinelResource, '/sentinel',
-                         resource_class_args=[bus_consumer])
+        api.add_resource(
+            SentinelResource, '/sentinel', resource_class_args=[bus_consumer]
+        )

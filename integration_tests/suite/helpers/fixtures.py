@@ -10,6 +10,7 @@ from .base import VALID_TOKEN
 
 def subscription(subscription_args, track_test_name=True):
     '''This decorator is only compatible with instance methods, not pure functions.'''
+
     def decorator(decorated):
         @wraps(decorated)
         def wrapper(self, *args, **kwargs):
@@ -38,4 +39,5 @@ def subscription(subscription_args, track_test_name=True):
                 self.ensure_webhookd_not_consume_uuid(new_subscription['uuid'])
 
         return wrapper
+
     return decorator

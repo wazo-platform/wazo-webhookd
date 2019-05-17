@@ -10,7 +10,5 @@ class NoSuchSubscription(APIException):
             status_code=404,
             message='No such subscription: {}'.format(subscription_uuid),
             error_id='no-such-subscription',
-            details={
-                'subscription_uuid': subscription_uuid
-            }
+            details={'subscription_uuid': subscription_uuid},
         )

@@ -1,30 +1,23 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from hamcrest import (
-    assert_that,
-    has_entries,
-)
+from hamcrest import assert_that, has_entries
 from requests import RequestException
 from xivo_test_helpers import until
 
 
 class WaitStrategy:
-
     def wait(self, webhookd):
         raise NotImplementedError()
 
 
 class NoWaitStrategy(WaitStrategy):
-
     def wait(self, webhookd):
         pass
 
 
 class ConnectedWaitStrategy(WaitStrategy):
-
     def wait(self, webhookd):
-
         def webhookd_is_connected():
             try:
                 status = webhookd.status.get()

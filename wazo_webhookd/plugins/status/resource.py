@@ -6,7 +6,6 @@ from xivo.auth_verifier import required_acl
 
 
 class StatusResource(AuthResource):
-
     def __init__(self, bus_consumer):
         self._bus_consumer = bus_consumer
 
@@ -14,7 +13,7 @@ class StatusResource(AuthResource):
     def get(self):
         result = {
             'bus_consumer': {
-                'status': 'ok' if self._bus_consumer.is_running() else 'fail',
+                'status': 'ok' if self._bus_consumer.is_running() else 'fail'
             }
         }
         return result, 200

@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class Controller:
-
     def __init__(self, config):
         self._service_discovery_args = [
             'wazo-webhookd',
@@ -31,7 +30,9 @@ class Controller:
         ]
         self._bus_consumer = CoreBusConsumer(config)
         self._celery_worker = CoreCeleryWorker(config)
-        self._celery_process = Process(target=self._celery_worker.run, name='celery_process')
+        self._celery_process = Process(
+            target=self._celery_worker.run, name='celery_process'
+        )
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
             namespace='wazo_webhookd.services',
@@ -41,7 +42,7 @@ class Controller:
                 'bus_consumer': self._bus_consumer,
                 'celery': celery_app,
                 'config': config,
-            }
+            },
         )
         plugin_helpers.load(
             namespace='wazo_webhookd.plugins',
@@ -51,14 +52,16 @@ class Controller:
                 'bus_consumer': self._bus_consumer,
                 'config': config,
                 'service_manager': self._service_manager,
-            }
+            },
         )
 
     def run(self):
         logger.info('wazo-webhookd starting...')
         signal.signal(signal.SIGTERM, partial(_sigterm_handler, self))
         self._celery_process.start()
-        bus_consumer_thread = Thread(target=self._bus_consumer.run, name='bus_consumer_thread')
+        bus_consumer_thread = Thread(
+            target=self._bus_consumer.run, name='bus_consumer_thread'
+        )
         bus_consumer_thread.start()
         try:
             with ServiceCatalogRegistration(*self._service_discovery_args):

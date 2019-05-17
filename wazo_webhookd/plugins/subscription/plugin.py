@@ -12,7 +12,6 @@ from .service import SubscriptionService
 
 
 class Plugin(object):
-
     def load(self, dependencies):
         api = dependencies['api']
         bus_consumer = dependencies['bus_consumer']
@@ -22,9 +21,25 @@ class Plugin(object):
         auth_client = AuthClient(**config['auth'])
         service = SubscriptionService(config)
 
-        api.add_resource(SubscriptionsResource, '/subscriptions', resource_class_args=[service])
-        api.add_resource(SubscriptionResource, '/subscriptions/<subscription_uuid>', resource_class_args=[service])
-        api.add_resource(UserSubscriptionsResource, '/users/me/subscriptions', resource_class_args=[auth_client, service])
-        api.add_resource(UserSubscriptionResource, '/users/me/subscriptions/<subscription_uuid>', resource_class_args=[auth_client, service])
+        api.add_resource(
+            SubscriptionsResource, '/subscriptions', resource_class_args=[service]
+        )
+        api.add_resource(
+            SubscriptionResource,
+            '/subscriptions/<subscription_uuid>',
+            resource_class_args=[service],
+        )
+        api.add_resource(
+            UserSubscriptionsResource,
+            '/users/me/subscriptions',
+            resource_class_args=[auth_client, service],
+        )
+        api.add_resource(
+            UserSubscriptionResource,
+            '/users/me/subscriptions/<subscription_uuid>',
+            resource_class_args=[auth_client, service],
+        )
 
-        SubscriptionBusEventHandler(bus_consumer, service_manager, service).subscribe(bus_consumer)
+        SubscriptionBusEventHandler(bus_consumer, service_manager, service).subscribe(
+            bus_consumer
+        )

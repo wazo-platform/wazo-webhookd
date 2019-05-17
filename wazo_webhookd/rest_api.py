@@ -31,7 +31,6 @@ def log_request_params(response):
 
 
 class CoreRestApi(object):
-
     def __init__(self, global_config):
         self.config = global_config['rest_api']
         http_helpers.add_logger(app, logger)
@@ -52,11 +51,16 @@ class CoreRestApi(object):
         bind_addr = (self.config['listen'], self.config['port'])
 
         wsgi_app = wsgi.WSGIPathInfoDispatcher({'/': app})
-        self.server = wsgi.WSGIServer(bind_addr=bind_addr,
-                                      wsgi_app=wsgi_app)
-        self.server.ssl_adapter = http_helpers.ssl_adapter(self.config['certificate'],
-                                                           self.config['private_key'])
-        logger.debug('WSGIServer starting... uid: %s, listen: %s:%s', os.getuid(), bind_addr[0], bind_addr[1])
+        self.server = wsgi.WSGIServer(bind_addr=bind_addr, wsgi_app=wsgi_app)
+        self.server.ssl_adapter = http_helpers.ssl_adapter(
+            self.config['certificate'], self.config['private_key']
+        )
+        logger.debug(
+            'WSGIServer starting... uid: %s, listen: %s:%s',
+            os.getuid(),
+            bind_addr[0],
+            bind_addr[1],
+        )
         for route in http_helpers.list_routes(app):
             logger.debug(route)
 
@@ -71,10 +75,13 @@ class CoreRestApi(object):
 
 
 class ErrorCatchingResource(Resource):
-    method_decorators = ([mallow_helpers.handle_validation_exception,
-                          rest_api_helpers.handle_api_exception] +
-                         Resource.method_decorators)
+    method_decorators = [
+        mallow_helpers.handle_validation_exception,
+        rest_api_helpers.handle_api_exception,
+    ] + Resource.method_decorators
 
 
 class AuthResource(ErrorCatchingResource):
-    method_decorators = [auth_verifier.verify_token] + ErrorCatchingResource.method_decorators
+    method_decorators = [
+        auth_verifier.verify_token
+    ] + ErrorCatchingResource.method_decorators

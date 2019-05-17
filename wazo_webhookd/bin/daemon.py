@@ -23,7 +23,9 @@ def main():
     if conf['user']:
         change_user(conf['user'])
 
-    xivo_logging.setup_logging(conf['log_file'], FOREGROUND, conf['debug'], conf['log_level'])
+    xivo_logging.setup_logging(
+        conf['log_file'], FOREGROUND, conf['debug'], conf['log_level']
+    )
     xivo_logging.silence_loggers(['Flask-Cors', 'urllib3'], logging.WARNING)
 
     try:

@@ -1,0 +1,72 @@
+# TODO(sileht): Move this job and nodeset configuration to zuul-jobs repository
+- job:
+    name: tox-integration
+    parent: tox
+    description: |
+      Run integration tests.
+
+      Uses tox with the ``integration`` environment.
+    vars:
+      tox_envlist: integration
+
+- job:
+    name: tox-pylint
+    parent: tox
+    description: |
+      Run integration tests.
+
+      Uses tox with the ``pylint`` environment.
+    vars:
+      tox_envlist: pylint
+
+- project:
+    check:
+      jobs:
+        - tox-linters:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-buster
+        - tox-py35:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-stretch
+# FIXME(sileht): pylintrc is missing, it need a wazo package be installed
+#        - tox-pylint:
+#            nodeset:
+#              nodes:
+#                - name: test-node
+#                  label: runc-debian-stretch
+        - tox-integration:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: debian9-vm
+    gate:
+      jobs:
+        - tox-linters:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-buster
+
+# FIXME(sileht): pylintrc is missing, it need a wazo package be installed
+#        - tox-pylint:
+#            nodeset:
+#              nodes:
+#                - name: test-node
+#                  label: runc-debian-stretch
+
+        - tox-py35:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-stretch
+        - tox-integration:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: debian9-vm
+
+

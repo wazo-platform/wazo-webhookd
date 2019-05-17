@@ -2,26 +2,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from contextlib import contextmanager
-from sqlalchemy import (
-    and_,
-    create_engine,
-    distinct,
-    func,
-    or_,
-)
+from sqlalchemy import and_, create_engine, distinct, func, or_
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
-from wazo_webhookd.database.models import (
-    Subscription,
-    SubscriptionMetadatum,
-)
+from wazo_webhookd.database.models import Subscription, SubscriptionMetadatum
 from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
 
 
 class SubscriptionService(object):
-
     def __init__(self, config):
         engine = create_engine(config['db_uri'])
         self._Session = scoped_session(sessionmaker())
@@ -54,12 +44,25 @@ class SubscriptionService(object):
             if owner_user_uuid:
                 query = query.filter(Subscription.owner_user_uuid == owner_user_uuid)
             if search_metadata:
-                subquery = (session.query(SubscriptionMetadatum.subscription_uuid)
-                            .filter(or_(*[and_(SubscriptionMetadatum.key == key,
-                                               SubscriptionMetadatum.value == value)
-                                          for key, value in search_metadata.items()]))
-                            .group_by(SubscriptionMetadatum.subscription_uuid)
-                            .having(func.count(distinct(SubscriptionMetadatum.key)) == len(search_metadata)))
+                subquery = (
+                    session.query(SubscriptionMetadatum.subscription_uuid)
+                    .filter(
+                        or_(
+                            *[
+                                and_(
+                                    SubscriptionMetadatum.key == key,
+                                    SubscriptionMetadatum.value == value,
+                                )
+                                for key, value in search_metadata.items()
+                            ]
+                        )
+                    )
+                    .group_by(SubscriptionMetadatum.subscription_uuid)
+                    .having(
+                        func.count(distinct(SubscriptionMetadatum.key))
+                        == len(search_metadata)
+                    )
+                )
                 query = query.filter(Subscription.uuid.in_(subquery))
             return query.all()
 
@@ -106,7 +109,9 @@ class SubscriptionService(object):
             subscription = session.query(Subscription).get(subscription_uuid)
             if subscription is None:
                 raise NoSuchSubscription(subscription_uuid)
-            session.query(Subscription).filter(Subscription.uuid == subscription_uuid).delete()
+            session.query(Subscription).filter(
+                Subscription.uuid == subscription_uuid
+            ).delete()
             self.pubsub.publish('deleted', subscription)
 
     def delete_as_user(self, subscription_uuid, owner_user_uuid):
@@ -115,10 +120,11 @@ class SubscriptionService(object):
 
     def _assert_subscription_owned_by_user(self, subscription_uuid, user_uuid):
         with self.ro_session() as session:
-            subscription = (session
-                            .query(Subscription)
-                            .filter(Subscription.uuid == subscription_uuid)
-                            .filter(Subscription.owner_user_uuid == user_uuid)
-                            .first())
+            subscription = (
+                session.query(Subscription)
+                .filter(Subscription.uuid == subscription_uuid)
+                .filter(Subscription.owner_user_uuid == user_uuid)
+                .first()
+            )
             if subscription is None:
                 raise NoSuchSubscription(subscription_uuid)
