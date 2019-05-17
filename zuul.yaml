@@ -1,0 +1,41 @@
+- job:
+    name: tox-integration
+    parent: tox
+    description: |
+      Run integration tests.
+
+      Uses tox with the ``integration`` environment.
+    vars:
+      tox_envlist: integration
+    nodeset:
+      nodes:
+        - name: test-node
+          label: debian9-vm
+
+- project:
+    check:
+      jobs:
+        - tox-linters:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-buster
+        - tox-py35:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-stretch
+        - tox-integration
+    gate:
+      jobs:
+        - tox-linters:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-buster
+        - tox-py35:
+            nodeset:
+              nodes:
+                - name: test-node
+                  label: runc-debian-stretch
+        - tox-integration

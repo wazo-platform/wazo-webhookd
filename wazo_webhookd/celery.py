@@ -37,7 +37,7 @@ class CoreCeleryWorker():
             #   celeryd: webhookd@<hostname>:MainProcess
             #   celeryd: webhookd@<hostname>:Worker-*
             '--hostname', 'webhookd@%h',
-            '--autoscale',  "{},{}".format(
+            '--autoscale', "{},{}".format(
                 app.conf['CELERY_WORKER_MAX'],
                 app.conf['CELERY_WORKER_MIN']
             ),
