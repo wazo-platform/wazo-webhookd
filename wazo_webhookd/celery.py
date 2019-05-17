@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -22,6 +22,8 @@ class CoreCeleryWorker():
             CELERY_DEFAULT_QUEUE=config['celery']['queue_name'],
             CELERYD_HIJACK_ROOT_LOGGER=False,
             CELERY_IGNORE_RESULT=True,
+            CELERY_WORKER_MIN=config['celery']['worker_min'],
+            CELERY_WORKER_MAX=config['celery']['worker_max'],
         )
         self._worker_pid_file = config['celery']['worker_pid_file']
 
@@ -30,7 +32,15 @@ class CoreCeleryWorker():
         argv = [
             'webhookd-worker',  # argv[0] is arbitrary
             '--loglevel', app.conf['CELERYD_LOG_LEVEL'].upper(),
-            '--hostname', 'webhookd_worker@%h',
+            # NOTE(sileht): setproctitle must be installed to have the celery
+            # process well named like:
+            #   celeryd: webhookd@<hostname>:MainProcess
+            #   celeryd: webhookd@<hostname>:Worker-*
+            '--hostname', 'webhookd@%h',
+            '--autoscale',  "{},{}".format(
+                app.conf['CELERY_WORKER_MAX'],
+                app.conf['CELERY_WORKER_MIN']
+            ),
             '--pidfile', self._worker_pid_file,
         ]
         return app.worker_main(argv)

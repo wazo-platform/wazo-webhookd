@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
@@ -39,6 +39,8 @@ _DEFAULT_CONFIG = {
         'exchange_name': 'celery-webhookd',
         'queue_name': 'celery-webhookd',
         'worker_pid_file': os.path.join(_PID_DIR, 'celery-worker.pid'),
+        'worker_min': 3,
+        'worker_max': 10,
     },
     'consul': {
         'scheme': 'https',
