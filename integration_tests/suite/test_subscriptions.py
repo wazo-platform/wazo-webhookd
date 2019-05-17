@@ -5,7 +5,6 @@ from hamcrest import assert_that
 from hamcrest import calling
 from hamcrest import contains
 from hamcrest import empty
-from hamcrest import equal_to
 from hamcrest import has_entries
 from hamcrest import has_entry
 from hamcrest import has_key
