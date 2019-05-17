@@ -26,6 +26,7 @@ Depends:
  python3-sqlalchemy,
  python3-stevedore,
  python3-yaml,
+ wazo-auth-client-python3,
  xivo-dbms (>= 19.07~20190429.122922.25c3757.deb9),
  xivo-lib-python-python3
 Description: Wazo webhookd server
