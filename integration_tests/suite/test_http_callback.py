@@ -161,6 +161,12 @@ class TestHTTPCallback(BaseIntegrationTest):
             'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         )
         self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="working service",
+            statusCode=200,
+        )
+
         self.sentinel = self.make_sentinel()
         self.sentinel.reset()
         self.bus = self.make_bus()
@@ -175,6 +181,30 @@ class TestHTTPCallback(BaseIntegrationTest):
         until.assert_(self.make_third_party_verify_callback(
             request={'method': 'GET', 'path': '/test'},
             count=1,
+            exact=True
+        ), tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500(self, subscription):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="temporary bugged service",
+            statusCode=503,
+        )
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="working service",
+            statusCode=200,
+        )
+
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
+
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=2,
             exact=True
         ), tries=10, interval=0.5)
 
@@ -274,6 +304,12 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_URL_TEMPLATE)
     def test_given_http_subscription_with_url_template_when_bus_event_then_callback_with_url_templated(self, subscription):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test/value',
+            responseBody="working service",
+            statusCode=200,
+        )
 
         self.bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
                          routing_key=SOME_ROUTING_KEY,
@@ -431,7 +467,6 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME,
                                   'origin_uuid': WAZO_UUID})
-
         until.assert_(self.make_third_party_verify_callback(
             request={'method': 'GET', 'path': '/test'},
             count=1,
