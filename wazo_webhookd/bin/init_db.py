@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 
@@ -14,18 +14,41 @@ from xivo.user_rights import change_user
 
 def _parse_cli_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--user', action='store',
-                        help="The system user to use to connect to postgresql and create the user and database")
-    parser.add_argument('--pg_db_uri', action='store', default='postgresql:///postgres',
-                        help="The DSN to connect to the postgres DB as an superuser")
-    parser.add_argument('--auth_db_uri', action='store', default='postgresql:///asterisk',
-                        help="The DSN to connect to the auth DB as an superuser")
-    parser.add_argument('--db', action='store', default='asterisk',
-                        help="The database name that will be created")
-    parser.add_argument('--owner', action='store', default='asterisk',
-                        help="The database user that will be created and that will own the database")
-    parser.add_argument('--password', action='store', default='proformatique',
-                        help="The password that will be assigned to the created user")
+    parser.add_argument(
+        "--user",
+        action="store",
+        help="The system user to use to connect to postgresql and create the user and database",
+    )
+    parser.add_argument(
+        "--pg_db_uri",
+        action="store",
+        default="postgresql:///postgres",
+        help="The DSN to connect to the postgres DB as an superuser",
+    )
+    parser.add_argument(
+        "--auth_db_uri",
+        action="store",
+        default="postgresql:///asterisk",
+        help="The DSN to connect to the auth DB as an superuser",
+    )
+    parser.add_argument(
+        "--db",
+        action="store",
+        default="asterisk",
+        help="The database name that will be created",
+    )
+    parser.add_argument(
+        "--owner",
+        action="store",
+        default="asterisk",
+        help="The database user that will be created and that will own the database",
+    )
+    parser.add_argument(
+        "--password",
+        action="store",
+        default="proformatique",
+        help="The password that will be assigned to the created user",
+    )
     return parser.parse_args(args)
 
 
@@ -42,7 +65,7 @@ def main():
         except psycopg2.OperationalError:
             time.sleep(0.25)
     else:
-        print('Failed to connect to postgres', file=sys.stderr)
+        print("Failed to connect to postgres", file=sys.stderr)
         sys.exit(1)
 
     conn.autocommit = True
@@ -56,4 +79,4 @@ def main():
     conn = psycopg2.connect(args.auth_db_uri)
     with conn:
         with conn.cursor() as cursor:
-            db_helper.create_db_extensions(cursor, ['uuid-ossp'])
+            db_helper.create_db_extensions(cursor, ["uuid-ossp"])
