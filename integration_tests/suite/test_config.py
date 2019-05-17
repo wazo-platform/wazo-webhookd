@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that
@@ -11,7 +11,7 @@ from .helpers.wait_strategy import NoWaitStrategy
 
 class TestConfig(BaseIntegrationTest):
 
-    asset = 'base'
+    asset = "base"
     wait_strategy = NoWaitStrategy()
 
     def test_config(self):
@@ -19,4 +19,4 @@ class TestConfig(BaseIntegrationTest):
 
         result = webhookd.config.get()
 
-        assert_that(result, has_key('rest_api'))
+        assert_that(result, has_key("rest_api"))

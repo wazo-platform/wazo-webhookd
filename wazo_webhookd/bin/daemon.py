@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -20,11 +20,13 @@ FOREGROUND = True  # Always in foreground systemd takes care of daemonizing
 def main():
     conf = config.load_config(sys.argv[1:])
 
-    if conf['user']:
-        change_user(conf['user'])
+    if conf["user"]:
+        change_user(conf["user"])
 
-    xivo_logging.setup_logging(conf['log_file'], FOREGROUND, conf['debug'], conf['log_level'])
-    xivo_logging.silence_loggers(['Flask-Cors', 'urllib3'], logging.WARNING)
+    xivo_logging.setup_logging(
+        conf["log_file"], FOREGROUND, conf["debug"], conf["log_level"]
+    )
+    xivo_logging.silence_loggers(["Flask-Cors", "urllib3"], logging.WARNING)
 
     try:
         set_xivo_uuid(conf, logger)
@@ -33,5 +35,5 @@ def main():
         pass
 
     controller = Controller(conf)
-    with pidfile_context(conf['pid_file'], FOREGROUND):
+    with pidfile_context(conf["pid_file"], FOREGROUND):
         controller.run()

@@ -19,46 +19,47 @@ REQUESTS_TIMEOUT = 5  # seconds
 
 
 def load(celery_app):
-
     @celery_app.task(bind=True, max_retries=MAX_RETRIES)
     def http_callback(self, subscription, event):
-        options = subscription['config']
+        options = subscription["config"]
         headers = {}
         values = {
-            'event_name': event['name'],
-            'event': event['data'],
-            'wazo_uuid': event['origin_uuid'],
+            "event_name": event["name"],
+            "event": event["data"],
+            "wazo_uuid": event["origin_uuid"],
         }
 
-        url = options['url']
+        url = options["url"]
         template = url
         url = Environment().from_string(template).render(values)
 
-        if subscription['owner_user_uuid'] and url_is_localhost(url):
+        if subscription["owner_user_uuid"] and url_is_localhost(url):
             # some services only listen on 127.0.0.1 and should not be accessible to users
-            logger.warning('Rejecting callback from user "%s" to url "%s": remote host is localhost!',
-                           subscription['owner_user_uuid'],
-                           url)
+            logger.warning(
+                'Rejecting callback from user "%s" to url "%s": remote host is localhost!',
+                subscription["owner_user_uuid"],
+                url,
+            )
             return
 
-        content_type = options.get('content_type')
+        content_type = options.get("content_type")
 
-        body = options.get('body')
+        body = options.get("body")
         if body:
             template = body
             body = Environment().from_string(template).render(values)
-            body = body.encode('utf-8')
+            body = body.encode("utf-8")
         else:
-            body = json.dumps(event['data'])
-            content_type = 'application/json'
+            body = json.dumps(event["data"])
+            content_type = "application/json"
 
         if content_type:
-            headers['Content-Type'] = content_type
+            headers["Content-Type"] = content_type
 
-        verify = options.get('verify_certificate')
+        verify = options.get("verify_certificate")
         if verify:
-            verify = True if verify == 'true' else verify
-            verify = False if verify == 'false' else verify
+            verify = True if verify == "true" else verify
+            verify = False if verify == "false" else verify
 
         # TODO(sileht): In the best world we would report back
         # errors to the user, when we reach max retries maybe with a celery
@@ -68,7 +69,7 @@ def load(celery_app):
 
         try:
             with requests.request(
-                options['method'],
+                options["method"],
                 url,
                 data=body,
                 verify=verify,
@@ -82,44 +83,46 @@ def load(celery_app):
                 # body. So stream the response, and the context manager with
                 # close the request a soon as it return or raise a exception.
                 # No body will be read ever.
-                stream=True
+                stream=True,
             ) as r:
                 r.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 410:
-                logger.info("http request fail, service is gone ({}/{}): "
-                            "'{} {} [{}]' {}".format(
-                                self.request.retries,
-                                self.max_retries,
-                                options['method'],
-                                url,
-                                exc.response.status_code,
-                                exc.response.text
-                            ))
+                logger.info(
+                    "http request fail, service is gone ({}/{}): "
+                    "'{} {} [{}]' {}".format(
+                        self.request.retries,
+                        self.max_retries,
+                        options["method"],
+                        url,
+                        exc.response.status_code,
+                        exc.response.text,
+                    )
+                )
             else:
-                logger.info("http request fail, retrying ({}/{}): "
-                            "'{} {} [{}]' {}".format(
-                                self.request.retries,
-                                self.max_retries,
-                                options['method'],
-                                url,
-                                exc.response.status_code,
-                                exc.response.text
-                            ))
+                logger.info(
+                    "http request fail, retrying ({}/{}): "
+                    "'{} {} [{}]' {}".format(
+                        self.request.retries,
+                        self.max_retries,
+                        options["method"],
+                        url,
+                        exc.response.status_code,
+                        exc.response.text,
+                    )
+                )
                 self.retry(exc=exc, countdown=exponential_backoff)
 
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
-            requests.exceptions.TooManyRedirects
+            requests.exceptions.TooManyRedirects,
         ) as exc:
-            logger.info("http request fail, retrying ({}/{}): {}".format(
-                self.request.retries,
-                self.max_retries,
-                options['method'],
-                url,
-                exc
-            ))
+            logger.info(
+                "http request fail, retrying ({}/{}): {}".format(
+                    self.request.retries, self.max_retries, options["method"], url, exc
+                )
+            )
             self.retry(exc=exc, countdown=exponential_backoff)
 
     return http_callback
@@ -128,4 +131,4 @@ def load(celery_app):
 def url_is_localhost(url):
     remote_host = urllib.parse.urlparse(url).hostname
     remote_address = socket.gethostbyname(remote_host)
-    return remote_address == '127.0.0.1'
+    return remote_address == "127.0.0.1"
