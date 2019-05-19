@@ -1,8 +1,7 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import requests
-import time
 
 from hamcrest import assert_that
 from hamcrest import is_
@@ -143,22 +142,6 @@ class TestHTTPCallback(BaseIntegrationTest):
         url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         return MockServerClient(url)
 
-    def make_sentinel(self):
-        class Sentinel:
-            def __init__(self, url):
-                self._url = url
-
-            def called(self):
-                response = requests.get(self._url, verify=False)
-                response.raise_for_status()
-                return response.json()['called']
-
-            def reset(self):
-                requests.delete(self._url, verify=False)
-
-        url = 'https://localhost:{port}/1.0/sentinel'.format(port=self.service_port(9300, 'webhookd'))
-        return Sentinel(url)
-
     def setUp(self):
         third_party = self.make_third_party()
         third_party.reset()
@@ -196,7 +179,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         subscription['events'] = [ANOTHER_TRIGGER_EVENT_NAME]
         webhookd.subscriptions.update(subscription['uuid'], subscription)
-        time.sleep(1)  # wait for the subscription to be updated
+        self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
         bus.publish(event(name=old_trigger_name),
                     routing_key=SOME_ROUTING_KEY,
@@ -229,7 +212,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         subscription['config']['url'] = 'http://third-party-http:1080/new-url'
         webhookd.subscriptions.update(subscription['uuid'], subscription)
-        time.sleep(1)  # wait for the subscription to be updated
+        self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
@@ -270,7 +253,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         webhookd.subscriptions.delete(subscription_to_remove['uuid'])
-        time.sleep(1)  # wait for the subscription to be removed
+        self.ensure_webhookd_not_consume_uuid(subscription_to_remove['uuid'])
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,
                     headers={'name': TRIGGER_EVENT_NAME})
@@ -297,6 +280,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         self.restart_service('webhookd')
         ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
+        self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
         bus.publish(trigger_event(),
                     routing_key=SOME_ROUTING_KEY,

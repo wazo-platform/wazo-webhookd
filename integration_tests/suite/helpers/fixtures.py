@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from functools import wraps
@@ -14,9 +14,11 @@ def subscription(subscription_args):
         def wrapper(self, *args, **kwargs):
             webhookd = self.make_webhookd(VALID_TOKEN)
             new_subscription = webhookd.subscriptions.create(subscription_args)
+            self.ensure_webhookd_consume_uuid(new_subscription['uuid'])
+
             args = list(args) + [new_subscription]
             try:
-                result = decorated(self, *args, **kwargs)
+                return decorated(self, *args, **kwargs)
             finally:
                 try:
                     webhookd = self.make_webhookd(VALID_TOKEN)
@@ -24,6 +26,8 @@ def subscription(subscription_args):
                 except WebhookdError as e:
                     if e.status_code != 404:
                         raise
-            return result
+
+                self.ensure_webhookd_not_consume_uuid(new_subscription['uuid'])
+
         return wrapper
     return decorator
