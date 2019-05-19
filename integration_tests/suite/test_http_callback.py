@@ -138,28 +138,25 @@ class TestHTTPCallback(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 
-    def make_third_party(self):
-        url = 'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
-        return MockServerClient(url)
-
     def setUp(self):
-        third_party = self.make_third_party()
-        third_party.reset()
-        sentinel = self.make_sentinel()
-        sentinel.reset()
+        self.third_party = MockServerClient(
+            'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
+        )
+        self.third_party.reset()
+        self.sentinel = self.make_sentinel()
+        self.sentinel.reset()
+        self.bus = self.make_bus()
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -172,8 +169,6 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):
-        bus = self.make_bus()
-        third_party = self.make_third_party()
         webhookd = self.make_webhookd(VALID_TOKEN)
         old_trigger_name = TRIGGER_EVENT_NAME
 
@@ -181,16 +176,16 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd.subscriptions.update(subscription['uuid'], subscription)
         self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
-        bus.publish(event(name=old_trigger_name),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': old_trigger_name})
-        bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': ANOTHER_TRIGGER_EVENT_NAME})
+        self.bus.publish(event(name=old_trigger_name),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': old_trigger_name})
+        self.bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': ANOTHER_TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -206,21 +201,19 @@ class TestHTTPCallback(BaseIntegrationTest):
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
     def test_given_two_http_subscriptions_when_update_config_then_callback_triggered_with_new_config(self, subscription, _):
-        bus = self.make_bus()
-        third_party = self.make_third_party()
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         subscription['config']['url'] = 'http://third-party-http:1080/new-url'
         webhookd.subscriptions.update(subscription['uuid'], subscription)
         self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def new_callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/new-url',
@@ -231,7 +224,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         def old_callback_received_once():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -248,19 +241,17 @@ class TestHTTPCallback(BaseIntegrationTest):
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
     def test_given_two_http_subscription_when_one_deleted_then_one_http_callback(self, subscription, subscription_to_remove):
-        bus = self.make_bus()
-        third_party = self.make_third_party()
         webhookd = self.make_webhookd(VALID_TOKEN)
 
         webhookd.subscriptions.delete(subscription_to_remove['uuid'])
         self.ensure_webhookd_not_consume_uuid(subscription_to_remove['uuid'])
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received_once():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -275,20 +266,18 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_restart_webhookd_then_callback_still_triggered(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
         self.restart_service('webhookd')
         ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
         self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -301,19 +290,21 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
-        third_party = self.make_third_party()
 
         self.restart_service('rabbitmq')
         ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
 
-        bus = self.make_bus()
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        # FIXME(sileht): BusClient should reconnect automatically
+        self.bus = self.make_bus()
+        until.true(self.bus.is_up, tries=5, message='rabbitmq did not come back up')
+
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -326,16 +317,14 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_URL_TEMPLATE)
     def test_given_http_subscription_with_url_template_when_bus_event_then_callback_with_url_templated(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test/value',
@@ -352,16 +341,14 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_with_no_body_when_bus_event_then_http_callback_with_default_body(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(data={'keý': 'vàlue'}),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(data={'keý': 'vàlue'}),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -377,16 +364,14 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_BODY)
     def test_given_one_http_subscription_with_body_when_bus_event_then_http_callback_with_body(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -400,16 +385,14 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_BODY_TEMPLATE)
     def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(data={'variable': 'value'}),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(data={'variable': 'value'}),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -423,14 +406,12 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_VERIFY)
     def test_given_subscription_with_verify_cert_when_bus_event_then_http_callback_with_verify(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -443,14 +424,12 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_CONTENT_TYPE)
     def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
+        self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
         def callback_received():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'POST',
                         'path': '/test',
@@ -466,28 +445,26 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION_FILTER_USER_ALICE)
     def test_given_http_subscription_with_user_uuid_when_bus_events_then_only_callback_when_user_uuid_match(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
 
         # Non-matching events
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid:{uuid}'.format(uuid=BOB_USER_UUID): True})
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID_EXTENDED): True})
+        self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'user_uuid:{uuid}'.format(uuid=BOB_USER_UUID): True})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID_EXTENDED): True})
         # Matching event
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
         def callback_received_once():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -503,24 +480,20 @@ class TestHTTPCallback(BaseIntegrationTest):
     @subscription(TEST_SUBSCRIPTION_ANOTHER_TRIGGER)
     @subscription(TEST_USER_SUBSCRIPTION_LOCALHOST_SENTINEL)
     def test_given_http_user_subscription_to_localhost_when_bus_event_then_callback_not_called(self, control_subscription, sentinel_subscription):
-        bus = self.make_bus()
-        third_party = self.make_third_party()
-        sentinel = self.make_sentinel()
-
         # sentinel should not be triggered
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
         # trigger control webhook
-        bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': ANOTHER_TRIGGER_EVENT_NAME,
-                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
+        self.bus.publish(event(name=ANOTHER_TRIGGER_EVENT_NAME),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': ANOTHER_TRIGGER_EVENT_NAME,
+                                  'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
         def control_callback_received_once():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
@@ -532,47 +505,41 @@ class TestHTTPCallback(BaseIntegrationTest):
                 raise AssertionError()
 
         until.assert_(control_callback_received_once, tries=10, interval=0.5)
-        assert_that(sentinel.called(), is_(False))
+        assert_that(self.sentinel.called(), is_(False))
 
     @subscription(TEST_SUBSCRIPTION_LOCALHOST_SENTINEL)
     def test_given_http_subscription_to_localhost_when_bus_event_then_callback_called(self, subscription):
-        bus = self.make_bus()
-        sentinel = self.make_sentinel()
-
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
         def sentinel_was_called():
-            assert_that(sentinel.called(), is_(True))
+            assert_that(self.sentinel.called(), is_(True))
 
         until.assert_(sentinel_was_called, tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_FILTER_WAZO_UUID)
     def test_given_http_subscription_with_wazo_uuid_when_bus_events_then_only_callback_when_wazo_uuid_match(self, subscription):
-        third_party = self.make_third_party()
-        bus = self.make_bus()
-
         # Non-matching events
-        bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'origin_uuid': OTHER_WAZO_UUID})
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'origin_uuid': WAZO_UUID_EXTENDED})
+        self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'origin_uuid': OTHER_WAZO_UUID})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'origin_uuid': WAZO_UUID_EXTENDED})
         # Matching event
-        bus.publish(trigger_event(),
-                    routing_key=SOME_ROUTING_KEY,
-                    headers={'name': TRIGGER_EVENT_NAME,
-                             'origin_uuid': WAZO_UUID})
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME,
+                                  'origin_uuid': WAZO_UUID})
 
         def callback_received_once():
             try:
-                third_party.verify(
+                self.third_party.verify(
                     request={
                         'method': 'GET',
                         'path': '/test',
