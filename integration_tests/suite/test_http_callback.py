@@ -138,6 +138,17 @@ class TestHTTPCallback(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 
+    def make_third_party_verify_callback(self, *args, **kwargs):
+        def callback():
+            try:
+                self.third_party.verify(*args, **kwargs)
+            except Exception as e:
+                if str(e) == "Failed to verify":
+                    raise AssertionError()
+                else:
+                    raise
+        return callback
+
     def setUp(self):
         self.third_party = MockServerClient(
             'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
@@ -154,18 +165,11 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):
@@ -183,20 +187,11 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': ANOTHER_TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    },
-                    count=1,
-                    exact=True
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
@@ -211,32 +206,14 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def new_callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/new-url',
-                    },
-                )
-            except Exception:
-                raise AssertionError()
-
-        def old_callback_received_once():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    },
-                    count=1,
-                    exact=True,
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(new_callback_received, tries=10, interval=0.5)
-        until.assert_(old_callback_received_once, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/new-url'},
+        ), tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True,
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
@@ -249,20 +226,11 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received_once():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    },
-                    count=1,
-                    exact=True,
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received_once, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True,
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_restart_webhookd_then_callback_still_triggered(self, subscription):
@@ -275,18 +243,9 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'}
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
@@ -302,18 +261,9 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'}
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_URL_TEMPLATE)
     def test_given_http_subscription_with_url_template_when_bus_event_then_callback_with_url_templated(self, subscription):
@@ -321,23 +271,16 @@ class TestHTTPCallback(BaseIntegrationTest):
         self.bus.publish(trigger_event(data={'variable': 'value', 'another_variable': 'another_value'}),
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
-
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test/value',
-                        'queryStringParameters': [
-                            {'name': 'variable', 'value': 'value'},
-                            {'name': 'another_variable', 'value': 'another_value'}
-                        ]
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={
+                'method': 'GET',
+                'path': '/test/value',
+                'queryStringParameters': [
+                    {'name': 'variable', 'value': 'value'},
+                    {'name': 'another_variable', 'value': 'another_value'}
+                ]
+            }
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_with_no_body_when_bus_event_then_http_callback_with_default_body(self, subscription):
@@ -346,21 +289,15 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                        'body': '{"ke\\u00fd": "v\\u00e0lue"}',
-                        'headers': [{'name': 'Content-Type',
-                                     'values': ['application/json']}],
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={
+                'method': 'GET',
+                'path': '/test',
+                'body': '{"ke\\u00fd": "v\\u00e0lue"}',
+                'headers': [{'name': 'Content-Type',
+                             'values': ['application/json']}],
+            }
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_BODY)
     def test_given_one_http_subscription_with_body_when_bus_event_then_http_callback_with_body(self, subscription):
@@ -369,19 +306,13 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                        'body': '{"body_keỳ": "body_vàlue"}',
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={
+                'method': 'GET',
+                'path': '/test',
+                'body': '{"body_keỳ": "body_vàlue"}',
+            }
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_BODY_TEMPLATE)
     def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(self, subscription):
@@ -390,58 +321,33 @@ class TestHTTPCallback(BaseIntegrationTest):
                          routing_key=SOME_ROUTING_KEY,
                          headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                        'body': 'trigger value',
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test', 'body': 'trigger value'}
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_VERIFY)
     def test_given_subscription_with_verify_cert_when_bus_event_then_http_callback_with_verify(self, subscription):
 
         self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'}
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_CONTENT_TYPE)
     def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(self, subscription):
 
         self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY, headers={'name': TRIGGER_EVENT_NAME})
 
-        def callback_received():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'POST',
-                        'path': '/test',
-                        'body': 'keỳ: vàlue',
-                        'headers': [{'name': 'Content-Type',
-                                     'values': ['text/yaml']}],
-                    }
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={
+                'method': 'POST',
+                'path': '/test',
+                'body': 'keỳ: vàlue',
+                'headers': [{'name': 'Content-Type',
+                             'values': ['text/yaml']}],
+                }
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_FILTER_USER_ALICE)
     def test_given_http_subscription_with_user_uuid_when_bus_events_then_only_callback_when_user_uuid_match(self, subscription):
@@ -462,20 +368,11 @@ class TestHTTPCallback(BaseIntegrationTest):
                          headers={'name': TRIGGER_EVENT_NAME,
                                   'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
-        def callback_received_once():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    },
-                    count=1,
-                    exact=True,
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received_once, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True,
+        ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_ANOTHER_TRIGGER)
     @subscription(TEST_USER_SUBSCRIPTION_LOCALHOST_SENTINEL)
@@ -491,20 +388,11 @@ class TestHTTPCallback(BaseIntegrationTest):
                          headers={'name': ANOTHER_TRIGGER_EVENT_NAME,
                                   'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True})
 
-        def control_callback_received_once():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    },
-                    count=1,
-                    exact=True,
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(control_callback_received_once, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True,
+        ), tries=10, interval=0.5)
         assert_that(self.sentinel.called(), is_(False))
 
     @subscription(TEST_SUBSCRIPTION_LOCALHOST_SENTINEL)
@@ -537,17 +425,8 @@ class TestHTTPCallback(BaseIntegrationTest):
                          headers={'name': TRIGGER_EVENT_NAME,
                                   'origin_uuid': WAZO_UUID})
 
-        def callback_received_once():
-            try:
-                self.third_party.verify(
-                    request={
-                        'method': 'GET',
-                        'path': '/test',
-                    },
-                    count=1,
-                    exact=True,
-                )
-            except Exception:
-                raise AssertionError()
-
-        until.assert_(callback_received_once, tries=10, interval=0.5)
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True,
+        ), tries=10, interval=0.5)
