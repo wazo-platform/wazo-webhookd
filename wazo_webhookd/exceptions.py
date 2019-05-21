@@ -1,7 +1,12 @@
 # Copyright 2017 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
+import logging
+
 from xivo.rest_api_helpers import APIException
+
+logger = logging.getLogger(__name__)
 
 
 class TokenWithUserUUIDRequiredError(APIException):

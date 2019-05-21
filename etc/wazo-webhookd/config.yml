@@ -47,6 +47,8 @@ consul:
 # database connection informations
 db_uri: postgresql://asterisk:proformatique@localhost/asterisk
 
+hook_max_attempts: 10
+
 # REST API server
 rest_api:
 

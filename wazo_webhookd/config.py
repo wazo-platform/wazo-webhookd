@@ -84,6 +84,7 @@ _DEFAULT_CONFIG = {
     'enabled_services': {
         'http': True,
     },
+    'hook_max_attempts': 10,
 }
 
 
