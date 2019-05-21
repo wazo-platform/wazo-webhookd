@@ -25,6 +25,7 @@ Depends:
  python3-psycopg2,
  python3-setproctitle,
  python3-sqlalchemy,
+ python3-sqlalchemy-utils,
  python3-stevedore,
  python3-yaml,
  wazo-auth-client-python3,

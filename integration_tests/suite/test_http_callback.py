@@ -176,6 +176,12 @@ class TestHTTPCallback(BaseIntegrationTest):
             exact=True
         ), tries=10, interval=0.5)
 
+        webhookd = self.make_webhookd(VALID_TOKEN)
+        logs = webhookd.subscriptions.get_hook_logs(subscription["uuid"])
+        self.assertEqual(1, logs['total'])
+        self.assertEqual("success", logs['items'][0]["status"])
+        self.assertEqual(0, logs['items'][0]["tries"])
+
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500(self, subscription):
         self.third_party.reset()
@@ -199,6 +205,18 @@ class TestHTTPCallback(BaseIntegrationTest):
             count=2,
             exact=True
         ), tries=10, interval=0.5)
+
+        webhookd = self.make_webhookd(VALID_TOKEN)
+        logs = webhookd.subscriptions.get_hook_logs(subscription["uuid"])
+        self.assertEqual(2, logs['total'])
+
+        self.assertEqual("failure", logs['items'][0]["status"])
+        self.assertIn("Service Unavailable", logs['items'][0]["detail"]["error"])
+        self.assertEqual(0, logs['items'][0]["tries"])
+
+        self.assertEqual("success", logs['items'][1]["status"])
+        self.assertEqual(1, logs['items'][1]["tries"])
+        self.assertEqual({}, logs['items'][1]["detail"])
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):

@@ -16,6 +16,7 @@ from .schema import (
     subscription_schema,
     subscription_list_params_schema,
     user_subscription_schema,
+    subscription_hook_log_schema,
 )
 
 logger = logging.getLogger(__name__)
@@ -126,3 +127,18 @@ class UserSubscriptionResource(SubscriptionsAuthResource):
                              owner_tenant_uuids=[token.tenant_uuid],
                              owner_user_uuid=token.user_uuid)
         return '', 204
+
+
+class SubscriptionHookLogsResource(AuthResource):
+
+    def __init__(self, service):
+        self._service = service
+
+    @required_acl('webhookd.subscriptions.{subscription_uuid}.hook_logs')
+    def get(self, subscription_uuid):
+        # NOTE:(sileht): To return 404 if the subscription doesn't exists
+        self._service.get(subscription_uuid)
+
+        results = list(self._service.get_hook_logs(subscription_uuid))
+        return {'items': subscription_hook_log_schema.dump(results, many=True).data,
+                'total': len(results)}

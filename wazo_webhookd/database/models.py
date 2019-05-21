@@ -3,13 +3,17 @@
 
 from sqlalchemy import (
     Column,
+    DateTime,
+    Enum,
     ForeignKey,
+    Integer,
     String,
     Table,
     text,
     Text,
     UniqueConstraint,
 )
+from sqlalchemy_utils import JSONType
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     relationship,
@@ -60,6 +64,22 @@ class SubscriptionMetadatum(Base):
     value = Column(Text())
 
 
+class SubscriptionHookLog(Base):
+
+    __tablename__ = 'webhookd_subscription_hook_log'
+
+    uuid = Column(String(38), server_default=text('uuid_generate_v4()'), primary_key=True)
+    subscription_uuid = Column(String(38),
+                               ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
+                               nullable=False)
+
+    status = Column(Enum("success", "failure", "fatal", name='status_types'))
+    started_at = Column(DateTime(timezone=True))
+    ended_at = Column(DateTime(timezone=True))
+    tries = Column(Integer())
+    detail = Column(JSONType)
+
+
 class Subscription(object):
     '''
     The Subscription class is not declarative, like the others, because it has a
@@ -106,6 +126,10 @@ class Subscription(object):
         for attribute, value in attributes.items():
             setattr(self, attribute, value)
 
+    @property
+    def hook_logs(self):
+        return self.hook_log_rel
+
 
 metadata = Base.metadata
 subscription_table = Table('webhookd_subscription', metadata,
@@ -121,4 +145,5 @@ mapper(Subscription, subscription_table, properties={
     'events_rel': relationship(SubscriptionEvent, lazy='joined', cascade='all, delete-orphan'),
     'options_rel': relationship(SubscriptionOption, lazy='joined', cascade='all, delete-orphan'),
     'metadata_rel': relationship(SubscriptionMetadatum, lazy='joined', cascade='all, delete-orphan'),
+    'hook_logs_rel': relationship(SubscriptionHookLog, lazy='joined', cascade='all, delete-orphan'),
 })

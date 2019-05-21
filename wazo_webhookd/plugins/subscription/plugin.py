@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from .bus import SubscriptionBusEventHandler
-from .resource import SubscriptionResource
-from .resource import SubscriptionsResource
-from .resource import UserSubscriptionsResource
-from .resource import UserSubscriptionResource
+from .resource import (
+    SubscriptionResource,
+    SubscriptionsResource,
+    UserSubscriptionsResource,
+    UserSubscriptionResource,
+    SubscriptionHookLogsResource,
+)
 from .service import SubscriptionService
 
 
@@ -23,5 +26,6 @@ class Plugin(object):
         api.add_resource(SubscriptionResource, '/subscriptions/<subscription_uuid>', resource_class_args=[service])
         api.add_resource(UserSubscriptionsResource, '/users/me/subscriptions', resource_class_args=[service])
         api.add_resource(UserSubscriptionResource, '/users/me/subscriptions/<subscription_uuid>', resource_class_args=[service])
+        api.add_resource(SubscriptionHookLogsResource, '/subscriptions/<subscription_uuid>/hook-logs', resource_class_args=[service])
 
-        SubscriptionBusEventHandler(bus_consumer, service_manager, service).subscribe(bus_consumer)
+        SubscriptionBusEventHandler(bus_consumer, config, service_manager, service).subscribe(bus_consumer)

@@ -5,6 +5,7 @@ psycopg2
 pyhamcrest
 requests
 sqlalchemy
+sqlalchemy_utils
 stevedore
 https://github.com/wazo-pbx/wazo-webhookd-client/archive/master.zip
 https://github.com/wazo-pbx/xivo-test-helpers/archive/master.zip

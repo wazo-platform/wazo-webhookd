@@ -12,3 +12,9 @@ class TokenWithUserUUIDRequiredError(APIException):
             message='A valid token with a user UUID is required',
             error_id='token-with-user-uuid-required',
         )
+
+
+class HookRetry(Exception):
+    def __init__(self, detail):
+        self.detail = detail
+        super(HookRetry, self).__init__()

@@ -13,6 +13,7 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.database.models import (
     Subscription,
+    SubscriptionHookLog,
     SubscriptionMetadatum,
 )
 from xivo.pubsub import Pubsub
@@ -110,3 +111,23 @@ class SubscriptionService(object):
                                      owner_user_uuid)
             session.delete(subscription)
             self.pubsub.publish('deleted', subscription)
+
+    def get_hook_logs(self, subscription_uuid):
+        with self.ro_session() as session:
+            query = (
+                session.query(SubscriptionHookLog)
+                .filter(SubscriptionHookLog.subscription_uuid == subscription_uuid)
+            )
+            return query.all()
+
+    def create_hook_log(self, subscription_uuid, status, tries, started_at,
+                        ended_at, detail):
+        with self.rw_session() as session:
+            hooklog = SubscriptionHookLog(subscription_uuid=subscription_uuid,
+                                          status=status,
+                                          tries=tries,
+                                          started_at=started_at,
+                                          ended_at=ended_at,
+                                          detail=detail)
+            session.add(hooklog)
+            return hooklog

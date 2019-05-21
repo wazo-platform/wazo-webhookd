@@ -177,6 +177,21 @@ paths:
           $ref: '#/responses/NotFoundError'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+  /subscriptions/{subscription_uuid}/hook-log:
+      summary: Get hook results
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.hook_log`'
+      operationId: get
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: Details of the requested subscription
+          schema:
+            $ref: '#/definitions/SubscriptionHookLog'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
 definitions:
   SubscriptionRequest:
     type: object
@@ -305,6 +320,54 @@ definitions:
   SubscriptionMetadata:
     type: object
     description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions. PUT replaces all metadata.
+  SubscriptionHookLog:
+    type: object
+    properties:
+      status:
+        type: enum
+        enum:
+          - success
+          - failure
+          - fatal
+      tries:
+        type: integer
+        description: "Retry times of the webook"
+      started:
+        type: string
+        format: date-time
+      ended:
+        type: string
+        format: date-time
+      detail:
+        $ref: '#/definitions/HTTPServiceLog'
+  HTTPServiceLog:
+    type: object
+    properties:
+      request:
+        type: object
+        properties:
+          method:
+            type: string
+          url:
+            type: string
+          headers:
+            type: object
+            additionalProperties:
+              type: text
+          body:
+            type: string
+      response:
+        type: object
+        properties:
+          status_code:
+            type: string
+          headers:
+            type: object
+            additionalProperties:
+              type: text
+          body:
+            type: string
+
 parameters:
   SearchMetadata:
     name: search_metadata
