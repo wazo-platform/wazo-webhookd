@@ -1,7 +1,15 @@
-# Copyright 2017-2018 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+
+import requests
+
+from hamcrest import (
+    assert_that,
+    is_in,
+    not_
+)
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
@@ -42,6 +50,47 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             host='localhost',
             port=self.service_port(5672, 'rabbitmq')
         )
+
+    def make_sentinel(self):
+        class Sentinel:
+            def __init__(self, url):
+                self._url = url
+
+            def consumers(self):
+                response = requests.get(self._url, verify=False)
+                response.raise_for_status()
+                return response.json()['consumers']
+
+            def called(self):
+                response = requests.get(self._url, verify=False)
+                response.raise_for_status()
+                return response.json()['called']
+
+            def reset(self):
+                requests.delete(self._url, verify=False)
+
+        url = 'https://localhost:{port}/1.0/sentinel'.format(port=self.service_port(9300, 'webhookd'))
+        return Sentinel(url)
+
+    def ensure_webhookd_consume_uuid(self, uuid):
+        sentinel = self.make_sentinel()
+        def subscribed():
+            try:
+                assert_that(uuid, is_in(sentinel.consumers()))
+            except requests.exceptions.ConnectionError:
+                raise AssertionError()
+
+        until.assert_(subscribed, tries=10, interval=0.5)
+
+    def ensure_webhookd_not_consume_uuid(self, uuid):
+        sentinel = self.make_sentinel()
+        def subscribed():
+            try:
+                assert_that(uuid, not_(is_in(sentinel.consumers())))
+            except requests.exceptions.ConnectionError:
+                raise AssertionError()
+
+        until.assert_(subscribed, tries=10, interval=0.5)
 
     @contextmanager
     def auth_stopped(self):

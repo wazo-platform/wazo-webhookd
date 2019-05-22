@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that
@@ -107,7 +107,7 @@ class TestListSubscriptions(BaseIntegrationTest):
         }))
 
     @subscription(TEST_SUBSCRIPTION)
-    @subscription(TEST_SUBSCRIPTION_METADATA)
+    @subscription(TEST_SUBSCRIPTION_METADATA, track_test_name=False)
     def test_given_search_metadata_when_list_then_list_filtered(self, subscription_, subscription_metadata_):
         webhookd = self.make_webhookd(VALID_TOKEN)
 
