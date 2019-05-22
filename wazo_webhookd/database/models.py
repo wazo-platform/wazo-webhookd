@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from sqlalchemy import (
@@ -114,7 +114,8 @@ subscription_table = Table('webhookd_subscription', metadata,
                            Column('service', Text()),
                            Column('events_user_uuid', String(36)),
                            Column('events_wazo_uuid', String(36)),
-                           Column('owner_user_uuid', String(36)))
+                           Column('owner_user_uuid', String(36)),
+                           Column('owner_tenant_uuid', String(36), nullable=False))
 
 mapper(Subscription, subscription_table, properties={
     'events_rel': relationship(SubscriptionEvent, lazy='joined', cascade='all, delete-orphan'),

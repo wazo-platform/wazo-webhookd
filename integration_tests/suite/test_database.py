@@ -1,4 +1,4 @@
-# Copyright 2017-2018 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
@@ -47,7 +47,8 @@ class TestDatabase(AssetLaunchingTestCase):
 
     def test_subscription_cascade(self):
         with self.new_session() as session:
-            subscription = Subscription(uuid=str(uuid.uuid4()), name='test')
+            subscription = Subscription(uuid=str(uuid.uuid4()), name='test',
+                                        owner_tenant_uuid=str(uuid.uuid4()))
             subscription_event = SubscriptionEvent(event_name='test', subscription_uuid=subscription.uuid)
             subscription_option = SubscriptionOption(name='test', subscription_uuid=subscription.uuid)
             session.add(subscription)
@@ -64,7 +65,8 @@ class TestDatabase(AssetLaunchingTestCase):
             assert_that(option, is_(none()))
 
     def test_subscription_event_unique(self):
-        subscription = Subscription(uuid=str(uuid.uuid4()), name='test')
+        subscription = Subscription(uuid=str(uuid.uuid4()), name='test',
+                                    owner_tenant_uuid=str(uuid.uuid4()))
         subscription_event = SubscriptionEvent(event_name='test', subscription_uuid=subscription.uuid)
         subscription_event_2 = SubscriptionEvent(event_name='test', subscription_uuid=subscription.uuid)
 
@@ -79,7 +81,8 @@ class TestDatabase(AssetLaunchingTestCase):
         self._Session.remove()
 
     def test_subscription_option_unique(self):
-        subscription = Subscription(uuid=str(uuid.uuid4()), name='test')
+        subscription = Subscription(uuid=str(uuid.uuid4()), name='test',
+                                    owner_tenant_uuid=str(uuid.uuid4()))
         subscription_option = SubscriptionOption(name='test', subscription_uuid=subscription.uuid)
         subscription_option_2 = SubscriptionOption(name='test', subscription_uuid=subscription.uuid)
 

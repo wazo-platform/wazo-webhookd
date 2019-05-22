@@ -7,7 +7,7 @@ from mockserver import MockServerClient
 from xivo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.base import VALID_TOKEN
+from .helpers.base import MASTER_TOKEN
 from .helpers.fixtures import subscription
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
@@ -149,7 +149,6 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     def setUp(self):
         super(TestHTTPCallback, self).__init__()
-        webhookd = self.make_webhookd(VALID_TOKEN)
         self.third_party = MockServerClient(
             'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         )
@@ -203,7 +202,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):
-        webhookd = self.make_webhookd(VALID_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN)
         old_trigger_name = TRIGGER_EVENT_NAME
 
         subscription['events'] = [ANOTHER_TRIGGER_EVENT_NAME]
@@ -226,7 +225,7 @@ class TestHTTPCallback(BaseIntegrationTest):
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
     def test_given_two_http_subscriptions_when_update_config_then_callback_triggered_with_new_config(self, subscription, _):
-        webhookd = self.make_webhookd(VALID_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN)
 
         subscription['config']['url'] = 'http://third-party-http:1080/new-url'
         webhookd.subscriptions.update(subscription['uuid'], subscription)
@@ -248,7 +247,7 @@ class TestHTTPCallback(BaseIntegrationTest):
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
     def test_given_two_http_subscription_when_one_deleted_then_one_http_callback(self, subscription, subscription_to_remove):
-        webhookd = self.make_webhookd(VALID_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN)
 
         webhookd.subscriptions.delete(subscription_to_remove['uuid'])
         self.ensure_webhookd_not_consume_uuid(subscription_to_remove['uuid'])
@@ -266,7 +265,7 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_when_restart_webhookd_then_callback_still_triggered(self, subscription):
 
         self.restart_service('webhookd')
-        ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
+        ConnectedWaitStrategy().wait(self.make_webhookd(MASTER_TOKEN))
         self.ensure_webhookd_consume_uuid(subscription['uuid'])
 
         self.bus.publish(trigger_event(),
@@ -281,7 +280,7 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(self, subscription):
 
         self.restart_service('rabbitmq')
-        ConnectedWaitStrategy().wait(self.make_webhookd(VALID_TOKEN))
+        ConnectedWaitStrategy().wait(self.make_webhookd(MASTER_TOKEN))
 
         # FIXME(sileht): BusClient should reconnect automatically
         self.bus = self.make_bus()
@@ -382,7 +381,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                 'body': 'keỳ: vàlue',
                 'headers': [{'name': 'Content-Type',
                              'values': ['text/yaml']}],
-                }
+            }
         ), tries=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_FILTER_USER_ALICE)

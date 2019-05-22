@@ -31,6 +31,10 @@ responses:
     description: Invalid request
     schema:
       $ref: '#/definitions/Error'
+  Unauthorized:
+    description: Unauthorized
+    schema:
+      $ref: '#/definitions/Error'
 definitions:
   Error:
     title: Error
@@ -57,3 +61,16 @@ parameters:
     in: query
     description: The token's ID
     type: string
+  recurse:
+    name: recurse
+    in: query
+    type: boolean
+    description: Should the query include sub-tenants
+    default: false
+    required: false
+  tenantuuid:
+    name: Wazo-Tenant
+    type: string
+    in: header
+    description: "The tenant's UUID, defining the ownership of a given resource."
+    required: false

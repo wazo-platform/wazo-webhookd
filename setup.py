@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from setuptools import setup
@@ -26,6 +26,7 @@ setup(
             'status = wazo_webhookd.plugins.status.plugin:Plugin',
             'subscriptions = wazo_webhookd.plugins.subscription.plugin:Plugin',
             'services = wazo_webhookd.plugins.services.plugin:Plugin',
+            'tenant_migration = wazo_webhookd.plugins.tenant_migration.plugin:Plugin',
         ],
         'wazo_webhookd.services': [
             'http = wazo_webhookd.services.http.plugin:Service',

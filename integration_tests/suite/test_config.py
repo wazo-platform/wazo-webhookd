@@ -5,7 +5,7 @@ from hamcrest import assert_that
 from hamcrest import has_key
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.base import VALID_TOKEN
+from .helpers.base import MASTER_TOKEN
 from .helpers.wait_strategy import NoWaitStrategy
 
 
@@ -15,7 +15,7 @@ class TestConfig(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_config(self):
-        webhookd = self.make_webhookd(VALID_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN)
 
         result = webhookd.config.get()
 
