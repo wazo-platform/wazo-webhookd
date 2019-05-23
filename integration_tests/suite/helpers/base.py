@@ -35,6 +35,14 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         webhookd = cls.make_webhookd(VALID_TOKEN)
         cls.wait_strategy.wait(webhookd)
 
+    def setUp(self):
+        if self.asset == "base":
+            webhookd = self.make_webhookd(VALID_TOKEN)
+            subs = webhookd.subscriptions.list()['items']
+            for sub in subs:
+                subs = webhookd.subscriptions.delete(sub["uuid"])
+                self.ensure_webhookd_not_consume_uuid(sub['uuid'])
+
     @classmethod
     def make_webhookd(cls, token):
         return WebhookdClient('localhost',

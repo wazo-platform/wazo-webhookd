@@ -150,11 +150,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def setUp(self):
         super(TestHTTPCallback, self).__init__()
         webhookd = self.make_webhookd(VALID_TOKEN)
-        subs = webhookd.subscriptions.list()['items']
-        for sub in subs:
-            subs = self.webhookd.subscriptions.delete(sub["uuid"])
-            self.ensure_webhookd_not_consume_uuid(sub['uuid'])
-
         self.third_party = MockServerClient(
             'http://localhost:{port}'.format(port=self.service_port(1080, 'third-party-http'))
         )
