@@ -6,7 +6,7 @@
 
       Uses tox with the ``integration`` environment.
     vars:
-      tox_envlist: integration
+      tox_target: integration
     nodeset:
       nodes:
         - name: test-node
