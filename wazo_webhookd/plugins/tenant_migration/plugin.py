@@ -14,9 +14,10 @@ class Plugin(object):
 
     def load(self, dependencies):
         config = dependencies['config']
+        auth_client = dependencies['auth_client']
         tenant_upgrade_service = service.WebhookTenantUpgradeService(config)
         api.add_resource(
             http.WebhookTenantUpgradeResource,
             '/tenant-migration',
-            resource_class_args=[tenant_upgrade_service],
+            resource_class_args=[tenant_upgrade_service, auth_client],
         )

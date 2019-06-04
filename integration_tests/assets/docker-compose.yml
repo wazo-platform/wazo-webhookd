@@ -35,6 +35,7 @@ services:
       - "../..:/usr/src/wazo-webhookd"
       - "./ssl:/usr/local/share/ssl"
       - "./etc/wazo-webhookd/conf.d/50-default-config.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"
+      - "./keys/wazo-webhookd-key.yml:/var/lib/wazo-auth-keys/wazo-webhookd-key.yml"
       # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/usr/local/lib/python3.5/site-packages/xivo"
     ports:
       - "9300"

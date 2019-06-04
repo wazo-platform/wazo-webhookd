@@ -60,6 +60,7 @@ class TestTenantMigration(BaseIntegrationTest):
         self.Session = scoped_session(sessionmaker())
         engine = create_engine(DB_URI.format(port=self.service_port(5432, 'postgres')))
         self.Session.configure(bind=engine)
+        self.configured_wazo_auth()
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION_USER_1)
