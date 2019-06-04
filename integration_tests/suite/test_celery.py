@@ -6,14 +6,9 @@ import re
 from hamcrest import (
     assert_that,
     equal_to,
-    has_entries
 )
-from xivo_test_helpers import until
 
-from .helpers.base import (
-    BaseIntegrationTest,
-    VALID_TOKEN
-)
+from .helpers.base import BaseIntegrationTest
 from .helpers.wait_strategy import NoWaitStrategy
 
 
@@ -28,9 +23,9 @@ class TestCeleryWorks(BaseIntegrationTest):
         master_found = False
         worker_count = 0
         for line in output.split("\n"):
-            if re.match("\[celeryd: webhookd@.*:MainProcess\] .*", line):
+            if re.match(r"\[celeryd: webhookd@.*:MainProcess\] .*", line):
                 master_found = True
-            elif re.match("\[celeryd: webhookd@.*:Worker-.\]", line):
+            elif re.match(r"\[celeryd: webhookd@.*:Worker-.\]", line):
                 worker_count += 1
 
         assert_that(master_found, equal_to(True))

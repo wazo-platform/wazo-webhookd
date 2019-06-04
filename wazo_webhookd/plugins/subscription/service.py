@@ -34,7 +34,7 @@ class SubscriptionService(object):
         try:
             yield session
             session.commit()
-        except:
+        except BaseException:
             session.rollback()
             raise
         finally:
