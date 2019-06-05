@@ -13,7 +13,7 @@ from wazo_webhookd.exceptions import requests_automatic_hook_retry
 
 logger = logging.getLogger(__name__)
 
-REQUESTS_TIMEOUT = 5  # seconds
+REQUESTS_TIMEOUT = (5, 15)  # seconds
 
 
 class Service:
@@ -67,16 +67,7 @@ class Service:
                 data=body,
                 verify=verify,
                 headers=headers,
-                # NOTE(sileht): This is only about TCP timeout issue, not the
-                # while HTTP call
                 timeout=REQUESTS_TIMEOUT,
-                # NOTE(sileht): We don't care of the body, and we don't want to
-                # download gigabytes of data for nothing or having the http
-                # connection frozen because the server doesn't return the full
-                # body. So stream the response, and the context manager with
-                # close the request a soon as it return or raise a exception.
-                # No body will be read ever.
-                stream=True
             ) as r:
                 r.raise_for_status()
 
