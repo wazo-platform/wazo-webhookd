@@ -9,8 +9,7 @@ import urllib.parse
 
 from jinja2 import Environment
 
-from wazo_webhookd.exceptions import HookRetry
-
+from wazo_webhookd.exceptions import requests_automatic_hook_retry
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ class Service:
             verify = True if verify == 'true' else verify
             verify = False if verify == 'false' else verify
 
-        try:
+        with requests_automatic_hook_retry(task):
             with requests.request(
                 options['method'],
                 url,
@@ -80,56 +79,6 @@ class Service:
                 stream=True
             ) as r:
                 r.raise_for_status()
-        except requests.exceptions.HTTPError as exc:
-            if exc.response.status_code == 410:
-                logger.info("http request fail, service is gone ({}/{}): "
-                            "'{} {} [{}]' {}".format(
-                                task.request.retries,
-                                task.max_retries,
-                                options['method'],
-                                url,
-                                exc.response.status_code,
-                                exc.response.text
-                            ))
-            else:
-                logger.info("http request fail, retrying ({}/{}): "
-                            "'{} {} [{}]' {}".format(
-                                task.request.retries,
-                                task.max_retries,
-                                options['method'],
-                                url,
-                                exc.response.status_code,
-                                exc.response.text
-                            ))
-                raise HookRetry({
-                    "error": str(exc),
-                    "method": options["method"],
-                    "url": url,
-                    "status_code": exc.response.status_code,
-                    "headers": dict(exc.response.headers),
-                    "body": exc.response.text,
-                })
-
-        except (
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
-            requests.exceptions.TooManyRedirects
-        ) as exc:
-            logger.info("http request fail, retrying ({}/{}): {}".format(
-                task.request.retries,
-                task.max_retries,
-                options['method'],
-                url,
-                exc
-            ))
-            raise HookRetry({
-                "error": str(exc),
-                "method": options["method"],
-                "url": url,
-                "status_code": None,
-                "headers": {},
-                "body": "",
-            })
 
     @staticmethod
     def url_is_localhost(url):
