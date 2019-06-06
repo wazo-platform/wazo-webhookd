@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -38,6 +38,7 @@ class CoreRestApi(object):
         app.after_request(log_request_params)
         app.secret_key = os.urandom(24)
         app.permanent_session_lifetime = timedelta(minutes=5)
+        app.config['auth'] = global_config['auth']
         auth_verifier.set_config(global_config['auth'])
         self._load_cors()
         self.server = None

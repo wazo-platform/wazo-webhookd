@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from marshmallow import (
@@ -87,6 +87,10 @@ class SubscriptionSchema(Schema):
     events_wazo_uuid = fields.String(validate=Length(equal=36), missing=None)
     config = ConfigField(allow_none=False, required=True)
     owner_user_uuid = fields.String(validate=Length(equal=36), missing=None)
+    owner_tenant_uuid = fields.UUID(dump_only=True)
+    # TODO(sileht): We should also add an events_tenant_uuid to filter
+    # event on tenant_uuid. Currently if I have the
+    # "webhookd.subscriptions.create" I can receive event of all tenants...
     metadata = fields.Dict()
 
 
@@ -101,6 +105,7 @@ class UserSubscriptionSchema(Schema):
 
 class SubscriptionListParamsSchema(Schema):
     search_metadata = fields.Dict()
+    recurse = fields.Boolean(missing=False)
 
     @pre_load
     def aggregate_search_metadata(self, data):
@@ -111,8 +116,10 @@ class SubscriptionListParamsSchema(Schema):
             except ValueError:
                 continue
             metadata[key] = value
-        result = dict(data)
+        result = {}
         result['search_metadata'] = metadata
+        if 'recurse' in data:
+            result['recurse'] = data['recurse']
         return result
 
 

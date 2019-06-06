@@ -7,12 +7,16 @@ paths:
       tags:
         - subscriptions
       parameters:
+        - $ref: '#/parameters/tenantuuid'
+        - $ref: '#/parameters/recurse'
         - $ref: "#/parameters/SearchMetadata"
       responses:
         '200':
           description: List of the subscriptions
           schema:
             $ref: '#/definitions/SubscriptionList'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     post:
@@ -31,6 +35,8 @@ paths:
           'description': The subscription has been completed
         '400':
           $ref: '#/responses/InvalidRequest'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /subscriptions/{subscription_uuid}:
@@ -47,6 +53,8 @@ paths:
           description: Details of the requested subscription
           schema:
             $ref: '#/definitions/Subscription'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -67,6 +75,8 @@ paths:
             $ref: '#/definitions/Subscription'
         '400':
           $ref: '#/responses/InvalidRequest'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -82,6 +92,8 @@ paths:
       responses:
         '204':
           description: The requested subscription was deleted
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -101,6 +113,8 @@ paths:
           description: List of the subscriptions of the user
           schema:
             $ref: '#/definitions/SubscriptionList'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     post:
@@ -120,6 +134,8 @@ paths:
           'description': The subscription has been completed
         '400':
           $ref: '#/responses/InvalidRequest'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /users/me/subscriptions/{subscription_uuid}:
@@ -139,6 +155,8 @@ paths:
             $ref: '#/definitions/Subscription'
         '404':
           $ref: '#/responses/NotFoundError'
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     delete:
@@ -153,6 +171,8 @@ paths:
       responses:
         '204':
           description: The requested subscription was deleted
+        '401':
+          $ref: '#/definitions/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':

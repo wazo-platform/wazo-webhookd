@@ -10,6 +10,8 @@ from multiprocessing import Process
 from threading import Thread
 from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
+from wazo_auth_client import Client as AuthClient
+
 from .bus import CoreBusConsumer
 from .celery import CoreCeleryWorker
 from .celery import app as celery_app
@@ -29,6 +31,7 @@ class Controller:
             config['bus'],
             lambda: True,
         ]
+        self._auth_client = AuthClient(**config['auth'])
         self._bus_consumer = CoreBusConsumer(config)
         self._celery_worker = CoreCeleryWorker(config)
         self._celery_process = Process(target=self._celery_worker.run, name='celery_process')
@@ -41,6 +44,7 @@ class Controller:
                 'bus_consumer': self._bus_consumer,
                 'celery': celery_app,
                 'config': config,
+                'auth_client': self._auth_client,
             }
         )
         plugin_helpers.load(

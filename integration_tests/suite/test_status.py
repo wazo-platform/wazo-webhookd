@@ -7,7 +7,7 @@ from hamcrest import has_entries
 from xivo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.base import VALID_TOKEN
+from .helpers.base import MASTER_TOKEN
 from .helpers.wait_strategy import NoWaitStrategy
 
 
@@ -17,7 +17,7 @@ class TestStatusRabbitMQStops(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_rabbitmq_stops_when_status_then_bus_consumer_status_fail(self):
-        webhookd = self.make_webhookd(VALID_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN)
 
         def all_connections_ok():
             result = webhookd.status.get()
@@ -39,7 +39,7 @@ class TestStatusAllOK(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_rabbitmq_when_status_then_status_ok(self):
-        webhookd = self.make_webhookd(VALID_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN)
 
         def all_connections_ok():
             result = webhookd.status.get()
