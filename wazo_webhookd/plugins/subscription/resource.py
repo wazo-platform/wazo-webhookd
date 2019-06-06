@@ -8,11 +8,9 @@ from flask import request
 from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 from xivo.tenant_flask_helpers import (
-    auth_client,
     token,
     Tenant,
 )
-from xivo import tenant_helpers
 
 from .schema import (
     subscription_schema,
@@ -31,7 +29,7 @@ class SubscriptionsAuthResource(AuthResource):
     def visible_tenants(self, recurse=True):
         tenant_uuid = Tenant.autodetect().uuid
         if recurse:
-            return [tenant.uuid for tenant in tenant_helpers.visible_tenants(auth_client, tenant_uuid)]
+            return [tenant.uuid for tenant in token.visible_tenants(tenant_uuid)]
         else:
             return [tenant_uuid]
 
