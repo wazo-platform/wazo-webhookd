@@ -236,8 +236,7 @@ class TestCreateSubscriptions(BaseIntegrationTest):
         response = webhookd.subscriptions.create(TEST_SUBSCRIPTION)
         subscription_uuid = response['uuid']
 
-        assert_that(response, has_key('owner_tenant_uuid'))
-        assert_that(response['owner_tenant_uuid'], MASTER_TENANT)
+        assert_that(response, has_entries(owner_tenant_uuid=MASTER_TENANT))
 
         assert_that(response, has_key('uuid'))
 

@@ -19,4 +19,5 @@ class WebhookTenantUpgradeResource(AuthResource):
             self._service.update_owner_tenant_uuid(**item)
         token = self._auth_client.token.new(expiration=60)
         self._service.update_remaining_owner_tenant_uuid(
-            token['metadata']['tenant_uuid'])
+            token['metadata']['tenant_uuid']
+        )
