@@ -54,7 +54,6 @@ class Controller:
                 'api': api,
                 'bus_consumer': self._bus_consumer,
                 'config': config,
-                'auth_client': self._auth_client,
                 'service_manager': self._service_manager,
             }
         )
