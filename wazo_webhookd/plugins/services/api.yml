@@ -9,7 +9,7 @@ paths:
       tags:
         - subscriptions
       responses:
-        200:
+        '200':
           description: The available services
           schema:
             $ref: '#/definitions/Services'
@@ -20,4 +20,3 @@ definitions:
       services:
         description: The keys are the service names.
         type: object
-
