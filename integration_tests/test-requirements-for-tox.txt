@@ -1,6 +1,7 @@
 docker-compose
 kombu
 nose
+openapi-spec-validator
 psycopg2
 pyhamcrest
 requests
