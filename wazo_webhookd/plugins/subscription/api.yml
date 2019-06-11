@@ -16,7 +16,7 @@ paths:
           schema:
             $ref: '#/definitions/SubscriptionList'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     post:
@@ -36,7 +36,7 @@ paths:
         '400':
           $ref: '#/responses/InvalidRequest'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /subscriptions/{subscription_uuid}:
@@ -54,7 +54,7 @@ paths:
           schema:
             $ref: '#/definitions/Subscription'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -76,7 +76,7 @@ paths:
         '400':
           $ref: '#/responses/InvalidRequest'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -93,7 +93,7 @@ paths:
         '204':
           description: The requested subscription was deleted
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -114,7 +114,7 @@ paths:
           schema:
             $ref: '#/definitions/SubscriptionList'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     post:
@@ -135,14 +135,14 @@ paths:
         '400':
           $ref: '#/responses/InvalidRequest'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
   /users/me/subscriptions/{subscription_uuid}:
     get:
       summary: Get a user subscription
       description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.read`'
-      operationId: get
+      operationId: get_user_subscription
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
       tags:
@@ -156,7 +156,7 @@ paths:
         '404':
           $ref: '#/responses/NotFoundError'
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
     delete:
@@ -172,7 +172,7 @@ paths:
         '204':
           description: The requested subscription was deleted
         '401':
-          $ref: '#/definitions/Unauthorized'
+          $ref: '#/responses/Unauthorized'
         '404':
           $ref: '#/responses/NotFoundError'
         '503':
@@ -252,7 +252,6 @@ definitions:
         readOnly: true
         description: "The user who owns this subscription. Admin-created subscriptions are not owned."
     required:
-      - uuid
       - name
       - service
       - config
@@ -299,9 +298,6 @@ definitions:
       total:
         type: integer
         readOnly: true
-    required:
-      - items
-      - total
   SubscriptionMetadata:
     type: object
     description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions. PUT replaces all metadata.

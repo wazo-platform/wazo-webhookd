@@ -1,13 +1,17 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
 import requests
-import pprint
+import yaml
 
-from hamcrest import assert_that, empty
+from openapi_spec_validator import validate_v2_spec
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.wait_strategy import NoWaitStrategy
+
+logger = logging.getLogger('openapi_spec_validator')
+logger.setLevel(logging.INFO)
 
 
 class TestDocumentation(BaseIntegrationTest):
@@ -16,11 +20,7 @@ class TestDocumentation(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_documentation_errors(self):
-        api_url = 'https://webhookd:9300/1.0/api/api.yml'
-        self.validate_api(api_url)
-
-    def validate_api(self, url):
-        validator_port = self.service_port(8080, 'swagger-validator')
-        validator_url = 'http://localhost:{port}/debug'.format(port=validator_port)
-        response = requests.get(validator_url, params={'url': url})
-        assert_that(response.json(), empty(), pprint.pformat(response.json()))
+        port = self.service_port(9300, 'webhookd')
+        api_url = 'https://localhost:{port}/1.0/api/api.yml'.format(port=port)
+        api = requests.get(api_url, verify=False)
+        validate_v2_spec(yaml.safe_load(api.text))
