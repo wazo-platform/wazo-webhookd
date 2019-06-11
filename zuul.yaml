@@ -1,11 +1,3 @@
 - project:
-    check:
-      jobs:
-        - tox-linters
-        - tox-py35
-        - tox-integration
-    gate:
-      jobs:
-        - tox-linters
-        - tox-py35
-        - tox-integration
+    templates:
+      - wazo-python3
