@@ -7,7 +7,6 @@ import kombu.mixins
 
 from collections import deque
 from contextlib import contextmanager
-from xivo.pubsub import Pubsub
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,6 @@ logger = logging.getLogger(__name__)
 class CoreBusConsumer(kombu.mixins.ConsumerMixin):
 
     def __init__(self, global_config):
-        self._all_events_pubsub = Pubsub()
         self._is_running = False
         self.connection = None
 

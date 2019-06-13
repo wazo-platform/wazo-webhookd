@@ -22,11 +22,15 @@ from .exceptions import NoSuchSubscription
 
 class SubscriptionService(object):
 
+    # NOTE(sileht): We share the pubsub object, so plugin that instanciate
+    # another service (like push mobile) will continue work.
+
+    pubsub = Pubsub()
+
     def __init__(self, config):
         engine = create_engine(config['db_uri'])
         self._Session = scoped_session(sessionmaker())
         self._Session.configure(bind=engine)
-        self.pubsub = Pubsub()
 
     @contextmanager
     def rw_session(self):
