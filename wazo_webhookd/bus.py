@@ -106,18 +106,28 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         return self._is_running
 
     def subscribe_to_event_names(self, uuid, event_names, user_uuid, wazo_uuid, callback):
+        if uuid is None:
+            raise RuntimeError("uuid must be set")
+        elif not event_names:
+            raise RuntimeError("event_names must be set")
         logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
         queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._new_consumers.append((uuid, consumer))
 
     def change_subscription(self, uuid, event_names, user_uuid, wazo_uuid, callback):
+        if uuid is None:
+            raise RuntimeError("uuid must be set")
+        elif not event_names:
+            raise RuntimeError("event_names must be set")
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
         queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._updated_consumers.append((uuid, consumer))
 
     def unsubscribe_from_event_names(self, uuid):
+        if uuid is None:
+            raise RuntimeError("uuid must be set")
         logger.debug('Unsubscribing callback (uuid: %s)', uuid)
         self._stale_consumers.append(uuid)
 
