@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
+import functools
 import logging
 import kombu.exceptions
 from pkg_resources import EntryPoint
@@ -81,57 +82,56 @@ class SubscriptionBusEventHandler:
         self._add_one_subscription_to_bus(subscription)
 
     def on_subscription_updated(self, subscription):
+        raw_subscription = subscription_schema.dump(subscription).data
         self._bus_consumer.change_subscription(subscription.uuid,
                                                subscription.events,
                                                subscription.events_user_uuid,
                                                subscription.events_wazo_uuid,
-                                               self._make_callback(subscription))
+                                               functools.partial(self._callback,
+                                                                 raw_subscription))
 
     def on_subscription_deleted(self, subscription):
         self._bus_consumer.unsubscribe_from_event_names(subscription.uuid)
 
     def _add_one_subscription_to_bus(self, subscription):
+        raw_subscription = subscription_schema.dump(subscription).data
         self._bus_consumer.subscribe_to_event_names(subscription.uuid,
                                                     subscription.events,
                                                     subscription.events_user_uuid,
                                                     subscription.events_wazo_uuid,
-                                                    self._make_callback(subscription))
+                                                    functools.partial(self._callback,
+                                                                      raw_subscription))
 
-    def _make_callback(self, subscription):
+    def _callback(self, subscription, event, message):
         try:
-            service = self._service_manager[subscription.service]
+            service = self._service_manager[subscription['service']]
         except KeyError:
             logger.error('%s: no such service plugin. Subscription "%s" disabled',
-                         subscription.service,
-                         subscription.name)
+                         subscription['service'],
+                         subscription['name'])
             return
 
-        subscription = subscription_schema.dump(subscription).data
-
-        def callback(event, message):
+        try:
+            hook_uuid = str(uuid.uuid4())
+            hook_runner.s(
+                hook_uuid, str(service.entry_point), self._config.data,
+                subscription, event
+            ).apply_async()
+        except kombu.exceptions.OperationalError:
+            # NOTE(sileht): That's not perfect in real life, because if celery
+            # lose the connection, we have a good chance that our bus lose it
+            # too. Anyways we can requeue it, in case of our bus is faster to
+            # reconnect, we are fine. Otherise we have an exception because of
+            # disconnection and our bus will get this message again on
+            # reconnection.
             try:
-                hook_uuid = str(uuid.uuid4())
-                hook_runner.s(
-                    hook_uuid, str(service.entry_point), self._config.data,
-                    subscription, event
-                ).apply_async()
-            except kombu.exceptions.OperationalError:
-                # NOTE(sileht): That's not perfect in real life, because if celery
-                # lose the connection, we have a good chance that our bus lose it
-                # too. Anyways we can requeue it, in case of our bus is faster to
-                # reconnect, we are fine. Otherise we have an exception because of
-                # disconnection and our bus will get this message again on
-                # reconnection.
-                try:
-                    message.requeue()
-                except Exception:
-                    logger.error("fail to requeue message")
-                raise
+                message.requeue()
             except Exception:
-                # NOTE(sileht): We have a programming issue, we don't retry forever
-                message.ack()
-                raise
-            else:
-                message.ack()
-
-        return callback
+                logger.error("fail to requeue message")
+            raise
+        except Exception:
+            # NOTE(sileht): We have a programming issue, we don't retry forever
+            message.ack()
+            raise
+        else:
+            message.ack()
