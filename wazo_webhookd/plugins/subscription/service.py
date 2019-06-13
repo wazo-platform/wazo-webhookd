@@ -91,6 +91,7 @@ class SubscriptionService(object):
         with self.rw_session() as session:
             new_subscription = Subscription(**subscription)
             session.add(new_subscription)
+            session.flush()
             self.pubsub.publish('created', new_subscription)
             return new_subscription
 
