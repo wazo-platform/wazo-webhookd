@@ -24,13 +24,19 @@ def hook_runner(task, hook_uuid, ep_name, config, subscription, event):
     logger.info("running hook %s (%s) for event: %s",
                 ep_name, hook_uuid, event)
 
+    try:
+        event_name = event['data']['name']
+    except KeyError:
+        event_name = '<unknown>'
+
     service = SubscriptionService(config)
     started = datetime.datetime.utcnow()
     try:
         detail = hook.run(task, config, subscription, event)
     except HookRetry as e:
-        logger.error("Hook `%s` ask retries (%s/%s)", ep_name,
-                     task.request.retries + 1, config["hook_max_attempts"])
+        logger.error("Hook `%s/%s` (%s) ask retries (%s/%s): %s",
+                     ep_name, hook_uuid, event_name, task.request.retries + 1,
+                     config["hook_max_attempts"], e.detail)
         if task.request.retries + 1 == config["hook_max_attempts"]:
             status = "error"
         else:
@@ -46,17 +52,21 @@ def hook_runner(task, hook_uuid, ep_name, config, subscription, event):
     except Exception as e:
         if isinstance(e, HookExpectedError):
             detail = e.detail
-            logger.error("Hook `%s` failure", ep_name)
+            logger.error("Hook `%s/%s` (%s) failure: %s",
+                         ep_name, hook_uuid, event_name, detail)
         else:
             # TODO(sileht): Maybe we should not record the raw error
             detail = {'error': str(e)}
-            logger.error("Hook `%s` error", ep_name, exc_info=True)
+            logger.error("Hook `%s/%s` (%s) error: %s",
+                         ep_name, hook_uuid, event_name, detail, exc_info=True)
         ended = datetime.datetime.utcnow()
         service.create_hook_log(hook_uuid, subscription["uuid"], "error",
                                 task.request.retries + 1, config["hook_max_attempts"],
                                 started, ended, event, detail)
 
     else:
+        logger.debug("Hook `%s/%s` (%s) succeed: %s",
+                     ep_name, hook_uuid, event_name, detail)
         ended = datetime.datetime.utcnow()
         service.create_hook_log(hook_uuid, subscription["uuid"], "success",
                                 task.request.retries + 1, config["hook_max_attempts"],
