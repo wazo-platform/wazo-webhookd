@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+import kombu.exceptions
 
 from .schema import subscription_schema
 
@@ -53,7 +54,26 @@ class SubscriptionBusEventHandler:
 
         subscription = subscription_schema.dump(subscription).data
 
-        def callback(body, _):
-            service.obj.callback().apply_async([subscription, body])
+        def callback(body, message):
+            try:
+                service.obj.callback().apply_async([subscription, body])
+            except kombu.exceptions.OperationalError:
+                # NOTE(sileht): That's not perfect in real life, because if celery
+                # lose the connection, we have a good chance that our bus lose it
+                # too. Anyways we can requeue it, in case of our bus is faster to
+                # reconnect, we are fine. Otherise we have an exception because of
+                # disconnection and our bus will get this message again on
+                # reconnection.
+                try:
+                    message.requeue()
+                except Exception:
+                    logger.error("fail to requeue message")
+                raise
+            except Exception:
+                # NOTE(sileht): We have a programming issue, we don't retry forever
+                message.ack()
+                raise
+            else:
+                message.ack()
 
         return callback

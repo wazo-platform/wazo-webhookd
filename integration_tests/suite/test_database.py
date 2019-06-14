@@ -5,11 +5,16 @@ import os
 import uuid
 
 from contextlib import contextmanager
-from hamcrest import assert_that
-from hamcrest import calling
-from hamcrest import is_
-from hamcrest import none
-from hamcrest import raises
+from functools import partial
+from hamcrest import (
+    assert_that,
+    calling,
+    has_entries,
+    is_,
+    none,
+    not_none,
+    raises,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -17,6 +22,7 @@ from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from wazo_webhookd.database.models import Subscription
 from wazo_webhookd.database.models import SubscriptionEvent
 from wazo_webhookd.database.models import SubscriptionOption
+from wazo_webhookd.plugins.subscription.service import SubscriptionService
 
 DB_URI = os.getenv('DB_URI', 'postgresql://asterisk:proformatique@localhost:{port}')
 
@@ -29,8 +35,9 @@ class TestDatabase(AssetLaunchingTestCase):
 
     def setUp(self):
         super(TestDatabase, self).setUp()
+        self.db_uri = DB_URI.format(port=self.service_port(5432, 'postgres'))
         self._Session = scoped_session(sessionmaker())
-        engine = create_engine(DB_URI.format(port=self.service_port(5432, 'postgres')))
+        engine = create_engine(self.db_uri)
         self._Session.configure(bind=engine)
 
     @contextmanager
@@ -95,3 +102,39 @@ class TestDatabase(AssetLaunchingTestCase):
                     raises(IntegrityError))
 
         self._Session.remove()
+
+    def test_subscription_pubusb_create(self):
+        service = SubscriptionService({'db_uri': self.db_uri})
+
+        tracker = {'uuid': None}
+
+        def on_subscription(subscription):
+            tracker['uuid'] = subscription.uuid
+
+        service.pubsub.subscribe('created', on_subscription)
+        service.create({'uuid': str(uuid.uuid4()), 'name': 'test',
+                        'owner_tenant_uuid': str(uuid.uuid4())})
+        assert_that(tracker, has_entries({
+            'uuid': is_(not_none())
+        }))
+
+    def test_subscription_pubsub_two_services(self):
+        service1 = SubscriptionService({'db_uri': self.db_uri})
+        service2 = SubscriptionService({'db_uri': self.db_uri})
+
+        tracker = {}
+
+        def on_subscription(service, _):
+            tracker[service] = True
+
+        service1.pubsub.subscribe('created',
+                                  partial(on_subscription, "service1"))
+        service2.pubsub.subscribe('created',
+                                  partial(on_subscription, "service2"))
+
+        service1.create({'uuid': str(uuid.uuid4()), 'name': 'test',
+                         'owner_tenant_uuid': str(uuid.uuid4())})
+        assert_that(tracker, has_entries({
+            'service1': True,
+            'service2': True
+        }))
