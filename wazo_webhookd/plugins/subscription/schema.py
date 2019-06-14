@@ -123,6 +123,18 @@ class SubscriptionListParamsSchema(Schema):
         return result
 
 
+class SubscriptionLogSchema(Schema):
+    uuid = fields.UUID(dump_only=True)
+    status = fields.String()
+    started_at = fields.DateTime()
+    ended_at = fields.DateTime()
+    attempts = fields.Integer()
+    max_attempts = fields.Integer()
+    event = fields.Dict()
+    detail = fields.Dict()
+
+
 subscription_schema = SubscriptionSchema(strict=True)
 subscription_list_params_schema = SubscriptionListParamsSchema(strict=True)
 user_subscription_schema = UserSubscriptionSchema(strict=True)
+subscription_log_schema = SubscriptionLogSchema(strict=True)

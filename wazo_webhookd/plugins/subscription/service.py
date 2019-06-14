@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from contextlib import contextmanager
+import logging
+
 from sqlalchemy import (
     and_,
     create_engine,
@@ -13,11 +15,14 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.database.models import (
     Subscription,
+    SubscriptionLog,
     SubscriptionMetadatum,
 )
 from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionService(object):
@@ -69,7 +74,7 @@ class SubscriptionService(object):
                 query = query.filter(Subscription.uuid.in_(subquery))
             return query.all()
 
-    def _get(self, session, subscription_uuid, owner_tenant_uuids, owner_user_uuid=None):
+    def _get(self, session, subscription_uuid, owner_tenant_uuids=None, owner_user_uuid=None):
         query = session.query(Subscription)
         query = query.filter(Subscription.uuid == subscription_uuid)
         if owner_tenant_uuids:
@@ -115,3 +120,32 @@ class SubscriptionService(object):
                                      owner_user_uuid)
             session.delete(subscription)
             self.pubsub.publish('deleted', subscription)
+
+    def get_logs(self, subscription_uuid):
+        with self.ro_session() as session:
+            query = (
+                session.query(SubscriptionLog)
+                .filter(SubscriptionLog.subscription_uuid == subscription_uuid)
+            )
+            return query.all()
+
+    def create_hook_log(self, uuid, subscription_uuid, status, attempts, max_attempts,
+                        started_at, ended_at, event, detail):
+        with self.rw_session() as session:
+            hooklog = SubscriptionLog(uuid=uuid,
+                                      subscription_uuid=subscription_uuid,
+                                      status=status,
+                                      attempts=attempts,
+                                      max_attempts=max_attempts,
+                                      started_at=started_at,
+                                      ended_at=ended_at,
+                                      event=event,
+                                      detail=detail)
+            try:
+                self._get(session, subscription_uuid)
+            except NoSuchSubscription:
+                logger.warning("subscription %s have been deleted in the "
+                               "meantime", subscription_uuid)
+                return hooklog
+            session.add(hooklog)
+            return hooklog

@@ -177,6 +177,22 @@ paths:
           $ref: '#/responses/NotFoundError'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+  /subscriptions/{subscription_uuid}/logs:
+    get:
+      summary: Get hook logs
+      description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.logs.read`'
+      operationId: get_logs
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+      tags:
+        - subscriptions
+      responses:
+        '200':
+          description: Details of the requested subscription
+          schema:
+            $ref: '#/definitions/SubscriptionLog'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
 definitions:
   SubscriptionRequest:
     type: object
@@ -301,6 +317,58 @@ definitions:
   SubscriptionMetadata:
     type: object
     description: Arbitrary key-value storage for this subscription. May be used to tag subscriptions. PUT replaces all metadata.
+  SubscriptionLog:
+    type: object
+    properties:
+      uuid:
+        type: string
+      status:
+        type: string
+        enum:
+          - success
+          - failure
+          - error
+      started_at:
+        type: string
+        format: date-time
+      ended_at:
+        type: string
+        format: date-time
+      attempts:
+        type: integer
+        description: "The current attempts"
+      max_attempts:
+        type: integer
+        description: "Limit of number of attempts"
+      event:
+        type: string
+      detail:
+        description: output of the service
+        $ref: '#/definitions/HTTPServiceLog'
+  HTTPServiceLog:
+    type: object
+    properties:
+      request_method:
+        type: string
+      request_url:
+        type: string
+      request_headers:
+        type: object
+        additionalProperties:
+          type: string
+      request_body:
+        type: string
+      response_method:
+        type: string
+      response_url:
+        type: string
+      response_headers:
+        type: object
+        additionalProperties:
+          type: string
+      response_body:
+        type: string
+
 parameters:
   SearchMetadata:
     name: search_metadata
