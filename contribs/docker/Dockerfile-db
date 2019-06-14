@@ -4,7 +4,8 @@ MAINTAINER Wazo Maintainers <dev@wazo.community>
 ADD . /usr/src/wazo-webhookd
 WORKDIR /usr/src/wazo-webhookd
 RUN true \
-    && python3 setup.py install \
+    && python3 -mpip install -U pip \
+    && pip install --no-cache-dir -c constraint-stretch.txt -c constraint-tarballs.txt -e . \
     && pg_start \
     && wazo-webhookd-init-db --user postgres \
     && (cd /usr/src/wazo-webhookd && alembic -c alembic.ini upgrade head) \
