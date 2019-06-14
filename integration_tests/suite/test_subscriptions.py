@@ -185,6 +185,39 @@ class TestGetSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entries(subscription_))
 
 
+class TestGetSubscriptionLogs(BaseIntegrationTest):
+
+    asset = 'base'
+    wait_strategy = NoWaitStrategy()
+
+    def test_given_no_auth_server_when_get_subscription_then_503(self):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        with self.auth_stopped():
+            assert_that(calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
+                        raises(WebhookdError, has_property('status_code', 503)))
+
+    def test_given_wrong_auth_when_get_subscription_then_401(self):
+        webhookd = self.make_webhookd('invalid-token')
+
+        assert_that(calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
+                    raises(WebhookdError, has_property('status_code', 401)))
+
+    def test_given_no_subscription_when_get_http_subscription_then_404(self):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        assert_that(calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
+                    raises(WebhookdError, has_property('status_code', 404)))
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_subscription_when_get_http_subscription_then_return_the_subscription(self, subscription_):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        response = webhookd.subscriptions.get_logs(subscription_['uuid'])
+
+        assert_that(response, has_entries({'total': equal_to(0), 'items': empty()}))
+
+
 class TestGetUserSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
