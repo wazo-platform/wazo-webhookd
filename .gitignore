@@ -6,3 +6,4 @@ dist/
 .coverage
 coverage.xml
 nosetests.xml
+pycodestyle.txt
