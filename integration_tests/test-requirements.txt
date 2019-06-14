@@ -1,4 +1,3 @@
 # Backward compatiblity for jenkins
 
--r test-requirements-for-tox.txt
--e ..
+-e ..[test,integration]

@@ -1,6 +1,4 @@
-https://github.com/wazo-pbx/wazo-auth-client/archive/master.zip
-https://github.com/wazo-pbx/xivo-lib-python/archive/master.zip
-https://github.com/wazo-pbx/xivo-lib-rest-client/archive/master.zip
+# TODO(sileht): Share this file between projects
 alembic==0.8.8
 celery==3.1.23
 cheroot==6.5.2

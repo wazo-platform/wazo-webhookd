@@ -1,13 +1,9 @@
-.PHONY: test-setup test egg-info pull-images webhookd db
+.PHONY: test pull-images webhookd db
 
-test-setup: egg-info pull-images webhookd db
+test-setup: pull-images webhookd db
 
 test:
-	nosetests -x
-
-egg-info:
-	cd .. && python setup.py egg_info
-	cd plugins/sentinel && python setup.py egg_info
+	pytest -vx
 
 pull-images:
 	docker pull jamesdbloom/mockserver:mockserver-5.2.3
@@ -18,7 +14,7 @@ webhookd:
 	docker build --pull -t wazopbx/wazo-webhookd ..
 	$(MAKE) webhookd-test
 
-webhookd-test: egg-info
+webhookd-test:
 	docker build --no-cache -t wazo-webhookd-test -f Dockerfile ..
 
 db:
