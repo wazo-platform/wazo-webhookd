@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import contextlib
+import json
 import logging
 
 import requests
@@ -21,6 +22,18 @@ class HookRetry(Exception):
         super(HookRetry, self).__init__()
 
 
+def _decode(data):
+    if isinstance(data, bytes):
+        text = data.decode()
+    else:
+        text = data
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+
 @contextlib.contextmanager
 def requests_automatic_hook_retry(task):
     try:
@@ -34,17 +47,17 @@ def requests_automatic_hook_retry(task):
                 exc.request.method,
                 exc.request.url,
                 exc.response.status_code,
-                exc.response.text
+                _decode(exc.response.text)
             )
             raise HookExpectedError({
                 "error": str(exc),
                 "request_method": exc.request.method,
                 "request_url": exc.request.url,
-                "request_body": exc.request.body,
+                "request_body": _decode(exc.request.body),
                 "request_headers": dict(exc.request.headers),
                 "response_status_code": exc.response.status_code,
                 "response_headers": dict(exc.response.headers),
-                "response_body": exc.response.text,
+                "response_body": _decode(exc.response.text),
             })
         else:
             logger.info(
@@ -54,17 +67,17 @@ def requests_automatic_hook_retry(task):
                 exc.request.method,
                 exc.request.url,
                 exc.response.status_code,
-                exc.response.text
+                _decode(exc.response.text)
             )
             raise HookRetry({
                 "error": str(exc),
                 "request_method": exc.request.method,
                 "request_url": exc.request.url,
-                "request_body": exc.request.body,
+                "request_body": _decode(exc.request.body),
                 "request_headers": dict(exc.request.headers),
                 "response_status_code": exc.response.status_code,
                 "response_headers": dict(exc.response.headers),
-                "response_body": exc.response.text,
+                "response_body": _decode(exc.response.text),
             })
 
     except (
@@ -84,7 +97,7 @@ def requests_automatic_hook_retry(task):
             "error": str(exc),
             "request_method": exc.request.method,
             "request_url": exc.request.url,
-            "request_body": exc.request.body,
+            "request_body": _decode(exc.request.body),
             "request_headers": dict(exc.request.headers),
             "response_status_code": None,
             "response_headers": {},
@@ -96,9 +109,9 @@ def requests_automatic_detail(response):
     return {
         "request_method": response.request.method,
         "request_url": response.request.url,
-        "request_body": response.request.body,
+        "request_body": _decode(response.request.body),
         "request_headers": dict(response.request.headers),
         "response_status_code": response.status_code,
         "response_headers": dict(response.headers),
-        "response_body": response.text,
+        "response_body": _decode(response.text),
     }
