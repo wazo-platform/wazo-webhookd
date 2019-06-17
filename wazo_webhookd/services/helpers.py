@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class HookExpectedError(Exception):
     def __init__(self, detail):
         self.detail = detail
-        super(HookRetry, self).__init__()
+        super(HookExpectedError, self).__init__()
 
 
 class HookRetry(Exception):
