@@ -1,3 +1,20 @@
+- job:
+    name: tox-integration-depends-on
+    parent: tox
+    description: |
+      Run integration tests.
+
+      Uses tox with the ``integration`` environment.
+    run: playbooks/tox-integration/run.yaml
+    vars:
+      tox_envlist: integration
+      docker_compose_services_override:
+        - webhookd
+
 - project:
-    templates:
-      - wazo-python3
+#    templates:
+#      - wazo-python3
+    check:
+      jobs:
+        - tox-integration-depends-on:
+            nodeset: debian9-vm
