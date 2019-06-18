@@ -183,6 +183,61 @@ class TestHTTPCallback(BaseIntegrationTest):
         self.assertEqual(1, logs['items'][0]["attempts"])
 
     @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_bus_event_then_one_http_callback_with_json(self, subscription):
+        body = {"some": "json", "as": "payload"}
+
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody=body,
+            statusCode=200,
+        )
+
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
+
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True
+        ), tries=10, interval=0.5)
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        self.assertEqual(1, logs['total'])
+        self.assertEqual("success", logs['items'][0]["status"])
+        self.assertEqual(body, logs['items'][0]["detail"]["response_body"])
+        self.assertEqual(1, logs['items'][0]["attempts"])
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_410(self, subscription):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="Gone",
+            statusCode=410,
+        )
+
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
+
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=1,
+            exact=True
+        ), tries=10, interval=0.5)
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        self.assertEqual(1, logs['total'])
+
+        self.assertEqual("error", logs['items'][0]["status"])
+        self.assertIn("Gone", logs['items'][0]["detail"]["error"])
+        self.assertEqual(1, logs['items'][0]["attempts"])
+
+    @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500(self, subscription):
         self.third_party.reset()
         self.third_party.mock_simple_response(
@@ -381,6 +436,13 @@ class TestHTTPCallback(BaseIntegrationTest):
         until.assert_(self.make_third_party_verify_callback(
             request={'method': 'GET', 'path': '/test', 'body': 'trigger value'}
         ), tries=10, interval=0.5)
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        self.assertEqual(1, logs['total'])
+        self.assertEqual("success", logs['items'][0]["status"])
+        self.assertEqual('trigger value', logs['items'][0]["detail"]["request_body"])
+        self.assertEqual(1, logs['items'][0]["attempts"])
 
     @subscription(TEST_SUBSCRIPTION_VERIFY)
     def test_given_subscription_with_verify_cert_when_bus_event_then_http_callback_with_verify(self, subscription):
