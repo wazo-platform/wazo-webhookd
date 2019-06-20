@@ -121,12 +121,31 @@ class SubscriptionService(object):
             session.delete(subscription)
             self.pubsub.publish('deleted', subscription)
 
-    def get_logs(self, subscription_uuid):
+    def get_logs(self, subscription_uuid, from_date=None, limit=None,
+                 offset=None, order='started_at', direction='desc', search=None):
         with self.ro_session() as session:
             query = (
                 session.query(SubscriptionLog)
                 .filter(SubscriptionLog.subscription_uuid == subscription_uuid)
             )
+            if from_date is not None:
+                query = query.filter(SubscriptionLog.started_at >= from_date)
+
+            order_column = getattr(SubscriptionLog, order)
+            order_column = order_column.asc() if direction == 'asc' else order_column.desc()
+            query = query.order_by(order_column)
+
+            if limit is not None:
+                query = query.limit(limit)
+            if offset is not None:
+                query = query.offset(offset)
+
+            if search is not None:
+                # TODO(sileht): search is not implemented yet
+                logger.warning("search parameter have been used while "
+                               "not implemented")
+                pass
+
             return query.all()
 
     def create_hook_log(self, uuid, subscription_uuid, status, attempts, max_attempts,

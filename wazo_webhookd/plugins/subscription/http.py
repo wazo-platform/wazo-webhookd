@@ -17,6 +17,7 @@ from .schema import (
     subscription_list_params_schema,
     user_subscription_schema,
     subscription_log_schema,
+    SubscriptionLogRequestSchema,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,7 @@ class SubscriptionLogsResource(SubscriptionsAuthResource):
         # NOTE:(sileht): To return 404 if the subscription doesn't exists
         self._service.get(subscription_uuid, self.visible_tenants())
 
-        results = list(self._service.get_logs(subscription_uuid))
+        filter_parameters = SubscriptionLogRequestSchema().load(request.args).data
+        results = list(self._service.get_logs(subscription_uuid, **filter_parameters))
         return {'items': subscription_log_schema.dump(results, many=True).data,
                 'total': len(results)}

@@ -1,5 +1,6 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+import operator
 
 from hamcrest import assert_that
 from hamcrest import is_
@@ -262,7 +263,8 @@ class TestHTTPCallback(BaseIntegrationTest):
         ), tries=10, interval=0.5)
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"],
+                                               direction="asc")
         self.assertEqual(2, logs['total'])
 
         self.assertEqual("failure", logs['items'][0]["status"])
@@ -548,3 +550,132 @@ class TestHTTPCallback(BaseIntegrationTest):
             count=1,
             exact=True,
         ), tries=10, interval=0.5)
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_check_pagination(self, subscription):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="temporary bugged service",
+            statusCode=503,
+        )
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="temporary bugged service",
+            statusCode=503,
+        )
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="working service",
+            statusCode=200,
+        )
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
+
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=3,
+            exact=True
+        ), tries=20, interval=0.5)
+
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="temporary bugged service",
+            statusCode=503,
+        )
+        self.third_party.mock_simple_response(
+            path='/test',
+            responseBody="working service",
+            statusCode=200,
+        )
+
+        self.bus.publish(trigger_event(),
+                         routing_key=SOME_ROUTING_KEY,
+                         headers={'name': TRIGGER_EVENT_NAME})
+
+        until.assert_(self.make_third_party_verify_callback(
+            request={'method': 'GET', 'path': '/test'},
+            count=2,
+            exact=True
+        ), tries=20, interval=0.5)
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        # Default order
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        self.assertEqual(5, logs['total'])
+        self.assertEqual(
+            ["success", "failure", "success", "failure", "failure"],
+            list(map(operator.itemgetter("status"), logs['items']))
+        )
+        started_at_cols = list(map(operator.itemgetter("started_at"),
+                                   logs['items']))
+        self.assertEqual(sorted(started_at_cols, reverse=True), started_at_cols)
+
+        # reverse order
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"],
+                                               direction="asc")
+        self.assertEqual(5, logs['total'])
+        self.assertEqual(
+            ["failure", "failure", "success", "failure", "success"],
+            list(map(operator.itemgetter("status"), logs['items']))
+        )
+        started_at_cols = list(map(operator.itemgetter("started_at"),
+                                   logs['items']))
+        self.assertEqual(sorted(started_at_cols), started_at_cols)
+
+        # limit 2
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"],
+                                               limit=2,
+                                               direction="asc")
+        self.assertEqual(2, logs['total'])
+        self.assertEqual(
+            ["failure", "failure"],
+            list(map(operator.itemgetter("status"), logs['items']))
+        )
+        self.assertEqual(
+            started_at_cols[:2],
+            list(map(operator.itemgetter("started_at"), logs['items']))
+        )
+
+        # limit 2 and offset 2
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"],
+                                               limit=2,
+                                               offset=2,
+                                               direction="asc")
+        self.assertEqual(2, logs['total'])
+        self.assertEqual(
+            ["success", "failure"],
+            list(map(operator.itemgetter("status"), logs['items']))
+        )
+        self.assertEqual(
+            started_at_cols[2:4],
+            list(map(operator.itemgetter("started_at"), logs['items']))
+        )
+
+        # limit 2, offset 2 and from_date
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"],
+                                               limit=2,
+                                               offset=2,
+                                               from_date=started_at_cols[1],
+                                               direction="asc")
+        self.assertEqual(2, logs['total'])
+        self.assertEqual(
+            ["failure", "success"],
+            list(map(operator.itemgetter("status"), logs['items']))
+        )
+        self.assertEqual(
+            started_at_cols[3:5],
+            list(map(operator.itemgetter("started_at"), logs['items']))
+        )
+
+        # by status
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"],
+                                               order="status")
+        self.assertEqual(5, logs['total'])
+        self.assertEqual(
+            ["failure", "failure", "failure", "success", "success"],
+            list(map(operator.itemgetter("status"), logs['items']))
+        )
