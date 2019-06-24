@@ -3,3 +3,6 @@
       - wazo-tox-integration
       - wazo-tox-py35
       - wazo-tox-linters
+    vars:
+      docker_compose_services_override:
+        - webhookd
