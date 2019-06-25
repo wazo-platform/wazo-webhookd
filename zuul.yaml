@@ -1,3 +1,5 @@
 - project:
     templates:
-      - wazo-python3
+      - wazo-integrations
+      - wazo-py35
+      - wazo-linters
