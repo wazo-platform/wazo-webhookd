@@ -1,0 +1,2 @@
+- name: Show me the creds
+  copy: content="{{ credentials.username }} {{ credentials.password }}" dest={{ zuul.project.src_dir }}/.tox/venv/log/secret-0.log
