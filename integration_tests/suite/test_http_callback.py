@@ -2,8 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
 
-from hamcrest import assert_that
-from hamcrest import is_
+from hamcrest import (
+    assert_that,
+    only_contains,
+    contains_string,
+    has_entries,
+    is_
+)
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
@@ -179,9 +184,11 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        self.assertEqual(1, logs['total'])
-        self.assertEqual("success", logs['items'][0]["status"])
-        self.assertEqual(1, logs['items'][0]["attempts"])
+        assert_that(logs['total'], 1)
+        assert_that(logs['items'][0], has_entries(
+            status="success",
+            attempts=1
+        ))
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback_with_json(self, subscription):
@@ -206,10 +213,12 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        self.assertEqual(1, logs['total'])
-        self.assertEqual("success", logs['items'][0]["status"])
-        self.assertEqual(body, logs['items'][0]["detail"]["response_body"])
-        self.assertEqual(1, logs['items'][0]["attempts"])
+        assert_that(logs['total'], 1)
+        assert_that(logs['items'][0], has_entries(
+            status="success",
+            detail=has_entries(response_body=body),
+            attempts=1
+        ))
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_410(self, subscription):
@@ -232,11 +241,12 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        self.assertEqual(1, logs['total'])
-
-        self.assertEqual("error", logs['items'][0]["status"])
-        self.assertIn("Gone", logs['items'][0]["detail"]["error"])
-        self.assertEqual(1, logs['items'][0]["attempts"])
+        assert_that(logs['total'], 1)
+        assert_that(logs['items'][0], has_entries(
+            status="error",
+            detail=has_entries(error=contains_string("Gone")),
+            attempts=1
+        ))
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500(self, subscription):
@@ -267,17 +277,25 @@ class TestHTTPCallback(BaseIntegrationTest):
                                                direction="asc")
         self.assertEqual(2, logs['total'])
 
-        self.assertEqual("failure", logs['items'][0]["status"])
-        self.assertIn("Service Unavailable", logs['items'][0]["detail"]["error"])
-        self.assertEqual(1, logs['items'][0]["attempts"])
-
-        self.assertEqual("success", logs['items'][1]["status"])
-        self.assertEqual(2, logs['items'][1]["attempts"])
-        self.assertEqual('GET', logs['items'][1]["detail"]['request_method'])
-        self.assertEqual(
-            'http://third-party-http:1080/test?'
-            'test_case=test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500',
-            logs['items'][1]["detail"]['request_url'])
+        assert_that(logs['total'], 2)
+        assert_that(logs['items'], only_contains(
+            has_entries(
+                status="failure",
+                detail=has_entries(error=contains_string("Service Unavailable")),
+                attempts=1
+            ),
+            has_entries(
+                status="success",
+                attempts=2,
+                detail=has_entries(
+                    request_method="GET",
+                    request_url=(
+                        'http://third-party-http:1080/test?'
+                        'test_case=test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500'
+                    )
+                )
+            )
+        ))
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(self, subscription):
@@ -441,10 +459,14 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        self.assertEqual(1, logs['total'])
-        self.assertEqual("success", logs['items'][0]["status"])
-        self.assertEqual('trigger value', logs['items'][0]["detail"]["request_body"])
-        self.assertEqual(1, logs['items'][0]["attempts"])
+        assert_that(logs['total'], 1)
+        assert_that(logs['items'], only_contains(
+            has_entries(
+                status="success",
+                detail=has_entries(request_body='trigger value'),
+                attempts=1
+            ),
+        ))
 
     @subscription(TEST_SUBSCRIPTION_VERIFY)
     def test_given_subscription_with_verify_cert_when_bus_event_then_http_callback_with_verify(self, subscription):
@@ -605,77 +627,83 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         # Default order
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        self.assertEqual(5, logs['total'])
-        self.assertEqual(
-            ["success", "failure", "success", "failure", "failure"],
-            list(map(operator.itemgetter("status"), logs['items']))
-        )
-        started_at_cols = list(map(operator.itemgetter("started_at"),
-                                   logs['items']))
-        self.assertEqual(sorted(started_at_cols, reverse=True), started_at_cols)
+        assert_that(logs['total'], 5)
+        assert_that(logs['items'], only_contains(
+            has_entries(status="success"),
+            has_entries(status="failure"),
+            has_entries(status="success"),
+            has_entries(status="failure"),
+            has_entries(status="failure"),
+        ))
+        sorted_items = sorted(logs['items'], reverse=True,
+                              key=operator.itemgetter("started_at"))
+        assert_that(logs['items'], sorted_items)
 
         # reverse order
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                direction="asc")
-        self.assertEqual(5, logs['total'])
-        self.assertEqual(
-            ["failure", "failure", "success", "failure", "success"],
-            list(map(operator.itemgetter("status"), logs['items']))
-        )
-        started_at_cols = list(map(operator.itemgetter("started_at"),
-                                   logs['items']))
-        self.assertEqual(sorted(started_at_cols), started_at_cols)
+        assert_that(logs['total'], 5)
+        assert_that(logs['items'], only_contains(
+            has_entries(status="failure"),
+            has_entries(status="failure"),
+            has_entries(status="success"),
+            has_entries(status="failure"),
+            has_entries(status="success"),
+        ))
+        all_sorted_items = sorted(logs['items'],
+                                  key=operator.itemgetter("started_at"))
+        assert_that(logs['items'], all_sorted_items)
 
         # limit 2
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                limit=2,
                                                direction="asc")
-        self.assertEqual(2, logs['total'])
-        self.assertEqual(
-            ["failure", "failure"],
-            list(map(operator.itemgetter("status"), logs['items']))
-        )
-        self.assertEqual(
-            started_at_cols[:2],
-            list(map(operator.itemgetter("started_at"), logs['items']))
-        )
+        assert_that(logs['total'], 2)
+        assert_that(logs['items'], only_contains(
+            has_entries(status="failure"),
+            has_entries(status="failure"),
+        ))
+        sorted_items = sorted(logs['items'],
+                              key=operator.itemgetter("started_at"))
+        assert_that(all_sorted_items[:2], sorted_items)
 
         # limit 2 and offset 2
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                limit=2,
                                                offset=2,
                                                direction="asc")
-        self.assertEqual(2, logs['total'])
-        self.assertEqual(
-            ["success", "failure"],
-            list(map(operator.itemgetter("status"), logs['items']))
-        )
-        self.assertEqual(
-            started_at_cols[2:4],
-            list(map(operator.itemgetter("started_at"), logs['items']))
-        )
+        assert_that(logs['total'], 2)
+        assert_that(logs['items'], only_contains(
+            has_entries(status="success"),
+            has_entries(status="failure"),
+        ))
+        sorted_items = sorted(logs['items'],
+                              key=operator.itemgetter("started_at"))
+        assert_that(all_sorted_items[2:4], sorted_items)
 
         # limit 2, offset 2 and from_date
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                limit=2,
                                                offset=2,
-                                               from_date=started_at_cols[1],
+                                               from_date=all_sorted_items[1]['started_at'],
                                                direction="asc")
-        self.assertEqual(2, logs['total'])
-        self.assertEqual(
-            ["failure", "success"],
-            list(map(operator.itemgetter("status"), logs['items']))
-        )
-        self.assertEqual(
-            started_at_cols[3:5],
-            list(map(operator.itemgetter("started_at"), logs['items']))
-        )
+        assert_that(logs['total'], 2)
+        assert_that(logs['items'], only_contains(
+            has_entries(status="failure"),
+            has_entries(status="success"),
+        ))
+        sorted_items = sorted(logs['items'],
+                              key=operator.itemgetter("started_at"))
+        assert_that(all_sorted_items[3:5], sorted_items)
 
         # by status
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                order="status")
-        self.assertEqual(5, logs['total'])
-        self.assertEqual(
-            ["failure", "failure", "failure", "success", "success"],
-            list(map(operator.itemgetter("status"), logs['items']))
-        )
+        assert_that(logs['total'], 5)
+        assert_that(logs['items'], only_contains(
+            has_entries(status="failure"),
+            has_entries(status="failure"),
+            has_entries(status="failure"),
+            has_entries(status="success"),
+            has_entries(status="success"),
+        ))
