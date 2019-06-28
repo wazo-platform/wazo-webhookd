@@ -8,6 +8,8 @@ import kombu.exceptions
 from pkg_resources import EntryPoint
 import uuid
 
+import celery
+
 from wazo_webhookd.celery import app
 from wazo_webhookd.services.helpers import HookRetry, HookExpectedError
 
@@ -34,21 +36,27 @@ def hook_runner(task, hook_uuid, ep_name, config, subscription, event):
     try:
         detail = hook.run(task, config, subscription, event)
     except HookRetry as e:
-        logger.error("Hook `%s/%s` (%s) ask retries (%s/%s): %s",
-                     ep_name, hook_uuid, event_name, task.request.retries + 1,
-                     config["hook_max_attempts"], e.detail)
         if task.request.retries + 1 == config["hook_max_attempts"]:
+            verb = "reached max retries"
             status = "error"
         else:
+            verb = "will retry"
             status = "failure"
+        logger.error("Hook `%s/%s` (%s) %s (%s/%s): %s",
+                     ep_name, hook_uuid, event_name, verb,
+                     task.request.retries + 1,
+                     config["hook_max_attempts"], e.detail)
         ended = datetime.datetime.utcnow()
         service.create_hook_log(hook_uuid, subscription["uuid"], status,
                                 task.request.retries + 1, config["hook_max_attempts"],
                                 started, ended, event, e.detail)
 
         retry_backoff = int(2 ** task.request.retries)
-        task.retry(countdown=retry_backoff,
-                   max_retries=config["hook_max_attempts"] - 1)
+        try:
+            task.retry(countdown=retry_backoff,
+                       max_retries=config["hook_max_attempts"] - 1)
+        except celery.MaxRetriesExceededError:
+            return
     except Exception as e:
         if isinstance(e, HookExpectedError):
             detail = e.detail
