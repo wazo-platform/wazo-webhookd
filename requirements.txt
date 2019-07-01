@@ -18,3 +18,5 @@ pyyaml==3.12
 sqlalchemy==1.0.15
 sqlalchemy_utils==0.30.12
 stevedore==1.17.1
+pyfcm==1.4.7
+apns2==0.4.1
