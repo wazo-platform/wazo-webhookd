@@ -138,6 +138,6 @@ class SubscriptionLogsResource(SubscriptionsAuthResource):
         self._service.get(subscription_uuid, self.visible_tenants())
 
         filter_parameters = SubscriptionLogRequestSchema().load(request.args).data
-        results = list(self._service.get_logs(subscription_uuid, **filter_parameters))
+        results = self._service.get_logs(subscription_uuid, **filter_parameters)
         return {'items': subscription_log_schema.dump(results, many=True).data,
                 'total': len(results)}
