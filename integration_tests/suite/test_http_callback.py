@@ -4,7 +4,7 @@ import operator
 
 from hamcrest import (
     assert_that,
-    only_contains,
+    contains,
     contains_string,
     has_entries,
     is_
@@ -278,7 +278,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         self.assertEqual(2, logs['total'])
 
         assert_that(logs['total'], 2)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(
                 status="failure",
                 detail=has_entries(error=contains_string("Service Unavailable")),
@@ -460,7 +460,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], 1)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(
                 status="success",
                 detail=has_entries(request_body='trigger value'),
@@ -628,7 +628,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         # Default order
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], 5)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(status="success"),
             has_entries(status="failure"),
             has_entries(status="success"),
@@ -643,7 +643,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                direction="asc")
         assert_that(logs['total'], 5)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(status="failure"),
             has_entries(status="failure"),
             has_entries(status="success"),
@@ -659,7 +659,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                                                limit=2,
                                                direction="asc")
         assert_that(logs['total'], 2)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(status="failure"),
             has_entries(status="failure"),
         ))
@@ -673,7 +673,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                                                offset=2,
                                                direction="asc")
         assert_that(logs['total'], 2)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(status="success"),
             has_entries(status="failure"),
         ))
@@ -688,7 +688,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                                                from_date=all_sorted_items[1]['started_at'],
                                                direction="asc")
         assert_that(logs['total'], 2)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(status="failure"),
             has_entries(status="success"),
         ))
@@ -700,7 +700,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         logs = webhookd.subscriptions.get_logs(subscription["uuid"],
                                                order="status")
         assert_that(logs['total'], 5)
-        assert_that(logs['items'], only_contains(
+        assert_that(logs['items'], contains(
             has_entries(status="failure"),
             has_entries(status="failure"),
             has_entries(status="failure"),
