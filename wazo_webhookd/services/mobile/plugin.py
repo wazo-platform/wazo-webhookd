@@ -16,9 +16,14 @@ from wazo_webhookd.services.helpers import HookRetry
 
 logger = logging.getLogger(__name__)
 
+MAP_NAME_TO_NOTIFICATION_TYPE = {
+    'user_voicemail_message_created': 'voicemailReceived',
+    'call_push_notification': 'incomingCall',
+    'chatd_user_room_message_created': 'messageReceived',
+}
+
 
 class Service:
-
     def load(self, dependencies):
         bus_consumer = dependencies['bus_consumer']
         self._config = dependencies['config']
@@ -121,21 +126,12 @@ class Service:
         apns_token = data['apns_token']
         push = PushNotification(token, apns_token, external_config)
 
-        msg = None
         data = event.get('data')
         name = event.get('name')
 
-        if name == 'user_voicemail_message_created':
-            msg = dict(notification_type='voicemailReceived', items=data)
-
-        if name == 'call_push_notification':
-            msg = dict(notification_type='incomingCall', items=data)
-
-        if name == 'chatd_user_room_message_created':
-            msg = dict(notification_type='messageReceived', items=data)
-
-        if msg:
-            return push.send_notification(msg)
+        notification_type = MAP_NAME_TO_NOTIFICATION_TYPE.get(name)
+        if notification_type:
+            return getattr(push, notification_type)(data)
 
 
 class PushNotification(object):
@@ -145,29 +141,39 @@ class PushNotification(object):
         self.apns_token = apns_token
         self.external_config = external_config
 
-    def send_notification(self, data):
-        message_title = None
-        message_body = None
+    def incomingCall(self, data):
+        return self._send_notification(
+            'incomingCall',
+            'Incoming Call',
+            'From: {}'.format(data['peer_caller_id_number']),
+            'wazo-notification-call',
+            data
+        )
 
-        is_incoming_call = data.get('notification_type') == 'incomingCall'
-        is_voicemail = data.get('notification_type') == 'voicemailReceived'
-        is_message = data.get('notification_type') == 'messageReceived'
+    def voicemailReceived(self, data):
+        return self._send_notification(
+            'voicemailReceived',
+            'New voicemail',
+            'From: {}'.format(data['items']['message']['caller_id_num']),
+            'wazo-notification-voicemail',
+            data
+        )
 
-        if is_incoming_call:
-            message_title = 'Incoming Call'
-            message_body = 'From: {}'.format(data['items']['peer_caller_id_number'])
-            channel_id = 'wazo-notification-call'
+    def messageReceived(self, data):
+        return self._send_notification(
+            'messageReceived',
+            data['items']['alias'],
+            data['items']['content'],
+            'wazo-notification-chat',
+            data
+        )
 
-        if is_voicemail:
-            message_title = 'New voicemail'
-            message_body = 'From: {}'.format(data['items']['message']['caller_id_num'])
-            channel_id = 'wazo-notification-voicemail'
-
-        if is_message:
-            message_title = data['items']['alias']
-            message_body = data['items']['content']
-            channel_id = 'wazo-notification-chat'
-
+    def _send_notification(self, notification_type, message_title, message_body,
+                           channel_id, items):
+        data = {
+            'notification_type': notification_type,
+            'items': items
+        }
         if self.apns_token and channel_id == 'wazo-notification-call':
             try:
                 return self._send_via_apn(self.apns_token, data)
