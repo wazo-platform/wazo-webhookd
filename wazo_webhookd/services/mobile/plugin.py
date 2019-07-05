@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import logging
+import tempfile
 import uuid
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
@@ -102,13 +103,6 @@ class Service:
         tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        if token["apns_token"]:
-            external_config['ios_apns_cert'] = '/tmp/ios.pem'
-
-            with open(external_config['ios_apns_cert'], 'w') as cert:
-                cert.write(external_config['ios_apn_certificate'] + "\r\n")
-                cert.write(external_config['ios_apn_private'])
-
         return (token, external_config)
 
     @classmethod
@@ -176,7 +170,7 @@ class PushNotification(object):
         }
         if self.apns_token and channel_id == 'wazo-notification-call':
             try:
-                return self._send_via_apn(self.apns_token, data)
+                return self._send_via_apn(data)
             except (apns2_errors.ServiceUnavailable,
                     apns2_errors.InternalServerError) as e:
                 raise HookRetry({"error": str(e)})
@@ -209,9 +203,15 @@ class PushNotification(object):
                 logger.error('Error to send push notification: %s', notification)
             return notification
 
-    def _send_via_apn(self, apns_token, data):
-        payload = Payload(alert=data, sound="default", badge=1)
-        client = APNsClient(self.external_config['ios_apns_cert'],
-                            use_sandbox=self.external_config['is_sandbox'],
-                            use_alternative_port=False)
-        client.send_notification(apns_token, payload, 'io.wazo.songbird.voip')
+    def _send_via_apn(self, data):
+        with tempfile.NamedTemporaryFile() as certfile:
+            with open(certfile.name, 'w') as cert:
+                cert.write(self.external_config['ios_apn_certificate'] + "\r\n")
+                cert.write(self.external_config['ios_apn_private'])
+
+            client = APNsClient(certfile.name,
+                                use_sandbox=self.external_config['is_sandbox'],
+                                use_alternative_port=False)
+
+            payload = Payload(alert=data, sound="default", badge=1)
+            client.send_notification(self.apns_token, payload, 'io.wazo.songbird.voip')
