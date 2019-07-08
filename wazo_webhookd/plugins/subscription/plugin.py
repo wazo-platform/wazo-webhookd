@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from .bus import SubscriptionBusEventHandler
-from .resource import (
+from .http import (
     SubscriptionResource,
     SubscriptionsResource,
     UserSubscriptionsResource,

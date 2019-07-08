@@ -8,12 +8,15 @@ from marshmallow import (
 from marshmallow import Schema
 from marshmallow import validates
 from marshmallow import ValidationError
+
 from xivo.mallow import fields
 from xivo.mallow.validate import (
     Length,
     OneOf,
     validate_string_dict,
 )
+from xivo.mallow_helpers import ListSchema
+
 
 VALID_METHODS = ['head', 'get', 'post', 'put', 'delete']
 
@@ -132,6 +135,15 @@ class SubscriptionLogSchema(Schema):
     max_attempts = fields.Integer()
     event = fields.Dict()
     detail = fields.Dict()
+
+
+class SubscriptionLogRequestSchema(ListSchema):
+    default_sort_column = 'started_at'
+    sort_columns = ['started_at', 'ended_at', 'status',
+                    'attempts', 'max_attempts']
+    searchable_columns = []
+    default_direction = 'desc'
+    from_date = fields.DateTime()
 
 
 subscription_schema = SubscriptionSchema(strict=True)
