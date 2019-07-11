@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -109,7 +109,8 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         if uuid is None:
             raise RuntimeError("uuid must be set")
         elif not event_names:
-            raise RuntimeError("event_names must be set")
+            logger.warning("subscription `%s` doesn't have event_names set", uuid)
+            return
         logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
         queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
@@ -119,7 +120,8 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         if uuid is None:
             raise RuntimeError("uuid must be set")
         elif not event_names:
-            raise RuntimeError("event_names must be set")
+            logger.warning("subscription `%s` doesn't have event_names set", uuid)
+            return
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
         queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
