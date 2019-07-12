@@ -23,13 +23,13 @@ class Service:
         bus_consumer = dependencies['bus_consumer']
         self._config = dependencies['config']
         self.subscription_service = SubscriptionService(self._config)
-        bus_consumer.subscribe_to_event_names(uuid=uuid.uuid4(),
+        bus_consumer.subscribe_to_event_names(uuid=str(uuid.uuid4()),
                                               event_names=['auth_user_external_auth_added'],
                                               # tenant_uuid=None,
                                               user_uuid=None,
                                               wazo_uuid=None,
                                               callback=self.on_external_auth_added)
-        bus_consumer.subscribe_to_event_names(uuid=uuid.uuid4(),
+        bus_consumer.subscribe_to_event_names(uuid=str(uuid.uuid4()),
                                               event_names=['auth_user_external_auth_deleted'],
                                               # tenant_uuid=None,
                                               user_uuid=None,
