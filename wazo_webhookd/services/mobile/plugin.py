@@ -97,13 +97,13 @@ class Service:
         return auth
 
     @classmethod
-    def get_external_token(cls, config, user_uuid):
+    def get_external_data(cls, config, user_uuid):
         auth = cls.get_auth(config)
-        token = auth.external.get('mobile', user_uuid)
+        external_tokens = auth.external.get('mobile', user_uuid)
         tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        return (token, external_config)
+        return (external_tokens, external_config)
 
     @classmethod
     def run(cls, task, config, subscription, event):
@@ -115,10 +115,8 @@ class Service:
                 and event['name'] == 'chatd_user_room_message_created'):
             return
 
-        data, external_config = cls.get_external_token(config, user_uuid)
-        token = data['token']
-        apns_token = data['apns_token']
-        push = PushNotification(token, apns_token, external_config)
+        external_tokens, external_config = cls.get_external_data(config, user_uuid)
+        push = PushNotification(external_tokens, external_config)
 
         data = event.get('data')
         name = event.get('name')
@@ -130,9 +128,8 @@ class Service:
 
 class PushNotification(object):
 
-    def __init__(self, external_token, apns_token, external_config):
-        self.token = external_token
-        self.apns_token = apns_token
+    def __init__(self, external_tokens, external_config):
+        self.external_tokens = external_tokens
         self.external_config = external_config
 
     def incomingCall(self, data):
@@ -168,7 +165,7 @@ class PushNotification(object):
             'notification_type': notification_type,
             'items': items
         }
-        if self.apns_token and channel_id == 'wazo-notification-call':
+        if self.external_tokens.get('apns_token') and channel_id == 'wazo-notification-call':
             try:
                 return self._send_via_apn(data)
             except (apns2_errors.ServiceUnavailable,
@@ -187,12 +184,12 @@ class PushNotification(object):
 
             if channel_id == 'wazo-notification-call':
                 notification = push_service.notify_single_device(
-                    registration_id=self.token,
+                    registration_id=self.external_tokens['token'],
                     data_message=data,
                     extra_notification_kwargs=dict(priority='high'))
             else:
                 notification = push_service.notify_single_device(
-                    registration_id=self.token,
+                    registration_id=self.external_tokens['token'],
                     message_title=message_title,
                     message_body=message_body,
                     badge=1,
@@ -214,4 +211,4 @@ class PushNotification(object):
                                 use_alternative_port=False)
 
             payload = Payload(alert=data, sound="default", badge=1)
-            client.send_notification(self.apns_token, payload, 'io.wazo.songbird.voip')
+            client.send_notification(self.external_tokens["apns_token"], payload, 'io.wazo.songbird.voip')
