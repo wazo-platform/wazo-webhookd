@@ -17,7 +17,7 @@ def subscription(subscription_args, track_test_name=True, token=MASTER_TOKEN,
             webhookd = self.make_webhookd(token, tenant)
 
             sub = copy.deepcopy(subscription_args)
-            if track_test_name:
+            if track_test_name and sub['service'] == 'http':
                 # Add test name to help debugging
                 sep = "&" if "?" in sub['config']['url'] else "?"
                 sub['config']['url'] += sep + "test_case=" + decorated.__name__

@@ -12,7 +12,10 @@ from apns2.payload import Payload
 
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
-from wazo_webhookd.services.helpers import HookRetry
+from wazo_webhookd.services.helpers import (
+    HookExpectedError,
+    HookRetry,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -108,6 +111,11 @@ class Service:
     @classmethod
     def run(cls, task, config, subscription, event):
         user_uuid = subscription['events_user_uuid']
+        if not user_uuid:
+            raise HookExpectedError(
+                "subscription doesn't have events_user_uuid set"
+            )
+
         # TODO(sileht): We should also filter on tenant_uuid
         # tenant_uuid = subscription.get('events_tenant_uuid')
         if (event['data'].get('user_uuid') == user_uuid

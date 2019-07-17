@@ -7,5 +7,6 @@ services:
       - rabbitmq
       - third-party-http
       - webhookd
+      - fcm.googleapis.com
     environment:
-      TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497"
+        TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497 fcm.googleapis.com:443"
