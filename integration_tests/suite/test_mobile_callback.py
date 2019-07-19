@@ -1,5 +1,6 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+import functools
 from hamcrest import (
     assert_that,
     has_entries,
@@ -81,12 +82,12 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
     @staticmethod
-    def _wait_logs(webhookd, subscription_uuid, number=1):
+    def _wait_items(func, number=1):
         def check():
-            logs = webhookd.subscriptions.get_logs(subscription_uuid)
+            logs = func()
             assert_that(logs['total'], number)
 
-        until.assert_(check, tries=3, interval=0.5)
+        until.assert_(check, tries=10, interval=0.5)
 
     def test_workflow(self):
         self.bus.publish(
@@ -103,6 +104,9 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
+        self._wait_items(functools.partial(
+            webhookd.subscriptions.list, recurse=True
+        ))
         subscriptions = webhookd.subscriptions.list(recurse=True)
         assert_that(subscriptions['total'], 1)
         assert_that(subscriptions['items'][0], has_entries(
@@ -135,7 +139,9 @@ class TestMobileCallback(BaseIntegrationTest):
             }
         )
 
-        self._wait_logs(webhookd, subscription["uuid"])
+        self._wait_items(functools.partial(
+            webhookd.subscriptions.get_logs, subscription["uuid"]
+        ))
 
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], 1)
