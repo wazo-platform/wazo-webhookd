@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import logging
+import tempfile
 import uuid
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
@@ -11,14 +12,22 @@ from apns2.payload import Payload
 
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
-from wazo_webhookd.services.helpers import HookRetry
+from wazo_webhookd.services.helpers import (
+    HookExpectedError,
+    HookRetry,
+)
 
 
 logger = logging.getLogger(__name__)
 
+MAP_NAME_TO_NOTIFICATION_TYPE = {
+    'user_voicemail_message_created': 'voicemailReceived',
+    'call_push_notification': 'incomingCall',
+    'chatd_user_room_message_created': 'messageReceived',
+}
+
 
 class Service:
-
     def load(self, dependencies):
         bus_consumer = dependencies['bus_consumer']
         self._config = dependencies['config']
@@ -91,24 +100,22 @@ class Service:
         return auth
 
     @classmethod
-    def get_external_token(cls, config, user_uuid):
+    def get_external_data(cls, config, user_uuid):
         auth = cls.get_auth(config)
-        token = auth.external.get('mobile', user_uuid)
+        external_tokens = auth.external.get('mobile', user_uuid)
         tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        if token["apns_token"]:
-            external_config['ios_apns_cert'] = '/tmp/ios.pem'
-
-            with open(external_config['ios_apns_cert'], 'w') as cert:
-                cert.write(external_config['ios_apn_certificate'] + "\r\n")
-                cert.write(external_config['ios_apn_private'])
-
-        return (token, external_config)
+        return (external_tokens, external_config)
 
     @classmethod
     def run(cls, task, config, subscription, event):
         user_uuid = subscription['events_user_uuid']
+        if not user_uuid:
+            raise HookExpectedError(
+                "subscription doesn't have events_user_uuid set"
+            )
+
         # TODO(sileht): We should also filter on tenant_uuid
         # tenant_uuid = subscription.get('events_tenant_uuid')
         if (event['data'].get('user_uuid') == user_uuid
@@ -116,61 +123,59 @@ class Service:
                 and event['name'] == 'chatd_user_room_message_created'):
             return
 
-        data, external_config = cls.get_external_token(config, user_uuid)
-        token = data['token']
-        apns_token = data['apns_token']
-        push = PushNotification(token, apns_token, external_config)
+        external_tokens, external_config = cls.get_external_data(config, user_uuid)
+        push = PushNotification(external_tokens, external_config)
 
-        msg = None
         data = event.get('data')
         name = event.get('name')
 
-        if name == 'user_voicemail_message_created':
-            msg = dict(notification_type='voicemailReceived', items=data)
-
-        if name == 'call_push_notification':
-            msg = dict(notification_type='incomingCall', items=data)
-
-        if name == 'chatd_user_room_message_created':
-            msg = dict(notification_type='messageReceived', items=data)
-
-        if msg:
-            return push.send_notification(msg)
+        notification_type = MAP_NAME_TO_NOTIFICATION_TYPE.get(name)
+        if notification_type:
+            return getattr(push, notification_type)(data)
 
 
 class PushNotification(object):
 
-    def __init__(self, external_token, apns_token, external_config):
-        self.token = external_token
-        self.apns_token = apns_token
+    def __init__(self, external_tokens, external_config):
+        self.external_tokens = external_tokens
         self.external_config = external_config
 
-    def send_notification(self, data):
-        message_title = None
-        message_body = None
+    def incomingCall(self, data):
+        return self._send_notification(
+            'incomingCall',
+            'Incoming Call',
+            'From: {}'.format(data['peer_caller_id_number']),
+            'wazo-notification-call',
+            data
+        )
 
-        is_incoming_call = data.get('notification_type') == 'incomingCall'
-        is_voicemail = data.get('notification_type') == 'voicemailReceived'
-        is_message = data.get('notification_type') == 'messageReceived'
+    def voicemailReceived(self, data):
+        return self._send_notification(
+            'voicemailReceived',
+            'New voicemail',
+            'From: {}'.format(data['items']['message']['caller_id_num']),
+            'wazo-notification-voicemail',
+            data
+        )
 
-        if is_incoming_call:
-            message_title = 'Incoming Call'
-            message_body = 'From: {}'.format(data['items']['peer_caller_id_number'])
-            channel_id = 'wazo-notification-call'
+    def messageReceived(self, data):
+        return self._send_notification(
+            'messageReceived',
+            data['items']['alias'],
+            data['items']['content'],
+            'wazo-notification-chat',
+            data
+        )
 
-        if is_voicemail:
-            message_title = 'New voicemail'
-            message_body = 'From: {}'.format(data['items']['message']['caller_id_num'])
-            channel_id = 'wazo-notification-voicemail'
-
-        if is_message:
-            message_title = data['items']['alias']
-            message_body = data['items']['content']
-            channel_id = 'wazo-notification-chat'
-
-        if self.apns_token and channel_id == 'wazo-notification-call':
+    def _send_notification(self, notification_type, message_title, message_body,
+                           channel_id, items):
+        data = {
+            'notification_type': notification_type,
+            'items': items
+        }
+        if self.external_tokens.get('apns_token') and channel_id == 'wazo-notification-call':
             try:
-                return self._send_via_apn(self.apns_token, data)
+                return self._send_via_apn(data)
             except (apns2_errors.ServiceUnavailable,
                     apns2_errors.InternalServerError) as e:
                 raise HookRetry({"error": str(e)})
@@ -187,12 +192,12 @@ class PushNotification(object):
 
             if channel_id == 'wazo-notification-call':
                 notification = push_service.notify_single_device(
-                    registration_id=self.token,
+                    registration_id=self.external_tokens['token'],
                     data_message=data,
                     extra_notification_kwargs=dict(priority='high'))
             else:
                 notification = push_service.notify_single_device(
-                    registration_id=self.token,
+                    registration_id=self.external_tokens['token'],
                     message_title=message_title,
                     message_body=message_body,
                     badge=1,
@@ -203,9 +208,15 @@ class PushNotification(object):
                 logger.error('Error to send push notification: %s', notification)
             return notification
 
-    def _send_via_apn(self, apns_token, data):
-        payload = Payload(alert=data, sound="default", badge=1)
-        client = APNsClient(self.external_config['ios_apns_cert'],
-                            use_sandbox=self.external_config['is_sandbox'],
-                            use_alternative_port=False)
-        client.send_notification(apns_token, payload, 'io.wazo.songbird.voip')
+    def _send_via_apn(self, data):
+        with tempfile.NamedTemporaryFile() as certfile:
+            with open(certfile.name, 'w') as cert:
+                cert.write(self.external_config['ios_apn_certificate'] + "\r\n")
+                cert.write(self.external_config['ios_apn_private'])
+
+            client = APNsClient(certfile.name,
+                                use_sandbox=self.external_config['is_sandbox'],
+                                use_alternative_port=False)
+
+            payload = Payload(alert=data, sound="default", badge=1)
+            client.send_notification(self.external_tokens["apns_token"], payload, 'io.wazo.songbird.voip')

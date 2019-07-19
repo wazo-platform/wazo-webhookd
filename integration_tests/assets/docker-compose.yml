@@ -17,6 +17,12 @@ services:
     ports:
       - "1080"
 
+  fcm.googleapis.com:
+    image: jamesdbloom/mockserver:mockserver-5.2.3
+    command: ["/bin/bash", "-xv", "/opt/mockserver/run_mockserver.sh", "-logLevel", "DEBUG", "-serverPort", "443", "-proxyPort", "1090", "-genericJVMOptions", "-Dmockserver.sslCertificateDomainName='fcm.googleapis.com'"]
+    ports:
+      - "443"
+
   postgres:
     image: wazopbx/wazo-webhookd-db
     ports:
