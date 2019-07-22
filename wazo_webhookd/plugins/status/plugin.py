@@ -5,7 +5,6 @@ from .http import StatusResource
 
 
 class Plugin(object):
-
     def load(self, dependencies):
         api = dependencies['api']
         bus_consumer = dependencies['bus_consumer']

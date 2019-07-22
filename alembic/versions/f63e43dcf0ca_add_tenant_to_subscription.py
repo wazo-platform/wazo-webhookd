@@ -21,7 +21,7 @@ def upgrade():
             sa.String(36),
             nullable=False,
             server_default='00000000-0000-0000-0000-000000000000',
-        )
+        ),
     )
     op.alter_column('webhookd_subscription', 'owner_tenant_uuid', server_default=None)
 

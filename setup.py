@@ -31,6 +31,6 @@ setup(
         'wazo_webhookd.services': [
             'http = wazo_webhookd.services.http.plugin:Service',
             'mobile = wazo_webhookd.services.mobile.plugin:Service',
-        ]
+        ],
     },
 )

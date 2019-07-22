@@ -4,15 +4,11 @@
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.rest_api import api
 
-from . import (
-    http,
-    service,
-)
+from . import http, service
 
 
 # This plugin is used for the tenant uuid migration between wazo-auth and webhookd
 class Plugin(object):
-
     def load(self, dependencies):
         config = dependencies['config']
         auth_client = AuthClient(**config['auth'])

@@ -3,10 +3,7 @@
 
 import re
 
-from hamcrest import (
-    assert_that,
-    equal_to,
-)
+from hamcrest import assert_that, equal_to
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.wait_strategy import NoWaitStrategy

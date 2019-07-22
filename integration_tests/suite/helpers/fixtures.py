@@ -8,9 +8,11 @@ from wazo_webhookd_client.exceptions import WebhookdError
 from .base import MASTER_TOKEN
 
 
-def subscription(subscription_args, track_test_name=True, token=MASTER_TOKEN,
-                 tenant=None):
+def subscription(
+    subscription_args, track_test_name=True, token=MASTER_TOKEN, tenant=None
+):
     '''This decorator is only compatible with instance methods, not pure functions.'''
+
     def decorator(decorated):
         @wraps(decorated)
         def wrapper(self, *args, **kwargs):
@@ -30,8 +32,9 @@ def subscription(subscription_args, track_test_name=True, token=MASTER_TOKEN,
                 return decorated(self, *args, **kwargs)
             finally:
                 try:
-                    webhookd = self.make_webhookd(token,
-                                                  new_subscription['owner_tenant_uuid'])
+                    webhookd = self.make_webhookd(
+                        token, new_subscription['owner_tenant_uuid']
+                    )
                     webhookd.subscriptions.delete(new_subscription['uuid'])
                 except WebhookdError as e:
                     if e.status_code != 404:
@@ -40,4 +43,5 @@ def subscription(subscription_args, track_test_name=True, token=MASTER_TOKEN,
                 self.ensure_webhookd_not_consume_uuid(new_subscription['uuid'])
 
         return wrapper
+
     return decorator

@@ -8,7 +8,6 @@ from wazo_webhookd.rest_api import AuthResource
 
 
 class WebhookTenantUpgradeResource(AuthResource):
-
     def __init__(self, service, auth_client):
         self._service = service
         self._auth_client = auth_client

@@ -18,11 +18,18 @@ from sqlalchemy.schema import Column
 def upgrade():
     op.create_table(
         'webhookd_subscription_metadatum',
-        Column('uuid', sa.String(38),
-               server_default=sa.text('uuid_generate_v4()'), primary_key=True),
-        Column('subscription_uuid', sa.String(38),
-               sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
-               nullable=False),
+        Column(
+            'uuid',
+            sa.String(38),
+            server_default=sa.text('uuid_generate_v4()'),
+            primary_key=True,
+        ),
+        Column(
+            'subscription_uuid',
+            sa.String(38),
+            sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
+            nullable=False,
+        ),
         Column('key', sa.Text(), nullable=False),
         Column('value', sa.Text()),
     )

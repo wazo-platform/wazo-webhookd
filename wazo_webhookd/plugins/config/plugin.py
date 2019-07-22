@@ -5,7 +5,6 @@ from .http import ConfigResource
 
 
 class Plugin(object):
-
     def load(self, dependencies):
         api = dependencies['api']
         config = dependencies['config']

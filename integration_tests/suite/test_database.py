@@ -6,15 +6,7 @@ import uuid
 
 from contextlib import contextmanager
 from functools import partial
-from hamcrest import (
-    assert_that,
-    calling,
-    has_entries,
-    is_,
-    none,
-    not_none,
-    raises,
-)
+from hamcrest import assert_that, calling, has_entries, is_, none, not_none, raises
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -54,10 +46,15 @@ class TestDatabase(AssetLaunchingTestCase):
 
     def test_subscription_cascade(self):
         with self.new_session() as session:
-            subscription = Subscription(uuid=str(uuid.uuid4()), name='test',
-                                        owner_tenant_uuid=str(uuid.uuid4()))
-            subscription_event = SubscriptionEvent(event_name='test', subscription_uuid=subscription.uuid)
-            subscription_option = SubscriptionOption(name='test', subscription_uuid=subscription.uuid)
+            subscription = Subscription(
+                uuid=str(uuid.uuid4()), name='test', owner_tenant_uuid=str(uuid.uuid4())
+            )
+            subscription_event = SubscriptionEvent(
+                event_name='test', subscription_uuid=subscription.uuid
+            )
+            subscription_option = SubscriptionOption(
+                name='test', subscription_uuid=subscription.uuid
+            )
             session.add(subscription)
             session.add(subscription_event)
             session.add(subscription_option)
@@ -72,34 +69,42 @@ class TestDatabase(AssetLaunchingTestCase):
             assert_that(option, is_(none()))
 
     def test_subscription_event_unique(self):
-        subscription = Subscription(uuid=str(uuid.uuid4()), name='test',
-                                    owner_tenant_uuid=str(uuid.uuid4()))
-        subscription_event = SubscriptionEvent(event_name='test', subscription_uuid=subscription.uuid)
-        subscription_event_2 = SubscriptionEvent(event_name='test', subscription_uuid=subscription.uuid)
+        subscription = Subscription(
+            uuid=str(uuid.uuid4()), name='test', owner_tenant_uuid=str(uuid.uuid4())
+        )
+        subscription_event = SubscriptionEvent(
+            event_name='test', subscription_uuid=subscription.uuid
+        )
+        subscription_event_2 = SubscriptionEvent(
+            event_name='test', subscription_uuid=subscription.uuid
+        )
 
         session = self._Session()
         session.add(subscription)
         session.add(subscription_event)
         session.add(subscription_event_2)
 
-        assert_that(calling(session.commit).with_args(),
-                    raises(IntegrityError))
+        assert_that(calling(session.commit).with_args(), raises(IntegrityError))
 
         self._Session.remove()
 
     def test_subscription_option_unique(self):
-        subscription = Subscription(uuid=str(uuid.uuid4()), name='test',
-                                    owner_tenant_uuid=str(uuid.uuid4()))
-        subscription_option = SubscriptionOption(name='test', subscription_uuid=subscription.uuid)
-        subscription_option_2 = SubscriptionOption(name='test', subscription_uuid=subscription.uuid)
+        subscription = Subscription(
+            uuid=str(uuid.uuid4()), name='test', owner_tenant_uuid=str(uuid.uuid4())
+        )
+        subscription_option = SubscriptionOption(
+            name='test', subscription_uuid=subscription.uuid
+        )
+        subscription_option_2 = SubscriptionOption(
+            name='test', subscription_uuid=subscription.uuid
+        )
 
         session = self._Session()
         session.add(subscription)
         session.add(subscription_option)
         session.add(subscription_option_2)
 
-        assert_that(calling(session.commit).with_args(),
-                    raises(IntegrityError))
+        assert_that(calling(session.commit).with_args(), raises(IntegrityError))
 
         self._Session.remove()
 
@@ -112,11 +117,14 @@ class TestDatabase(AssetLaunchingTestCase):
             tracker['uuid'] = subscription.uuid
 
         service.pubsub.subscribe('created', on_subscription)
-        service.create({'uuid': str(uuid.uuid4()), 'name': 'test',
-                        'owner_tenant_uuid': str(uuid.uuid4())})
-        assert_that(tracker, has_entries({
-            'uuid': is_(not_none())
-        }))
+        service.create(
+            {
+                'uuid': str(uuid.uuid4()),
+                'name': 'test',
+                'owner_tenant_uuid': str(uuid.uuid4()),
+            }
+        )
+        assert_that(tracker, has_entries({'uuid': is_(not_none())}))
 
     def test_subscription_pubsub_two_services(self):
         service1 = SubscriptionService({'db_uri': self.db_uri})
@@ -127,14 +135,14 @@ class TestDatabase(AssetLaunchingTestCase):
         def on_subscription(service, _):
             tracker[service] = True
 
-        service1.pubsub.subscribe('created',
-                                  partial(on_subscription, "service1"))
-        service2.pubsub.subscribe('created',
-                                  partial(on_subscription, "service2"))
+        service1.pubsub.subscribe('created', partial(on_subscription, "service1"))
+        service2.pubsub.subscribe('created', partial(on_subscription, "service2"))
 
-        service1.create({'uuid': str(uuid.uuid4()), 'name': 'test',
-                         'owner_tenant_uuid': str(uuid.uuid4())})
-        assert_that(tracker, has_entries({
-            'service1': True,
-            'service2': True
-        }))
+        service1.create(
+            {
+                'uuid': str(uuid.uuid4()),
+                'name': 'test',
+                'owner_tenant_uuid': str(uuid.uuid4()),
+            }
+        )
+        assert_that(tracker, has_entries({'service1': True, 'service2': True}))
