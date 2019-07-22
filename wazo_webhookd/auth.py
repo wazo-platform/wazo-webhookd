@@ -27,7 +27,6 @@ def get_token_user_uuid_from_request(auth_client):
 
 
 class Token:
-
     def __init__(self, auth_client, token_id):
         try:
             self._token_infos = auth_client.token.get(token_id)

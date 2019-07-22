@@ -1,4 +1,4 @@
-# Copyright 2017-2018 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import yaml
@@ -17,9 +17,13 @@ class SwaggerResource(Resource):
     api_filename = "api.yml"
 
     def get(self):
-        api_spec = ChainMap(*load_all_api_specs('wazo_webhookd.plugins', self.api_filename))
+        api_spec = ChainMap(
+            *load_all_api_specs('wazo_webhookd.plugins', self.api_filename)
+        )
 
         if not api_spec.get('info'):
             return {'error': "API spec does not exist"}, 404
 
-        return make_response(yaml.dump(dict(api_spec)), 200, {'Content-Type': 'application/x-yaml'})
+        return make_response(
+            yaml.dump(dict(api_spec)), 200, {'Content-Type': 'application/x-yaml'}
+        )

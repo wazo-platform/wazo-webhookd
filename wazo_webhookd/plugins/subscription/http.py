@@ -7,10 +7,7 @@ import uuid
 from flask import request
 from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
-from xivo.tenant_flask_helpers import (
-    token,
-    Tenant,
-)
+from xivo.tenant_flask_helpers import token, Tenant
 
 from .schema import (
     subscription_schema,
@@ -37,16 +34,19 @@ class SubscriptionsAuthResource(AuthResource):
 
 
 class SubscriptionsResource(SubscriptionsAuthResource):
-
     @required_acl('webhookd.subscriptions.read')
     def get(self):
         params = subscription_list_params_schema.load(request.args).data
-        subscriptions = list(self._service.list(
-            owner_tenant_uuids=self.visible_tenants(params["recurse"]),
-            search_metadata=params['search_metadata']
-        ))
-        return {'items': subscription_schema.dump(subscriptions, many=True).data,
-                'total': len(subscriptions)}
+        subscriptions = list(
+            self._service.list(
+                owner_tenant_uuids=self.visible_tenants(params["recurse"]),
+                search_metadata=params['search_metadata'],
+            )
+        )
+        return {
+            'items': subscription_schema.dump(subscriptions, many=True).data,
+            'total': len(subscriptions),
+        }
 
     @required_acl('webhookd.subscriptions.create')
     def post(self):
@@ -58,20 +58,18 @@ class SubscriptionsResource(SubscriptionsAuthResource):
 
 
 class SubscriptionResource(SubscriptionsAuthResource):
-
     @required_acl('webhookd.subscriptions.{subscription_uuid}.read')
     def get(self, subscription_uuid):
-        subscription = self._service.get(subscription_uuid,
-                                         self.visible_tenants())
+        subscription = self._service.get(subscription_uuid, self.visible_tenants())
         return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.update')
     def put(self, subscription_uuid):
         subscription = subscription_schema.load(request.json).data
         subscription['owner_tenant_uuid'] = Tenant.autodetect().uuid
-        subscription = self._service.update(subscription_uuid,
-                                            subscription,
-                                            self.visible_tenants())
+        subscription = self._service.update(
+            subscription_uuid, subscription, self.visible_tenants()
+        )
         return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.delete')
@@ -81,23 +79,28 @@ class SubscriptionResource(SubscriptionsAuthResource):
 
 
 class UserSubscriptionsResource(SubscriptionsAuthResource):
-
     @required_acl('webhookd.users.me.subscriptions.read')
     def get(self):
         params = subscription_list_params_schema.load(request.args).data
-        subscriptions = list(self._service.list(
-            owner_user_uuid=token.user_uuid,
-            owner_tenant_uuids=[token.tenant_uuid],
-            search_metadata=params['search_metadata']
-        ))
-        return {'items': subscription_schema.dump(subscriptions, many=True).data,
-                'total': len(subscriptions)}
+        subscriptions = list(
+            self._service.list(
+                owner_user_uuid=token.user_uuid,
+                owner_tenant_uuids=[token.tenant_uuid],
+                search_metadata=params['search_metadata'],
+            )
+        )
+        return {
+            'items': subscription_schema.dump(subscriptions, many=True).data,
+            'total': len(subscriptions),
+        }
 
     @required_acl('webhookd.users.me.subscriptions.create')
     def post(self):
         subscription = user_subscription_schema.load(request.json).data
         subscription['owner_tenant_uuid'] = token.tenant_uuid
-        subscription['events_user_uuid'] = subscription['owner_user_uuid'] = token.user_uuid
+        subscription['events_user_uuid'] = subscription[
+            'owner_user_uuid'
+        ] = token.user_uuid
         subscription['events_wazo_uuid'] = token.infos['xivo_uuid']
         subscription['uuid'] = str(uuid.uuid4())
         self._service.create(subscription)
@@ -105,33 +108,37 @@ class UserSubscriptionsResource(SubscriptionsAuthResource):
 
 
 class UserSubscriptionResource(SubscriptionsAuthResource):
-
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.read')
     def get(self, subscription_uuid):
-        subscription = self._service.get(subscription_uuid,
-                                         owner_tenant_uuids=[token.tenant_uuid],
-                                         owner_user_uuid=token.user_uuid)
+        subscription = self._service.get(
+            subscription_uuid,
+            owner_tenant_uuids=[token.tenant_uuid],
+            owner_user_uuid=token.user_uuid,
+        )
         return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.update')
     def put(self, subscription_uuid):
         subscription = user_subscription_schema.load(request.json).data
-        subscription = self._service.update(subscription_uuid,
-                                            subscription,
-                                            owner_tenant_uuids=[token.tenant_uuid],
-                                            owner_user_uuid=token.user_uuid)
+        subscription = self._service.update(
+            subscription_uuid,
+            subscription,
+            owner_tenant_uuids=[token.tenant_uuid],
+            owner_user_uuid=token.user_uuid,
+        )
         return subscription_schema.dump(subscription).data
 
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.delete')
     def delete(self, subscription_uuid):
-        self._service.delete(subscription_uuid,
-                             owner_tenant_uuids=[token.tenant_uuid],
-                             owner_user_uuid=token.user_uuid)
+        self._service.delete(
+            subscription_uuid,
+            owner_tenant_uuids=[token.tenant_uuid],
+            owner_user_uuid=token.user_uuid,
+        )
         return '', 204
 
 
 class SubscriptionLogsResource(SubscriptionsAuthResource):
-
     @required_acl('webhookd.subscriptions.{subscription_uuid}.logs.read')
     def get(self, subscription_uuid):
         # NOTE:(sileht): To return 404 if the subscription doesn't exists
@@ -139,5 +146,7 @@ class SubscriptionLogsResource(SubscriptionsAuthResource):
 
         filter_parameters = SubscriptionLogRequestSchema().load(request.args).data
         results = self._service.get_logs(subscription_uuid, **filter_parameters)
-        return {'items': subscription_log_schema.dump(results, many=True).data,
-                'total': len(results)}
+        return {
+            'items': subscription_log_schema.dump(results, many=True).data,
+            'total': len(results),
+        }

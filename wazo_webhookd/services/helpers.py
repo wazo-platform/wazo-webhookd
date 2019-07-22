@@ -47,18 +47,20 @@ def requests_automatic_hook_retry(task):
                 exc.request.method,
                 exc.request.url,
                 exc.response.status_code,
-                _decode(exc.response.text)
+                _decode(exc.response.text),
             )
-            raise HookExpectedError({
-                "error": str(exc),
-                "request_method": exc.request.method,
-                "request_url": exc.request.url,
-                "request_body": _decode(exc.request.body),
-                "request_headers": dict(exc.request.headers),
-                "response_status_code": exc.response.status_code,
-                "response_headers": dict(exc.response.headers),
-                "response_body": _decode(exc.response.text),
-            })
+            raise HookExpectedError(
+                {
+                    "error": str(exc),
+                    "request_method": exc.request.method,
+                    "request_url": exc.request.url,
+                    "request_body": _decode(exc.request.body),
+                    "request_headers": dict(exc.request.headers),
+                    "response_status_code": exc.response.status_code,
+                    "response_headers": dict(exc.response.headers),
+                    "response_body": _decode(exc.response.text),
+                }
+            )
         else:
             logger.info(
                 "http request fail, retrying (%s/%s): '%s %s [%s]' %s",
@@ -67,23 +69,25 @@ def requests_automatic_hook_retry(task):
                 exc.request.method,
                 exc.request.url,
                 exc.response.status_code,
-                _decode(exc.response.text)
+                _decode(exc.response.text),
             )
-            raise HookRetry({
-                "error": str(exc),
-                "request_method": exc.request.method,
-                "request_url": exc.request.url,
-                "request_body": _decode(exc.request.body),
-                "request_headers": dict(exc.request.headers),
-                "response_status_code": exc.response.status_code,
-                "response_headers": dict(exc.response.headers),
-                "response_body": _decode(exc.response.text),
-            })
+            raise HookRetry(
+                {
+                    "error": str(exc),
+                    "request_method": exc.request.method,
+                    "request_url": exc.request.url,
+                    "request_body": _decode(exc.request.body),
+                    "request_headers": dict(exc.request.headers),
+                    "response_status_code": exc.response.status_code,
+                    "response_headers": dict(exc.response.headers),
+                    "response_body": _decode(exc.response.text),
+                }
+            )
 
     except (
         requests.exceptions.ConnectionError,
         requests.exceptions.Timeout,
-        requests.exceptions.TooManyRedirects
+        requests.exceptions.TooManyRedirects,
     ) as exc:
         logger.info(
             "http request fail, retrying (%s/%s): '%s %s [%s]'",
@@ -91,18 +95,20 @@ def requests_automatic_hook_retry(task):
             task.max_retries,
             exc.request.method,
             exc.request.url,
-            exc
+            exc,
         )
-        raise HookRetry({
-            "error": str(exc),
-            "request_method": exc.request.method,
-            "request_url": exc.request.url,
-            "request_body": _decode(exc.request.body),
-            "request_headers": dict(exc.request.headers),
-            "response_status_code": None,
-            "response_headers": {},
-            "response_body": "",
-        })
+        raise HookRetry(
+            {
+                "error": str(exc),
+                "request_method": exc.request.method,
+                "request_url": exc.request.url,
+                "request_body": _decode(exc.request.body),
+                "request_headers": dict(exc.request.headers),
+                "response_status_code": None,
+                "response_headers": {},
+                "response_body": "",
+            }
+        )
 
 
 def requests_automatic_detail(response):

@@ -5,10 +5,7 @@ import argparse
 import os
 
 from xivo.chain_map import ChainMap
-from xivo.config_helper import (
-    parse_config_file,
-    read_config_file_hierarchy
-)
+from xivo.config_helper import parse_config_file, read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
 _CERT_FILE = '/usr/share/xivo-certs/server.crt'
@@ -27,7 +24,7 @@ _DEFAULT_CONFIG = {
         'host': 'localhost',
         'port': 9497,
         'verify_certificate': _CERT_FILE,
-        'key_file': '/var/lib/wazo-auth-keys/wazo-webhookd-key.yml'
+        'key_file': '/var/lib/wazo-auth-keys/wazo-webhookd-key.yml',
     },
     'bus': {
         'username': 'guest',
@@ -58,10 +55,7 @@ _DEFAULT_CONFIG = {
         'port': _DEFAULT_HTTPS_PORT,
         'certificate': _CERT_FILE,
         'private_key': '/usr/share/xivo-certs/server.key',
-        'cors': {
-            'enabled': True,
-            'allow_headers': ['Content-Type', 'X-Auth-Token'],
-        },
+        'cors': {'enabled': True, 'allow_headers': ['Content-Type', 'X-Auth-Token']},
     },
     'service_discovery': {
         'advertise_address': 'auto',
@@ -81,10 +75,7 @@ _DEFAULT_CONFIG = {
         'subscriptions': True,
         'tenant_migration': False,
     },
-    'enabled_services': {
-        'http': True,
-        'mobile': True,
-    },
+    'enabled_services': {'http': True, 'mobile': True},
     'hook_max_attempts': 10,
 }
 
@@ -98,28 +89,46 @@ def _load_key_file(config):
     if not key_file:
         return {}
 
-    return {'auth': {'username': key_file['service_id'], 'password': key_file['service_key']}}
+    return {
+        'auth': {
+            'username': key_file['service_id'],
+            'password': key_file['service_key'],
+        }
+    }
 
 
 def load_config(args):
     cli_config = _parse_cli_args(args)
     file_config = read_config_file_hierarchy(ChainMap(cli_config, _DEFAULT_CONFIG))
-    reinterpreted_config = _get_reinterpreted_raw_values(cli_config, file_config, _DEFAULT_CONFIG)
+    reinterpreted_config = _get_reinterpreted_raw_values(
+        cli_config, file_config, _DEFAULT_CONFIG
+    )
     key_file = _load_key_file(ChainMap(cli_config, file_config, _DEFAULT_CONFIG))
-    return ChainMap(reinterpreted_config, key_file, cli_config, file_config, _DEFAULT_CONFIG)
+    return ChainMap(
+        reinterpreted_config, key_file, cli_config, file_config, _DEFAULT_CONFIG
+    )
 
 
 def _get_reinterpreted_raw_values(*configs):
     config = ChainMap(*configs)
     return dict(
-        log_level=get_log_level_by_name('debug' if config['debug'] else config['log_level']),
+        log_level=get_log_level_by_name(
+            'debug' if config['debug'] else config['log_level']
+        )
     )
 
 
 def _parse_cli_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config-file', action='store', help='The path to the config file')
-    parser.add_argument('-d', '--debug', action='store_true', help='Log debug mesages. Override log_level')
+    parser.add_argument(
+        '-c', '--config-file', action='store', help='The path to the config file'
+    )
+    parser.add_argument(
+        '-d',
+        '--debug',
+        action='store_true',
+        help='Log debug mesages. Override log_level',
+    )
     parser.add_argument('-u', '--user', action='store', help='The owner of the process')
     parsed_args = parser.parse_args()
 

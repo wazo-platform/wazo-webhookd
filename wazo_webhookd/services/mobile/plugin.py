@@ -12,10 +12,7 @@ from apns2.payload import Payload
 
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
-from wazo_webhookd.services.helpers import (
-    HookExpectedError,
-    HookRetry,
-)
+from wazo_webhookd.services.helpers import HookExpectedError, HookRetry
 
 
 logger = logging.getLogger(__name__)
@@ -32,18 +29,22 @@ class Service:
         bus_consumer = dependencies['bus_consumer']
         self._config = dependencies['config']
         self.subscription_service = SubscriptionService(self._config)
-        bus_consumer.subscribe_to_event_names(uuid=str(uuid.uuid4()),
-                                              event_names=['auth_user_external_auth_added'],
-                                              # tenant_uuid=None,
-                                              user_uuid=None,
-                                              wazo_uuid=None,
-                                              callback=self.on_external_auth_added)
-        bus_consumer.subscribe_to_event_names(uuid=str(uuid.uuid4()),
-                                              event_names=['auth_user_external_auth_deleted'],
-                                              # tenant_uuid=None,
-                                              user_uuid=None,
-                                              wazo_uuid=None,
-                                              callback=self.on_external_auth_deleted)
+        bus_consumer.subscribe_to_event_names(
+            uuid=str(uuid.uuid4()),
+            event_names=['auth_user_external_auth_added'],
+            # tenant_uuid=None,
+            user_uuid=None,
+            wazo_uuid=None,
+            callback=self.on_external_auth_added,
+        )
+        bus_consumer.subscribe_to_event_names(
+            uuid=str(uuid.uuid4()),
+            event_names=['auth_user_external_auth_deleted'],
+            # tenant_uuid=None,
+            user_uuid=None,
+            wazo_uuid=None,
+            callback=self.on_external_auth_deleted,
+        )
         logger.info('Mobile push notification plugin is started')
 
     def on_external_auth_added(self, body, event):
@@ -51,22 +52,26 @@ class Service:
             user_uuid = body['data']['user_uuid']
             # TODO(sileht): Should come with the event
             tenant_uuid = self.get_tenant_uuid(user_uuid)
-            self.subscription_service.create({
-                'name': ('Push notification mobile for user '
-                         '{}/{}'.format(tenant_uuid, user_uuid)),
-                'service': 'mobile',
-                'events': [
-                    'chatd_user_room_message_created',
-                    'call_push_notification',
-                    'user_voicemail_message_created'
-                ],
-                'events_user_uuid': user_uuid,
-                # 'events_tenant_uuid': tenant_uuid,
-                'owner_user_uuid': user_uuid,
-                'owner_tenant_uuid': tenant_uuid,
-                'config': {},
-                'metadata': {'mobile': 'true'},
-            })
+            self.subscription_service.create(
+                {
+                    'name': (
+                        'Push notification mobile for user '
+                        '{}/{}'.format(tenant_uuid, user_uuid)
+                    ),
+                    'service': 'mobile',
+                    'events': [
+                        'chatd_user_room_message_created',
+                        'call_push_notification',
+                        'user_voicemail_message_created',
+                    ],
+                    'events_user_uuid': user_uuid,
+                    # 'events_tenant_uuid': tenant_uuid,
+                    'owner_user_uuid': user_uuid,
+                    'owner_tenant_uuid': tenant_uuid,
+                    'config': {},
+                    'metadata': {'mobile': 'true'},
+                }
+            )
             logger.info('User registered: %s/%s', tenant_uuid, user_uuid)
 
     def on_external_auth_deleted(self, body, event):
@@ -112,15 +117,15 @@ class Service:
     def run(cls, task, config, subscription, event):
         user_uuid = subscription['events_user_uuid']
         if not user_uuid:
-            raise HookExpectedError(
-                "subscription doesn't have events_user_uuid set"
-            )
+            raise HookExpectedError("subscription doesn't have events_user_uuid set")
 
         # TODO(sileht): We should also filter on tenant_uuid
         # tenant_uuid = subscription.get('events_tenant_uuid')
-        if (event['data'].get('user_uuid') == user_uuid
-                # and event['data']['tenant_uuid'] == tenant_uuid
-                and event['name'] == 'chatd_user_room_message_created'):
+        if (
+            event['data'].get('user_uuid') == user_uuid
+            # and event['data']['tenant_uuid'] == tenant_uuid
+            and event['name'] == 'chatd_user_room_message_created'
+        ):
             return
 
         external_tokens, external_config = cls.get_external_data(config, user_uuid)
@@ -135,7 +140,6 @@ class Service:
 
 
 class PushNotification(object):
-
     def __init__(self, external_tokens, external_config):
         self.external_tokens = external_tokens
         self.external_config = external_config
@@ -146,7 +150,7 @@ class PushNotification(object):
             'Incoming Call',
             'From: {}'.format(data['peer_caller_id_number']),
             'wazo-notification-call',
-            data
+            data,
         )
 
     def voicemailReceived(self, data):
@@ -155,7 +159,7 @@ class PushNotification(object):
             'New voicemail',
             'From: {}'.format(data['items']['message']['caller_id_num']),
             'wazo-notification-voicemail',
-            data
+            data,
         )
 
     def messageReceived(self, data):
@@ -164,20 +168,23 @@ class PushNotification(object):
             data['items']['alias'],
             data['items']['content'],
             'wazo-notification-chat',
-            data
+            data,
         )
 
-    def _send_notification(self, notification_type, message_title, message_body,
-                           channel_id, items):
-        data = {
-            'notification_type': notification_type,
-            'items': items
-        }
-        if self.external_tokens.get('apns_token') and channel_id == 'wazo-notification-call':
+    def _send_notification(
+        self, notification_type, message_title, message_body, channel_id, items
+    ):
+        data = {'notification_type': notification_type, 'items': items}
+        if (
+            self.external_tokens.get('apns_token')
+            and channel_id == 'wazo-notification-call'
+        ):
             try:
                 return self._send_via_apn(data)
-            except (apns2_errors.ServiceUnavailable,
-                    apns2_errors.InternalServerError) as e:
+            except (
+                apns2_errors.ServiceUnavailable,
+                apns2_errors.InternalServerError,
+            ) as e:
                 raise HookRetry({"error": str(e)})
         else:
             try:
@@ -188,13 +195,14 @@ class PushNotification(object):
     def _send_via_fcm(self, message_title, message_body, channel_id, data):
         push_service = FCMNotification(api_key=self.external_config['fcm_api_key'])
 
-        if (message_title and message_body):
+        if message_title and message_body:
 
             if channel_id == 'wazo-notification-call':
                 notification = push_service.notify_single_device(
                     registration_id=self.external_tokens['token'],
                     data_message=data,
-                    extra_notification_kwargs=dict(priority='high'))
+                    extra_notification_kwargs=dict(priority='high'),
+                )
             else:
                 notification = push_service.notify_single_device(
                     registration_id=self.external_tokens['token'],
@@ -202,7 +210,8 @@ class PushNotification(object):
                     message_body=message_body,
                     badge=1,
                     extra_notification_kwargs=dict(android_channel_id=channel_id),
-                    data_message=data)
+                    data_message=data,
+                )
 
             if notification.get('failure') != 0:
                 logger.error('Error to send push notification: %s', notification)
@@ -214,9 +223,13 @@ class PushNotification(object):
                 cert.write(self.external_config['ios_apn_certificate'] + "\r\n")
                 cert.write(self.external_config['ios_apn_private'])
 
-            client = APNsClient(certfile.name,
-                                use_sandbox=self.external_config['is_sandbox'],
-                                use_alternative_port=False)
+            client = APNsClient(
+                certfile.name,
+                use_sandbox=self.external_config['is_sandbox'],
+                use_alternative_port=False,
+            )
 
             payload = Payload(alert=data, sound="default", badge=1)
-            client.send_notification(self.external_tokens["apns_token"], payload, 'io.wazo.songbird.voip')
+            client.send_notification(
+                self.external_tokens["apns_token"], payload, 'io.wazo.songbird.voip'
+            )

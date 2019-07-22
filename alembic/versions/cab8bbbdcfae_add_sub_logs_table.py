@@ -19,17 +19,19 @@ def upgrade():
     op.create_table(
         'webhookd_subscription_log',
         Column('uuid', sa.String(36), primary_key=True),
-        Column('subscription_uuid', sa.String(38),
-               sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
-               nullable=False),
-        Column("status", sa.Enum("success", "failure", "error",
-                                 name='status_types')),
+        Column(
+            'subscription_uuid',
+            sa.String(38),
+            sa.ForeignKey('webhookd_subscription.uuid', ondelete='CASCADE'),
+            nullable=False,
+        ),
+        Column("status", sa.Enum("success", "failure", "error", name='status_types')),
         Column('started_at', sa.DateTime(timezone=True)),
         Column('ended_at', sa.DateTime(timezone=True)),
         Column('attempts', sa.Integer(), primary_key=True),
         Column('max_attempts', sa.Integer()),
         Column('event', JSONType),
-        Column('detail', JSONType)
+        Column('detail', JSONType),
     )
 
 

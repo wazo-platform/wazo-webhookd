@@ -5,20 +5,13 @@ import os
 
 import requests
 
-from hamcrest import (
-    assert_that,
-    is_in,
-    not_
-)
+from hamcrest import assert_that, is_in, not_
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
 from xivo.config_helper import parse_config_file
 from xivo_test_helpers import until
-from xivo_test_helpers.auth import (
-    MockCredentials,
-    MockUserToken
-)
+from xivo_test_helpers.auth import MockCredentials, MockUserToken
 from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from xivo_test_helpers.auth import AuthClient
 from xivo_test_helpers.bus import BusClient
@@ -46,7 +39,9 @@ OTHER_USER_TOKEN = '2c369402-fa85-4ea5-84ed-933cbd1002f0'
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
 
-    assets_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
+    assets_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..', 'assets')
+    )
     service = 'webhookd'
     wait_strategy = WaitStrategy()
 
@@ -63,17 +58,21 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             webhookd = self.make_webhookd(MASTER_TOKEN)
             subs = webhookd.subscriptions.list(recurse=True)['items']
             for sub in subs:
-                webhookd = self.make_webhookd(MASTER_TOKEN, tenant=sub["owner_tenant_uuid"])
+                webhookd = self.make_webhookd(
+                    MASTER_TOKEN, tenant=sub["owner_tenant_uuid"]
+                )
                 webhookd.subscriptions.delete(sub["uuid"])
                 self.ensure_webhookd_not_consume_uuid(sub['uuid'])
 
     @classmethod
     def make_webhookd(cls, token, tenant=None):
-        return WebhookdClient('localhost',
-                              cls.service_port(9300, 'webhookd'),
-                              token=token,
-                              tenant=tenant,
-                              verify_certificate=False)
+        return WebhookdClient(
+            'localhost',
+            cls.service_port(9300, 'webhookd'),
+            token=token,
+            tenant=tenant,
+            verify_certificate=False,
+        )
 
     @classmethod
     def make_auth(cls):
@@ -82,37 +81,67 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     @classmethod
     def configured_wazo_auth(cls):
         # NOTE(sileht): This creates a tenant tree and associated users
-        key_file = parse_config_file(os.path.join(cls.assets_root, "keys", "wazo-webhookd-key.yml"))
+        key_file = parse_config_file(
+            os.path.join(cls.assets_root, "keys", "wazo-webhookd-key.yml")
+        )
         auth = cls.make_auth()
-        auth.set_valid_credentials(MockCredentials(key_file['service_id'],
-                                                   key_file['service_key']),
-                                   MASTER_TOKEN)
-        auth.set_token(MockUserToken(MASTER_TOKEN, MASTER_USER_UUID, WAZO_UUID,
-                                     {"tenant_uuid": MASTER_TENANT,
-                                      "uuid": MASTER_USER_UUID}))
-        auth.set_token(MockUserToken(USER_1_TOKEN, USER_1_UUID, WAZO_UUID,
-                                     {"tenant_uuid": USERS_TENANT,
-                                      "uuid": USER_1_UUID}))
-        auth.set_token(MockUserToken(USER_2_TOKEN, USER_2_UUID, WAZO_UUID,
-                                     {"tenant_uuid": USERS_TENANT,
-                                      "uuid": USER_2_UUID}))
-        auth.set_token(MockUserToken(OTHER_USER_TOKEN, OTHER_USER_UUID, WAZO_UUID,
-                                     {"tenant_uuid": OTHER_TENANT,
-                                      "uuid": OTHER_USER_UUID}))
-        auth.set_tenants({'uuid': MASTER_TENANT,
-                          'name': 'webhookd-tests-master',
-                          'parent_uuid': MASTER_TENANT},
-                         {'uuid': USERS_TENANT,
-                          'name': 'webhookd-tests-users',
-                          'parent_uuid': MASTER_TENANT},
-                         {'uuid': OTHER_TENANT,
-                          'name': 'webhookd-tests-other',
-                          'parent_uuid': MASTER_TENANT})
+        auth.set_valid_credentials(
+            MockCredentials(key_file['service_id'], key_file['service_key']),
+            MASTER_TOKEN,
+        )
+        auth.set_token(
+            MockUserToken(
+                MASTER_TOKEN,
+                MASTER_USER_UUID,
+                WAZO_UUID,
+                {"tenant_uuid": MASTER_TENANT, "uuid": MASTER_USER_UUID},
+            )
+        )
+        auth.set_token(
+            MockUserToken(
+                USER_1_TOKEN,
+                USER_1_UUID,
+                WAZO_UUID,
+                {"tenant_uuid": USERS_TENANT, "uuid": USER_1_UUID},
+            )
+        )
+        auth.set_token(
+            MockUserToken(
+                USER_2_TOKEN,
+                USER_2_UUID,
+                WAZO_UUID,
+                {"tenant_uuid": USERS_TENANT, "uuid": USER_2_UUID},
+            )
+        )
+        auth.set_token(
+            MockUserToken(
+                OTHER_USER_TOKEN,
+                OTHER_USER_UUID,
+                WAZO_UUID,
+                {"tenant_uuid": OTHER_TENANT, "uuid": OTHER_USER_UUID},
+            )
+        )
+        auth.set_tenants(
+            {
+                'uuid': MASTER_TENANT,
+                'name': 'webhookd-tests-master',
+                'parent_uuid': MASTER_TENANT,
+            },
+            {
+                'uuid': USERS_TENANT,
+                'name': 'webhookd-tests-users',
+                'parent_uuid': MASTER_TENANT,
+            },
+            {
+                'uuid': OTHER_TENANT,
+                'name': 'webhookd-tests-other',
+                'parent_uuid': MASTER_TENANT,
+            },
+        )
 
     def make_bus(self):
         return BusClient.from_connection_fields(
-            host='localhost',
-            port=self.service_port(5672, 'rabbitmq')
+            host='localhost', port=self.service_port(5672, 'rabbitmq')
         )
 
     def make_sentinel(self):
@@ -133,7 +162,9 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             def reset(self):
                 requests.delete(self._url, verify=False)
 
-        url = 'https://localhost:{port}/1.0/sentinel'.format(port=self.service_port(9300, 'webhookd'))
+        url = 'https://localhost:{port}/1.0/sentinel'.format(
+            port=self.service_port(9300, 'webhookd')
+        )
         return Sentinel(url)
 
     def ensure_webhookd_consume_uuid(self, uuid):
