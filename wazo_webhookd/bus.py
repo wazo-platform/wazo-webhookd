@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -12,16 +12,20 @@ logger = logging.getLogger(__name__)
 
 
 class CoreBusConsumer(kombu.mixins.ConsumerMixin):
-
     def __init__(self, global_config):
         self._is_running = False
         self.connection = None
 
-        self._bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(**global_config['bus'])
-        self._upstream_exchange = kombu.Exchange(global_config['bus']['exchange_name'],
-                                                 type=global_config['bus']['exchange_type'])
-        self._exchange = kombu.Exchange(global_config['bus']['exchange_headers_name'],
-                                        type='headers')
+        self._bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(
+            **global_config['bus']
+        )
+        self._upstream_exchange = kombu.Exchange(
+            global_config['bus']['exchange_name'],
+            type=global_config['bus']['exchange_type'],
+        )
+        self._exchange = kombu.Exchange(
+            global_config['bus']['exchange_headers_name'], type='headers'
+        )
         self._consumers = {}
         self._new_consumers = deque()
         self._stale_consumers = deque()
@@ -105,13 +109,21 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
     def is_running(self):
         return self._is_running
 
-    def subscribe_to_event_names(self, uuid, event_names, user_uuid, wazo_uuid, callback):
+    def subscribe_to_event_names(
+        self, uuid, event_names, user_uuid, wazo_uuid, callback
+    ):
         if uuid is None:
             raise RuntimeError("uuid must be set")
         elif not event_names:
-            raise RuntimeError("event_names must be set")
-        logger.debug('Subscribing new callback to events %s (uuid: %s)', event_names, uuid)
-        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
+            logger.warning("subscription `%s` doesn't have event_names set", uuid)
+            return
+        logger.debug(
+            'Subscribing new callback to events %s (uuid: %s)', event_names, uuid
+        )
+        queue = kombu.Queue(
+            exclusive=True,
+            bindings=self._create_bindings(event_names, user_uuid, wazo_uuid),
+        )
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._new_consumers.append((uuid, consumer))
 
@@ -119,9 +131,13 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         if uuid is None:
             raise RuntimeError("uuid must be set")
         elif not event_names:
-            raise RuntimeError("event_names must be set")
+            logger.warning("subscription `%s` doesn't have event_names set", uuid)
+            return
         logger.debug('Changing subscription for callback (uuid: %s)', uuid)
-        queue = kombu.Queue(exclusive=True, bindings=self._create_bindings(event_names, user_uuid, wazo_uuid))
+        queue = kombu.Queue(
+            exclusive=True,
+            bindings=self._create_bindings(event_names, user_uuid, wazo_uuid),
+        )
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._updated_consumers.append((uuid, consumer))
 
@@ -134,18 +150,15 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
     def _create_bindings(self, event_names, user_uuid, wazo_uuid):
         result = []
         for name in event_names:
-            arguments = {
-                'x-match': 'all',
-                'name': name,
-            }
+            arguments = {'x-match': 'all', 'name': name}
             if user_uuid:
                 arguments['user_uuid:{uuid}'.format(uuid=user_uuid)] = True
             if wazo_uuid:
                 arguments['origin_uuid'] = wazo_uuid
 
-            binding = kombu.binding(exchange=self._exchange,
-                                    arguments=arguments,
-                                    unbind_arguments=arguments)
+            binding = kombu.binding(
+                exchange=self._exchange, arguments=arguments, unbind_arguments=arguments
+            )
             result.append(binding)
 
         return result

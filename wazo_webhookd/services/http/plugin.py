@@ -11,7 +11,7 @@ from jinja2 import Environment
 
 from wazo_webhookd.services.helpers import (
     requests_automatic_hook_retry,
-    requests_automatic_detail
+    requests_automatic_detail,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,9 +39,11 @@ class Service:
 
         if subscription['owner_user_uuid'] and cls.url_is_localhost(url):
             # some services only listen on 127.0.0.1 and should not be accessible to users
-            logger.warning('Rejecting callback from user "%s" to url "%s": remote host is localhost!',
-                           subscription['owner_user_uuid'],
-                           url)
+            logger.warning(
+                'Rejecting callback from user "%s" to url "%s": remote host is localhost!',
+                subscription['owner_user_uuid'],
+                url,
+            )
             return
 
         content_type = options.get('content_type')

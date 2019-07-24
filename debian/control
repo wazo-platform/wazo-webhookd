@@ -23,6 +23,8 @@ Depends:
  python3-kombu,
  python3-marshmallow,
  python3-psycopg2,
+ python3-pyapns2,
+ python3-pyfcm,
  python3-setproctitle,
  python3-sqlalchemy,
  python3-sqlalchemy-utils,

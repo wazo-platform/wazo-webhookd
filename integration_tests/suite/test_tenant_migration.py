@@ -26,16 +26,14 @@ USER_2_UUID = 'cd030e68-ace9-4ad4-bc4e-13c8dec67898'
 TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
-    'events': ['test']
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
+    'events': ['test'],
 }
 
 TEST_SUBSCRIPTION_USER_1 = {
     'name': 'test_user1',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
     'owner_user_uuid': USER_1_UUID,
 }
@@ -43,8 +41,7 @@ TEST_SUBSCRIPTION_USER_1 = {
 TEST_SUBSCRIPTION_USER_2 = {
     'name': 'test_user2',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
     'owner_user_uuid': USER_2_UUID,
 }
@@ -69,14 +66,19 @@ class TestTenantMigration(BaseIntegrationTest):
         # Set no tenant to all subscriptions
         with closing(self.Session()) as session:
             query = session.query(Subscription)
-            query.update({Subscription.owner_tenant_uuid: "00000000-0000-0000-0000-000000000000"})
+            query.update(
+                {Subscription.owner_tenant_uuid: "00000000-0000-0000-0000-000000000000"}
+            )
 
         base = 'https://localhost:{port}/1.0/'.format(
-            port=self.service_port(9300, 'webhookd'))
+            port=self.service_port(9300, 'webhookd')
+        )
         url = url_helpers.base_join(base, 'tenant-migration')
 
-        payload = [{'owner_user_uuid': USER_1_UUID, 'owner_tenant_uuid': USER_1_UUID},
-                   {'owner_user_uuid': USER_2_UUID, 'owner_tenant_uuid': USER_2_UUID}]
+        payload = [
+            {'owner_user_uuid': USER_1_UUID, 'owner_tenant_uuid': USER_1_UUID},
+            {'owner_user_uuid': USER_2_UUID, 'owner_tenant_uuid': USER_2_UUID},
+        ]
         headers = {'X-Auth-Token': MASTER_TOKEN, 'Content-Type': 'application/json'}
         resp = requests.post(url, json=payload, headers=headers, verify=False)
         resp.raise_for_status()

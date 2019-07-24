@@ -36,36 +36,29 @@ SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
-    'events': ['test']
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
+    'events': ['test'],
 }
 
 TEST_SUBSCRIPTION_METADATA = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
-    'metadata': {
-        'key1': 'value1',
-        'key2': 'value2',
-    },
+    'metadata': {'key1': 'value1', 'key2': 'value2'},
 }
 
 ANOTHER_TEST_SUBSCRIPTION = {
     'name': 'test2',
     'service': 'http',
-    'config': {'url': 'http://test2.example.com',
-               'method': 'post'},
-    'events': ['test2']
+    'config': {'url': 'http://test2.example.com', 'method': 'post'},
+    'events': ['test2'],
 }
 
 USER_1_TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
     'owner_user_uuid': USER_1_UUID,
     'events_user_uuid': USER_1_UUID,
@@ -75,16 +68,14 @@ USER_1_TEST_SUBSCRIPTION = {
 USER_SUBTENANT_TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
 }
 
 UNOWNED_USER_1_TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
-    'config': {'url': 'http://test.example.com',
-               'method': 'get'},
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
     'events_user_uuid': USER_1_UUID,
 }
@@ -100,16 +91,17 @@ class TestListSubscriptions(BaseIntegrationTest):
     def test_given_wrong_auth_when_list_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.list),
-                    raises(WebhookdError, has_property('status_code', 401)))
+        assert_that(
+            calling(webhookd.subscriptions.list),
+            raises(WebhookdError, has_property('status_code', 401)),
+        )
 
     def test_given_no_subscriptions_when_list_then_empty(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         response = webhookd.subscriptions.list()
 
-        assert_that(response, has_entries({'items': empty(),
-                                           'total': 0}))
+        assert_that(response, has_entries({'items': empty(), 'total': 0}))
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_subscription_when_list_then_list_one(self, subscription_):
@@ -117,21 +109,26 @@ class TestListSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.list()
 
-        assert_that(response, has_entries({
-            'items': contains(has_entries(**subscription_)),
-            'total': 1
-        }))
+        assert_that(
+            response,
+            has_entries({'items': contains(has_entries(**subscription_)), 'total': 1}),
+        )
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION_METADATA, track_test_name=False)
-    def test_given_search_metadata_when_list_then_list_filtered(self, subscription_, subscription_metadata_):
+    def test_given_search_metadata_when_list_then_list_filtered(
+        self, subscription_, subscription_metadata_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        response = webhookd.subscriptions.list(search_metadata=TEST_SUBSCRIPTION_METADATA['metadata'])
+        response = webhookd.subscriptions.list(
+            search_metadata=TEST_SUBSCRIPTION_METADATA['metadata']
+        )
 
-        assert_that(response, has_entries({
-            'items': contains(has_entries(**TEST_SUBSCRIPTION_METADATA)),
-        }))
+        assert_that(
+            response,
+            has_entries({'items': contains(has_entries(**TEST_SUBSCRIPTION_METADATA))}),
+        )
 
 
 class TestListUserSubscriptions(BaseIntegrationTest):
@@ -141,15 +138,19 @@ class TestListUserSubscriptions(BaseIntegrationTest):
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_subscriptions_when_user_list_then_list_only_subscriptions_of_this_user(self, _, user_subscription):
+    def test_given_subscriptions_when_user_list_then_list_only_subscriptions_of_this_user(
+        self, _, user_subscription
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
         response = webhookd.subscriptions.list_as_user()
 
-        assert_that(response, has_entries({
-            'items': contains(has_entries(**user_subscription)),
-            'total': 1
-        }))
+        assert_that(
+            response,
+            has_entries(
+                {'items': contains(has_entries(**user_subscription)), 'total': 1}
+            ),
+        )
 
 
 class TestGetSubscriptions(BaseIntegrationTest):
@@ -161,23 +162,31 @@ class TestGetSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         with self.auth_stopped():
-            assert_that(calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
-                        raises(WebhookdError, has_property('status_code', 503)))
+            assert_that(
+                calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
+                raises(WebhookdError, has_property('status_code', 503)),
+            )
 
     def test_given_wrong_auth_when_get_subscription_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
-                    raises(WebhookdError, has_property('status_code', 401)))
+        assert_that(
+            calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
+            raises(WebhookdError, has_property('status_code', 401)),
+        )
 
     def test_given_no_subscription_when_get_http_subscription_then_404(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.get).with_args(SOME_SUBSCRIPTION_UUID),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_subscription_when_get_http_subscription_then_return_the_subscription(self, subscription_):
+    def test_given_one_subscription_when_get_http_subscription_then_return_the_subscription(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
@@ -194,23 +203,33 @@ class TestGetSubscriptionLogs(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         with self.auth_stopped():
-            assert_that(calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
-                        raises(WebhookdError, has_property('status_code', 503)))
+            assert_that(
+                calling(webhookd.subscriptions.get_logs).with_args(
+                    SOME_SUBSCRIPTION_UUID
+                ),
+                raises(WebhookdError, has_property('status_code', 503)),
+            )
 
     def test_given_wrong_auth_when_get_subscription_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
-                    raises(WebhookdError, has_property('status_code', 401)))
+        assert_that(
+            calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
+            raises(WebhookdError, has_property('status_code', 401)),
+        )
 
     def test_given_no_subscription_when_get_http_subscription_then_404(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.get_logs).with_args(SOME_SUBSCRIPTION_UUID),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_subscription_when_get_http_subscription_then_return_the_subscription(self, subscription_):
+    def test_given_one_subscription_when_get_http_subscription_then_return_the_subscription(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         response = webhookd.subscriptions.get_logs(subscription_['uuid'])
@@ -224,14 +243,22 @@ class TestGetUserSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_non_user_subscription_when_user_get_http_subscription_then_404(self, subscription_):
+    def test_given_non_user_subscription_when_user_get_http_subscription_then_404(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.get_as_user).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.get_as_user).with_args(
+                subscription_['uuid']
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_user_subscription_when_user_get_http_subscription_then_return_the_subscription(self, subscription_):
+    def test_given_user_subscription_when_user_get_http_subscription_then_return_the_subscription(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
         response = webhookd.subscriptions.get_as_user(subscription_['uuid'])
@@ -248,20 +275,26 @@ class TestCreateSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         with self.auth_stopped():
-            assert_that(calling(webhookd.subscriptions.create).with_args(TEST_SUBSCRIPTION),
-                        raises(WebhookdError, has_property('status_code', 503)))
+            assert_that(
+                calling(webhookd.subscriptions.create).with_args(TEST_SUBSCRIPTION),
+                raises(WebhookdError, has_property('status_code', 503)),
+            )
 
     def test_given_wrong_auth_when_create_subscription_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.create).with_args(TEST_SUBSCRIPTION),
-                    raises(WebhookdError, has_property('status_code', 401)))
+        assert_that(
+            calling(webhookd.subscriptions.create).with_args(TEST_SUBSCRIPTION),
+            raises(WebhookdError, has_property('status_code', 401)),
+        )
 
     def test_when_create_invalid_subscription_then_400(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.create).with_args(INVALID_SUBSCRIPTION),
-                    raises(WebhookdError, has_property('status_code', 400)))
+        assert_that(
+            calling(webhookd.subscriptions.create).with_args(INVALID_SUBSCRIPTION),
+            raises(WebhookdError, has_property('status_code', 400)),
+        )
 
     def test_when_create_http_subscription_then_subscription_no_error(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
@@ -274,10 +307,13 @@ class TestCreateSubscriptions(BaseIntegrationTest):
         assert_that(response, has_key('uuid'))
 
         response = webhookd.subscriptions.list()
-        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_uuid))))
-        assert_that(response, has_entry('items',
-                                        has_item(has_entry('owner_tenant_uuid',
-                                                           MASTER_TENANT))))
+        assert_that(
+            response, has_entry('items', has_item(has_entry('uuid', subscription_uuid)))
+        )
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('owner_tenant_uuid', MASTER_TENANT))),
+        )
 
     def given_metadata_when_create_subscription_then_metadata_are_attached(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
@@ -288,7 +324,9 @@ class TestCreateSubscriptions(BaseIntegrationTest):
         assert_that(response, has_key('uuid'))
 
         response = webhookd.subscriptions.get(subscription_uuid)
-        assert_that(response, has_entry('metadata', TEST_SUBSCRIPTION_METADATA['metadata']))
+        assert_that(
+            response, has_entry('metadata', TEST_SUBSCRIPTION_METADATA['metadata'])
+        )
 
 
 class TestCreateUserSubscriptions(BaseIntegrationTest):
@@ -301,38 +339,56 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
 
         response = webhookd.subscriptions.create_as_user(TEST_SUBSCRIPTION)
 
-        assert_that(response, has_entries({
-            'events_user_uuid': USER_1_UUID,
-            'events_wazo_uuid': WAZO_UUID,
-            'owner_user_uuid': USER_1_UUID,
-            'owner_tenant_uuid': USERS_TENANT,
-        }))
+        assert_that(
+            response,
+            has_entries(
+                {
+                    'events_user_uuid': USER_1_UUID,
+                    'events_wazo_uuid': WAZO_UUID,
+                    'owner_user_uuid': USER_1_UUID,
+                    'owner_tenant_uuid': USERS_TENANT,
+                }
+            ),
+        )
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
         response = webhookd.subscriptions.list(recurse=False)
         assert_that(response, has_entry('items', equal_to([])))
 
         response = webhookd.subscriptions.list(recurse=True)
-        assert_that(response, has_entry('items', has_item(has_entry('owner_tenant_uuid', USERS_TENANT))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('owner_tenant_uuid', USERS_TENANT))),
+        )
 
-    def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(self):
+    def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(
+        self
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
         response = webhookd.subscriptions.create_as_user(USER_1_TEST_SUBSCRIPTION)
 
-        assert_that(response, has_entries({
-            'events_user_uuid': USER_1_UUID,
-            'events_wazo_uuid': WAZO_UUID,
-            'owner_user_uuid': USER_1_UUID,
-            'owner_tenant_uuid': USERS_TENANT,
-        }))
+        assert_that(
+            response,
+            has_entries(
+                {
+                    'events_user_uuid': USER_1_UUID,
+                    'events_wazo_uuid': WAZO_UUID,
+                    'owner_user_uuid': USER_1_UUID,
+                    'owner_tenant_uuid': USERS_TENANT,
+                }
+            ),
+        )
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
         response = webhookd.subscriptions.list(recurse=False)
         assert_that(response, has_entry('items', equal_to([])))
 
         response = webhookd.subscriptions.list(recurse=True)
-        assert_that(response, has_entry('items', has_item(has_entry('owner_tenant_uuid', USERS_TENANT))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('owner_tenant_uuid', USERS_TENANT))),
+        )
 
 
 class TestEditSubscriptions(BaseIntegrationTest):
@@ -344,32 +400,54 @@ class TestEditSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         with self.auth_stopped():
-            assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
-                        raises(WebhookdError, has_property('status_code', 503)))
+            assert_that(
+                calling(webhookd.subscriptions.update).with_args(
+                    SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION
+                ),
+                raises(WebhookdError, has_property('status_code', 503)),
+            )
 
     def test_given_wrong_auth_when_edit_subscription_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
-                    raises(WebhookdError, has_property('status_code', 401)))
+        assert_that(
+            calling(webhookd.subscriptions.update).with_args(
+                SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION
+            ),
+            raises(WebhookdError, has_property('status_code', 401)),
+        )
 
     def test_given_no_subscription_when_edit_http_subscription_then_404(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.update).with_args(
+                SOME_SUBSCRIPTION_UUID, ANOTHER_TEST_SUBSCRIPTION
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_subscription_when_edit_invalid_http_subscription_then_400(self, subscription_):
+    def test_given_one_subscription_when_edit_invalid_http_subscription_then_400(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.update).with_args(SOME_SUBSCRIPTION_UUID, INVALID_SUBSCRIPTION),
-                    raises(WebhookdError, has_property('status_code', 400)))
+        assert_that(
+            calling(webhookd.subscriptions.update).with_args(
+                SOME_SUBSCRIPTION_UUID, INVALID_SUBSCRIPTION
+            ),
+            raises(WebhookdError, has_property('status_code', 400)),
+        )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_subscription_when_edit_http_subscription_then_edited(self, subscription_):
+    def test_given_one_subscription_when_edit_http_subscription_then_edited(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
-        expected_subscription = dict(uuid=subscription_['uuid'], **ANOTHER_TEST_SUBSCRIPTION)
+        expected_subscription = dict(
+            uuid=subscription_['uuid'], **ANOTHER_TEST_SUBSCRIPTION
+        )
 
         webhookd.subscriptions.update(subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION)
 
@@ -377,10 +455,14 @@ class TestEditSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entries(expected_subscription))
 
         response = webhookd.subscriptions.list()
-        assert_that(response, has_entry('items', has_item(has_entries(expected_subscription))))
+        assert_that(
+            response, has_entry('items', has_item(has_entries(expected_subscription)))
+        )
 
     @subscription(TEST_SUBSCRIPTION_METADATA)
-    def given_metadata_when_edit_subscription_then_metadata_are_replaced(self, subscription_):
+    def given_metadata_when_edit_subscription_then_metadata_are_replaced(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         subscription_uuid = subscription_['uuid']
 
@@ -398,14 +480,22 @@ class TestEditUserSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_non_user_subscription_when_user_edit_http_subscription_then_404(self, subscription_):
+    def test_given_non_user_subscription_when_user_edit_http_subscription_then_404(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.update_as_user).with_args(subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.update_as_user).with_args(
+                subscription_['uuid'], ANOTHER_TEST_SUBSCRIPTION
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_user_subscription_when_user_edit_http_subscription_then_updated(self, subscription_):
+    def test_given_user_subscription_when_user_edit_http_subscription_then_updated(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
         new_subscription = dict(subscription_)
         new_subscription['uuid'] = 'should-be-ignored'
@@ -415,11 +505,21 @@ class TestEditUserSubscriptions(BaseIntegrationTest):
         webhookd.subscriptions.update_as_user(subscription_['uuid'], new_subscription)
 
         response = webhookd.subscriptions.list_as_user()
-        assert_that(response, has_entry('items', has_item(has_entries({
-            'uuid': subscription_['uuid'],
-            'events_user_uuid': subscription_['events_user_uuid'],
-            'name': 'new-name',
-        }))))
+        assert_that(
+            response,
+            has_entry(
+                'items',
+                has_item(
+                    has_entries(
+                        {
+                            'uuid': subscription_['uuid'],
+                            'events_user_uuid': subscription_['events_user_uuid'],
+                            'name': 'new-name',
+                        }
+                    )
+                ),
+            ),
+        )
 
 
 class TestDeleteSubscriptions(BaseIntegrationTest):
@@ -431,29 +531,44 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         with self.auth_stopped():
-            assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
-                        raises(WebhookdError, has_property('status_code', 503)))
+            assert_that(
+                calling(webhookd.subscriptions.delete).with_args(
+                    SOME_SUBSCRIPTION_UUID
+                ),
+                raises(WebhookdError, has_property('status_code', 503)),
+            )
 
     def test_given_wrong_auth_when_delete_subscription_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
 
-        assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
-                    raises(WebhookdError, has_property('status_code', 401)))
+        assert_that(
+            calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
+            raises(WebhookdError, has_property('status_code', 401)),
+        )
 
     def test_given_no_subscription_when_delete_http_subscription_then_404(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.delete).with_args(SOME_SUBSCRIPTION_UUID),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_subscription_when_delete_http_subscription_then_deleted(self, subscription_):
+    def test_given_one_subscription_when_delete_http_subscription_then_deleted(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         webhookd.subscriptions.delete(subscription_['uuid'])
 
         response = webhookd.subscriptions.list()
-        assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))
+        assert_that(
+            response,
+            has_entry(
+                'items', not_(has_item(has_entry('uuid', subscription_['uuid'])))
+            ),
+        )
 
 
 class TestDeleteUserSubscriptions(BaseIntegrationTest):
@@ -462,20 +577,33 @@ class TestDeleteUserSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_non_user_subscription_when_user_delete_http_subscription_then_404(self, subscription_):
+    def test_given_non_user_subscription_when_user_delete_http_subscription_then_404(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
-        assert_that(calling(webhookd.subscriptions.delete_as_user).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.delete_as_user).with_args(
+                subscription_['uuid']
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_user_subscription_when_user_delete_http_subscription_then_deleted(self, subscription_):
+    def test_given_user_subscription_when_user_delete_http_subscription_then_deleted(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 
         webhookd.subscriptions.delete_as_user(subscription_['uuid'])
 
         response = webhookd.subscriptions.list_as_user()
-        assert_that(response, has_entry('items', not_(has_item(has_entry('uuid', subscription_['uuid'])))))
+        assert_that(
+            response,
+            has_entry(
+                'items', not_(has_item(has_entry('uuid', subscription_['uuid'])))
+            ),
+        )
 
 
 class TestMultiTenantSubscriptions(BaseIntegrationTest):
@@ -487,7 +615,10 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
     def test_subscriptions_manipulate_with_user1(self, subscription_):
         webhookd = self.make_webhookd(USER_1_TOKEN)
         response = webhookd.subscriptions.list()
-        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))),
+        )
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
         assert_that(response, has_entry('uuid', subscription_['uuid']))
@@ -511,7 +642,9 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('uuid', subscription_['uuid']))
 
         subscription_["name"] = "update 2"
-        response = webhookd.subscriptions.update_as_user(subscription_['uuid'], subscription_)
+        response = webhookd.subscriptions.update_as_user(
+            subscription_['uuid'], subscription_
+        )
         assert_that(response, has_entry('uuid', subscription_['uuid']))
         assert_that(response, has_entry('name', subscription_['name']))
 
@@ -522,7 +655,10 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
     def test_subscriptions_manipulate_with_user2(self, subscription_):
         webhookd = self.make_webhookd(USER_2_TOKEN)
         response = webhookd.subscriptions.list()
-        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))),
+        )
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
         assert_that(response, has_entry('uuid', subscription_['uuid']))
@@ -544,13 +680,24 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         subscription_["uuid"] = response["uuid"]
 
         webhookd = self.make_webhookd(USER_2_TOKEN)
-        assert_that(calling(webhookd.subscriptions.get_as_user).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
-        assert_that(calling(webhookd.subscriptions.update_as_user).with_args(subscription_['uuid'],
-                                                                             subscription_),
-                    raises(WebhookdError, has_property('status_code', 404)))
-        assert_that(calling(webhookd.subscriptions.delete_as_user).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.get_as_user).with_args(
+                subscription_['uuid']
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
+        assert_that(
+            calling(webhookd.subscriptions.update_as_user).with_args(
+                subscription_['uuid'], subscription_
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
+        assert_that(
+            calling(webhookd.subscriptions.delete_as_user).with_args(
+                subscription_['uuid']
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(USER_SUBTENANT_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_subscriptions_list_tenant_with_token_not_in_tenant(self, subscription_):
@@ -563,33 +710,57 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         response = webhookd.subscriptions.list(recurse=True)
         assert_that(response, has_entry('items', equal_to([])))
 
-        assert_that(calling(webhookd.subscriptions.get).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
-        assert_that(calling(webhookd.subscriptions.update).with_args(subscription_['uuid'], subscription_),
-                    raises(WebhookdError, has_property('status_code', 404)))
-        assert_that(calling(webhookd.subscriptions.delete).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.get).with_args(subscription_['uuid']),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
+        assert_that(
+            calling(webhookd.subscriptions.update).with_args(
+                subscription_['uuid'], subscription_
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
+        assert_that(
+            calling(webhookd.subscriptions.delete).with_args(subscription_['uuid']),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
         # As User
         response = webhookd.subscriptions.list_as_user()
         assert_that(response, has_entry('items', equal_to([])))
 
-        assert_that(calling(webhookd.subscriptions.get_as_user).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
-        assert_that(calling(webhookd.subscriptions.update_as_user).with_args(subscription_['uuid'],
-                                                                             subscription_),
-                    raises(WebhookdError, has_property('status_code', 404)))
-        assert_that(calling(webhookd.subscriptions.delete_as_user).with_args(subscription_['uuid']),
-                    raises(WebhookdError, has_property('status_code', 404)))
+        assert_that(
+            calling(webhookd.subscriptions.get_as_user).with_args(
+                subscription_['uuid']
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
+        assert_that(
+            calling(webhookd.subscriptions.update_as_user).with_args(
+                subscription_['uuid'], subscription_
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
+        assert_that(
+            calling(webhookd.subscriptions.delete_as_user).with_args(
+                subscription_['uuid']
+            ),
+            raises(WebhookdError, has_property('status_code', 404)),
+        )
 
     @subscription(USER_SUBTENANT_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_subscriptions_manipulate_with_parent_token_and_parent_tenant(self, subscription_):
+    def test_subscriptions_manipulate_with_parent_token_and_parent_tenant(
+        self, subscription_
+    ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', equal_to([])))
 
         response = webhookd.subscriptions.list(recurse=True)
-        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))),
+        )
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
         assert_that(response, has_entry('uuid', subscription_['uuid']))
@@ -605,14 +776,22 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('items', equal_to([])))
 
     @subscription(USER_SUBTENANT_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_subscriptions_manipulate_with_parent_token_and_users_tenant(self, subscription_):
+    def test_subscriptions_manipulate_with_parent_token_and_users_tenant(
+        self, subscription_
+    ):
 
         webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
         response = webhookd.subscriptions.list()
-        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))),
+        )
 
         response = webhookd.subscriptions.list(recurse=True)
-        assert_that(response, has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))))
+        assert_that(
+            response,
+            has_entry('items', has_item(has_entry('uuid', subscription_['uuid']))),
+        )
 
         response = webhookd.subscriptions.get(subscription_['uuid'])
         assert_that(response, has_entry('uuid', subscription_['uuid']))

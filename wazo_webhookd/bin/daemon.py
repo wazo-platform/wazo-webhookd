@@ -1,4 +1,4 @@
-# Copyright 2017 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -23,7 +23,9 @@ def main():
     if conf['user']:
         change_user(conf['user'])
 
-    xivo_logging.setup_logging(conf['log_file'], FOREGROUND, conf['debug'], conf['log_level'])
+    xivo_logging.setup_logging(
+        conf['log_file'], FOREGROUND, conf['debug'], conf['log_level']
+    )
     xivo_logging.silence_loggers(['Flask-Cors', 'urllib3'], logging.WARNING)
 
     try:
