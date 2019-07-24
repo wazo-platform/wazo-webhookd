@@ -1,0 +1,7 @@
+enabled_plugins:
+    purgers:
+        webhookd-logs: true
+
+days_to_keep_per_plugin:
+    webhookd-logs: 30
+

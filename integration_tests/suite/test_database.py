@@ -1,6 +1,7 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import datetime
 import os
 import uuid
 
@@ -14,6 +15,7 @@ from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from wazo_webhookd.database.models import Subscription
 from wazo_webhookd.database.models import SubscriptionEvent
 from wazo_webhookd.database.models import SubscriptionOption
+from wazo_webhookd.database.purger import SubscriptionLogsPurger
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 
 DB_URI = os.getenv('DB_URI', 'postgresql://asterisk:proformatique@localhost:{port}')
@@ -146,3 +148,42 @@ class TestDatabase(AssetLaunchingTestCase):
             }
         )
         assert_that(tracker, has_entries({'service1': True, 'service2': True}))
+
+    def test_purger(self):
+        subscription_uuid = str(uuid.uuid4())
+
+        service = SubscriptionService({'db_uri': self.db_uri})
+        service.create(
+            {
+                'uuid': subscription_uuid,
+                'name': 'test',
+                'owner_tenant_uuid': str(uuid.uuid4()),
+            }
+        )
+
+        def add_log(days_ago):
+            started_at = datetime.datetime.now() - datetime.timedelta(days=days_ago)
+            service.create_hook_log(
+                str(uuid.uuid4()),
+                subscription_uuid,
+                "failure",
+                1,
+                3,
+                started_at,
+                started_at + datetime.timedelta(minutes=1),
+                {},
+                {},
+            )
+
+        for i in range(5):
+            add_log(i)
+            add_log(i)
+
+        logs = service.get_logs(subscription_uuid)
+        assert_that(len(logs), 10)
+
+        with service.rw_session() as session:
+            SubscriptionLogsPurger().purge(2, session)
+
+        logs = service.get_logs(subscription_uuid)
+        assert_that(len(logs), 4)
