@@ -175,15 +175,16 @@ class TestDatabase(AssetLaunchingTestCase):
                 {},
             )
 
-        for i in range(5):
-            add_log(i)
-            add_log(i)
+        for days in range(5):
+            add_log(days_ago=days)
+            add_log(days_ago=days)
 
         logs = service.get_logs(subscription_uuid)
         assert_that(len(logs), 10)
 
         with service.rw_session() as session:
-            SubscriptionLogsPurger().purge(2, session)
+            days_to_purge = 2
+            SubscriptionLogsPurger().purge(days_to_purge, session)
 
         logs = service.get_logs(subscription_uuid)
         assert_that(len(logs), 4)
