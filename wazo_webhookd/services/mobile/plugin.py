@@ -157,7 +157,7 @@ class PushNotification(object):
         return self._send_notification(
             'voicemailReceived',
             'New voicemail',
-            'From: {}'.format(data['items']['message']['caller_id_num']),
+            'From: {}'.format(data['message']['caller_id_num']),
             'wazo-notification-voicemail',
             data,
         )
@@ -165,8 +165,8 @@ class PushNotification(object):
     def messageReceived(self, data):
         return self._send_notification(
             'messageReceived',
-            data['items']['alias'],
-            data['items']['content'],
+            data['alias'],
+            data['content'],
             'wazo-notification-chat',
             data,
         )
