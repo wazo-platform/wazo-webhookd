@@ -31,9 +31,8 @@ _DEFAULT_CONFIG = {
         'password': 'guest',
         'host': 'localhost',
         'port': 5672,
-        'exchange_name': 'xivo',
-        'exchange_type': 'topic',
-        'exchange_headers_name': 'wazo-headers',
+        'exchange_name': 'wazo-headers',
+        'exchange_type': 'headers',
     },
     'celery': {
         'broker': 'amqp://guest:guest@localhost:5672',

@@ -19,12 +19,9 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         self._bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(
             **global_config['bus']
         )
-        self._upstream_exchange = kombu.Exchange(
+        self._exchange = kombu.Exchange(
             global_config['bus']['exchange_name'],
             type=global_config['bus']['exchange_type'],
-        )
-        self._exchange = kombu.Exchange(
-            global_config['bus']['exchange_headers_name'], type='headers'
         )
         self._consumers = {}
         self._new_consumers = deque()
@@ -67,10 +64,6 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
     @contextmanager
     def extra_context(self, connection, channel):
         self._active_connection = connection
-        self._upstream_exchange.bind(connection).declare()
-        exchange = self._exchange.bind(connection)
-        exchange.declare()
-        exchange.bind_to(self._upstream_exchange, routing_key='#')
         yield
 
     def on_iteration(self):
