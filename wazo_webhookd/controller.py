@@ -36,6 +36,7 @@ class Controller:
         self._celery_process = Process(
             target=self._celery_worker.run, name='celery_process'
         )
+        self._celery_process.start()
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
             namespace='wazo_webhookd.services',
@@ -62,7 +63,6 @@ class Controller:
     def run(self):
         logger.info('wazo-webhookd starting...')
         signal.signal(signal.SIGTERM, partial(_sigterm_handler, self))
-        self._celery_process.start()
         bus_consumer_thread = Thread(
             target=self._bus_consumer.run, name='bus_consumer_thread'
         )
