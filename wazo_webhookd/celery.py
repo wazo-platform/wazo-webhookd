@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+import multiprocessing
 
 from celery import Celery
 
@@ -10,39 +11,40 @@ app = Celery()
 logger = logging.getLogger(__name__)
 
 
-class CoreCeleryWorker:
-    def __init__(self, config):
-        app.conf.update(
-            CELERYD_LOG_LEVEL=logging.getLevelName(config['log_level']),
-            CELERY_TASK_SERIALIZER='json',
-            CELERY_ACCEPT_CONTENT=['json'],
-            BROKER_URL=config['celery']['broker'],
-            CELERY_DEFAULT_EXCHANGE=config['celery']['exchange_name'],
-            CELERY_DEFAULT_QUEUE=config['celery']['queue_name'],
-            CELERYD_HIJACK_ROOT_LOGGER=False,
-            CELERY_IGNORE_RESULT=True,
-            CELERY_WORKER_MIN=config['celery']['worker_min'],
-            CELERY_WORKER_MAX=config['celery']['worker_max'],
-        )
-        self._worker_pid_file = config['celery']['worker_pid_file']
+def configure(config):
+    app.conf.accept_content = ['json']
+    app.conf.broker_url = config['celery']['broker']
+    app.conf.task_default_exchange = config['celery']['exchange_name']
+    app.conf.task_default_queue = config['celery']['queue_name']
+    app.conf.task_ignore_result = True
+    app.conf.task_serializer = 'json'
+    app.conf.worker_hijack_root_logger = False
+    app.conf.worker_loglevel = logging.getLevelName(config['log_level']).upper()
 
-    def run(self):
-        logger.debug('Starting Celery worker...')
-        argv = [
-            'webhookd-worker',  # argv[0] is arbitrary
-            '--loglevel',
-            app.conf['CELERYD_LOG_LEVEL'].upper(),
-            # NOTE(sileht): setproctitle must be installed to have the celery
-            # process well named like:
-            #   celeryd: webhookd@<hostname>:MainProcess
-            #   celeryd: webhookd@<hostname>:Worker-*
-            '--hostname',
-            'webhookd@%h',
-            '--autoscale',
-            "{},{}".format(
-                app.conf['CELERY_WORKER_MAX'], app.conf['CELERY_WORKER_MIN']
-            ),
-            '--pidfile',
-            self._worker_pid_file,
-        ]
-        return app.worker_main(argv)
+
+def spawn_workers(config):
+    logger.debug('Starting Celery workers...')
+    argv = [
+        'webhookd-worker',  # argv[0] is arbitrary
+        # NOTE(sileht): setproctitle must be installed to have the celery
+        # process well named like:
+        #   celeryd: webhookd@<hostname>:MainProcess
+        #   celeryd: webhookd@<hostname>:Worker-*
+        '--loglevel',
+        logging.getLevelName(config['log_level']).upper(),
+        '--hostname',
+        'webhookd@%h',
+        '--autoscale',
+        "{},{}".format(config['celery']['worker_max'], config['celery']['worker_min']),
+        '--pidfile',
+        config['celery']['worker_pid_file'],
+    ]
+    process = multiprocessing.Process(target=app.worker_main, args=(argv,))
+    process.start()
+    return process
+
+
+# NOTE(sileht): This defeat usage of stevedore but celery worker process need
+# all tasks to be loaded when we create app Celery(). Also we don't want to
+# load the whole plugin but just this task, we don't care about the rest
+import wazo_webhookd.plugins.subscription.celery_tasks  # noqa
