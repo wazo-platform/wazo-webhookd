@@ -15,7 +15,7 @@ pull-images:
 	docker pull wazopbx/wazo-auth-mock
 
 webhookd:
-	docker build --pull -t wazopbx/wazo-webhookd ..
+	docker build -t wazopbx/wazo-webhookd ..
 	$(MAKE) webhookd-test
 
 webhookd-test: egg-info
