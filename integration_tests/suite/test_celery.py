@@ -22,7 +22,7 @@ class TestCeleryWorks(BaseIntegrationTest):
         for line in output.split("\n"):
             if re.match(r"\[celeryd: webhookd@.*:MainProcess\] .*", line):
                 master_found = True
-            elif re.match(r"\[celeryd: webhookd@.*:Worker-.\]", line):
+            elif re.match(r"\[celeryd: webhookd@.*:ForkPoolWorker-.\]", line):
                 worker_count += 1
 
         assert_that(master_found, equal_to(True))
