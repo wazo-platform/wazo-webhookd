@@ -10,7 +10,9 @@ egg-info:
 	cd plugins/sentinel && python setup.py egg_info
 
 pull-images:
-	docker pull jamesdbloom/mockserver:mockserver-5.2.3
+	# TODO(sileht:) wait for https://github.com/jamesdbloom/mockserver/pull/662 to be released
+	# docker pull jamesdbloom/mockserver:mockserver-5.2.3
+	docker pull sileht/mockserver
 	docker pull wazopbx/wait
 	docker pull wazopbx/wazo-auth-mock
 
