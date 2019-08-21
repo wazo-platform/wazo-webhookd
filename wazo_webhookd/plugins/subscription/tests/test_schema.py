@@ -176,6 +176,5 @@ class TestSubscriptionListParamsSchema(TestCase):
         result = subscription_list_params_schema.load(params)
 
         assert_that(
-            result['search_metadata'],
-            equal_to({'key1': 'value1', 'key2': 'value2'}),
+            result['search_metadata'], equal_to({'key1': 'value1', 'key2': 'value2'})
         )

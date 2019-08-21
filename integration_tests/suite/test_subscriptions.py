@@ -667,7 +667,9 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         updated_subscription = subscription_.copy()
         updated_subscription["name"] = updated_name
         del updated_subscription["uuid"]
-        response = webhookd.subscriptions.update(subscription_['uuid'], updated_subscription)
+        response = webhookd.subscriptions.update(
+            subscription_['uuid'], updated_subscription
+        )
         assert_that(response, has_entry('uuid', subscription_['uuid']))
         assert_that(response, has_entry('name', updated_name))
 
