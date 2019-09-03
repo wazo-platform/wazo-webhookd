@@ -34,6 +34,7 @@ class HTTPSubscriptionConfigSchema(Schema):
     @post_load
     def lowercase_method(self, data):
         data['method'] = data['method'].lower()
+        return data
 
     @validates('method')
     def validate_method(self, data):
@@ -62,7 +63,7 @@ class ConfigField(fields.Field):
     )
     _options = {'http': fields.Nested(HTTPSubscriptionConfigSchema, required=True)}
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         service = data.get('service')
         try:
             concrete_options = self._options.get(service, self._default_options)
@@ -74,8 +75,7 @@ class ConfigField(fields.Field):
                     'constraint': {'type': 'string'},
                 }
             )
-
-        return concrete_options.deserialize(value, attr, data)
+        return concrete_options.deserialize(value, attr, data, **kwargs)
 
 
 class SubscriptionSchema(Schema):
@@ -150,7 +150,7 @@ class SubscriptionLogRequestSchema(ListSchema):
     from_date = fields.DateTime()
 
 
-subscription_schema = SubscriptionSchema(strict=True)
-subscription_list_params_schema = SubscriptionListParamsSchema(strict=True)
-user_subscription_schema = UserSubscriptionSchema(strict=True)
-subscription_log_schema = SubscriptionLogSchema(strict=True)
+subscription_schema = SubscriptionSchema()
+subscription_list_params_schema = SubscriptionListParamsSchema()
+user_subscription_schema = UserSubscriptionSchema()
+subscription_log_schema = SubscriptionLogSchema()
