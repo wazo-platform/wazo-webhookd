@@ -137,7 +137,7 @@ class SubscriptionBusEventHandler:
         self._add_one_subscription_to_bus(subscription)
 
     def on_subscription_updated(self, subscription):
-        raw_subscription = subscription_schema.dump(subscription)
+        raw_subscription = subscription_schema.dump(subscription).data
         self._bus_consumer.change_subscription(
             subscription.uuid,
             subscription.events,
@@ -150,7 +150,7 @@ class SubscriptionBusEventHandler:
         self._bus_consumer.unsubscribe_from_event_names(subscription.uuid)
 
     def _add_one_subscription_to_bus(self, subscription):
-        raw_subscription = subscription_schema.dump(subscription)
+        raw_subscription = subscription_schema.dump(subscription).data
         self._bus_consumer.subscribe_to_event_names(
             subscription.uuid,
             subscription.events,

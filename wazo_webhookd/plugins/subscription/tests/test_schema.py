@@ -18,14 +18,16 @@ VALID_SUBSCRIPTION = {
 
 
 class TestSubscriptionSchema(TestCase):
+    def setUp(self):
+        self.schema = subscription_schema
+
     def test_given_uuid_when_load_then_uuid_ignored(self):
         subscription = dict(VALID_SUBSCRIPTION)
         subscription['uuid'] = 'e6a8f1e0-c09f-4f4c-b7de-7e937c7773ee'
 
-        assert_that(
-            calling(subscription_schema.load).with_args(subscription),
-            raises(ValidationError),
-        )
+        result = self.schema.load(subscription).data
+
+        assert_that(result, not_(has_key('uuid')))
 
     def test_given_unknown_service_when_load_then_options_are_left_untouched(self):
         subscription = dict(VALID_SUBSCRIPTION)
@@ -33,7 +35,7 @@ class TestSubscriptionSchema(TestCase):
         subscription['config'] = {'unknown_config': 'value'}
 
         assert_that(
-            subscription_schema.load(subscription),
+            subscription_schema.load(subscription).data,
             has_entry('config', subscription['config']),
         )
 
@@ -147,7 +149,7 @@ class TestSubscriptionSchema(TestCase):
 
         result = subscription_schema.load(subscription)
 
-        assert_that(result['config'], not_(has_key('body')))
+        assert_that(result.data['config'], not_(has_key('body')))
 
     def test_given_invalid_method_when_load_then_fail(self):
         subscription = dict(VALID_SUBSCRIPTION)
@@ -166,7 +168,7 @@ class TestSubscriptionSchema(TestCase):
 
         result = subscription_schema.load(subscription)
 
-        assert_that(result, has_entry('config', has_entry('method', 'post')))
+        assert_that(result.data['config'], has_entry('method', 'post'))
 
 
 class TestSubscriptionListParamsSchema(TestCase):
@@ -178,6 +180,6 @@ class TestSubscriptionListParamsSchema(TestCase):
         result = subscription_list_params_schema.load(params)
 
         assert_that(
-            result['search_metadata'],
+            result.data['search_metadata'],
             equal_to({'key1': 'value1', 'key2': 'value2'}),
         )
