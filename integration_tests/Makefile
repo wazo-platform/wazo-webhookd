@@ -15,6 +15,7 @@ pull-images:
 	docker pull sileht/mockserver
 	docker pull wazopbx/wait
 	docker pull wazopbx/wazo-auth-mock
+	docker pull nginx
 
 webhookd:
 	docker build -t wazopbx/wazo-webhookd ..
