@@ -6,14 +6,17 @@ import tempfile
 import uuid
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
-from apns2.client import APNsClient
-from apns2 import errors as apns2_errors
-from apns2.payload import Payload
+
+import requests
 
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
-from wazo_webhookd.services.helpers import HookExpectedError, HookRetry
-
+from wazo_webhookd.services.helpers import (
+    HookExpectedError,
+    HookRetry,
+    requests_automatic_hook_retry,
+    requests_automatic_detail,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +132,7 @@ class Service:
             return
 
         external_tokens, external_config = cls.get_external_data(config, user_uuid)
-        push = PushNotification(external_tokens, external_config)
+        push = PushNotification(task, external_tokens, external_config)
 
         data = event.get('data')
         name = event.get('name')
@@ -140,7 +143,8 @@ class Service:
 
 
 class PushNotification(object):
-    def __init__(self, external_tokens, external_config):
+    def __init__(self, task, external_tokens, external_config):
+        self.task = task
         self.external_tokens = external_tokens
         self.external_config = external_config
 
@@ -179,13 +183,8 @@ class PushNotification(object):
             self.external_tokens.get('apns_token')
             and channel_id == 'wazo-notification-call'
         ):
-            try:
+            with requests_automatic_hook_retry(self.task):
                 return self._send_via_apn(data)
-            except (
-                apns2_errors.ServiceUnavailable,
-                apns2_errors.InternalServerError,
-            ) as e:
-                raise HookRetry({"error": str(e)})
         else:
             try:
                 return self._send_via_fcm(message_title, message_body, channel_id, data)
@@ -223,13 +222,30 @@ class PushNotification(object):
                 cert.write(self.external_config['ios_apn_certificate'] + "\r\n")
                 cert.write(self.external_config['ios_apn_private'])
 
-            client = APNsClient(
-                certfile.name,
-                use_sandbox=self.external_config['is_sandbox'],
-                use_alternative_port=False,
-            )
+            headers = {
+                'apns-push-type': 'alert',
+                'apns-topic': 'io.wazo.songbird.voip',
+            }
 
-            payload = Payload(alert=data, sound="default", badge=1)
-            client.send_notification(
-                self.external_tokens["apns_token"], payload, 'io.wazo.songbird.voip'
-            )
+            payload = {'aps': {
+                'alert': data,
+                'badge': 1,
+                'sound': "default",
+            }}
+
+            if self.external_config['is_sandbox']:
+                server = 'api.sandbox.push.apple.com'
+            else:
+                server = 'api.push.apple.com'
+
+            with requests.post(
+                "https://{}/3/device/{}".format(
+                    server,
+                    self.external_tokens["apns_token"]
+                ),
+                json=payload,
+                headers=headers,
+                cert=certfile.name,
+            ) as r:
+                r.raise_for_status()
+                return requests_automatic_detail(r)

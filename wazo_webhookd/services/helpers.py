@@ -5,7 +5,9 @@ import contextlib
 import json
 import logging
 
+# TODO(sileht): move the http plugin to httpx too.
 import requests
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,10 @@ def _decode(data):
 def requests_automatic_hook_retry(task):
     try:
         yield
-    except requests.exceptions.HTTPError as exc:
+    except (
+        requests.exceptions.HTTPError,
+        httpx.exceptions.HTTPError,
+    ) as exc:
         if exc.response.status_code == 410:
             logger.info(
                 "http request fail, service is gone (%d/%d): '%s %s [%s]' %s",
@@ -85,6 +90,9 @@ def requests_automatic_hook_retry(task):
             )
 
     except (
+        httpx.exceptions.ConnectionError,
+        httpx.exceptions.Timeout,
+        httpx.exceptions.TooManyRedirects,
         requests.exceptions.ConnectionError,
         requests.exceptions.Timeout,
         requests.exceptions.TooManyRedirects,
