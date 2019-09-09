@@ -23,16 +23,10 @@ def _parse_cli_args(args):
         help="The password to connect to RabbitMQ",
     )
     parser.add_argument(
-        '--port',
-        action='store',
-        default='5672',
-        help="The port of RabbitMQ",
+        '--port', action='store', default='5672', help="The port of RabbitMQ"
     )
     parser.add_argument(
-        '--host',
-        action='store',
-        default='localhost',
-        help="The host of RabbitMQ",
+        '--host', action='store', default='localhost', help="The host of RabbitMQ"
     )
     parser.add_argument(
         '--upstream_exchange_name',
