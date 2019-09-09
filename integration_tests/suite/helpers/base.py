@@ -52,6 +52,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         cls.wait_strategy.wait(webhookd)
         if cls.asset == "base":
             cls.configured_wazo_auth()
+            cls.docker_exec(['wazo-webhookd-init-amqp', '--host', 'rabbitmq'])
 
     def setUp(self):
         if self.asset == "base":
