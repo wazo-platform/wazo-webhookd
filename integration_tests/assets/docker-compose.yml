@@ -18,6 +18,16 @@ services:
     ports:
       - "1080"
 
+  api.push.apple.com:
+    image: nginx
+    volumes:
+        - ./fake-apple-ca/nginx.conf:/etc/nginx/nginx.conf:ro
+        - ./fake-apple-ca/certs:/etc/nginx/certs:ro
+    user: root
+    ports:
+      - "443"
+    command: [nginx-debug, '-g', 'daemon off;']
+
   fcm.googleapis.com:
     # image: jamesdbloom/mockserver:mockserver-5.2.3
     # command: ["/bin/bash", "-xv", "/opt/mockserver/run_mockserver.sh", "-logLevel", "DEBUG", "-serverPort", "443", "-proxyPort", "1090", "-genericJVMOptions", "-Dmockserver.sslCertificateDomainName='fcm.googleapis.com'"]

@@ -70,7 +70,9 @@ class Service:
             verify = False if verify == 'false' else verify
 
         with requests_automatic_hook_retry(task):
-            with requests.request(
+            session = requests.Session()
+            session.trust_env = False
+            with session.request(
                 options['method'],
                 url,
                 data=data,
