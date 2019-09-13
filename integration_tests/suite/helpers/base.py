@@ -29,7 +29,7 @@ MASTER_TOKEN = 'cfe6dd71-5d0e-41c8-9178-0ce6578b5a71'
 USERS_TENANT = 'f0fe8e3a-2d7a-4dd7-8e93-8229d51cfe04'
 USER_1_UUID = 'b17d9f99-fcc7-4257-8e89-3d0e36e0b48d'
 USER_1_TOKEN = '756b980b-1cab-4048-933e-f3564ac1f5fc'
-USER_2_UUID = 'f79fd307-467c-4851-b614-:e65bc8d922fc'
+USER_2_UUID = 'f79fd307-467c-4851-b614-e65bc8d922fc'
 USER_2_TOKEN = 'df8b0b7e-2621-4244-87f8-e85d27fe3955'
 
 OTHER_TENANT = '0a5afd22-6325-49b1-8e35-b04618e78b58'
@@ -52,6 +52,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         cls.wait_strategy.wait(webhookd)
         if cls.asset == "base":
             cls.configured_wazo_auth()
+            cls.docker_exec(['wazo-webhookd-init-amqp', '--host', 'rabbitmq'])
 
     def setUp(self):
         if self.asset == "base":

@@ -69,7 +69,7 @@ TEST_SUBSCRIPTION_CONTENT_TYPE = {
         'url': 'http://third-party-http:1080/test',
         'method': 'post',
         'body': 'keỳ: vàlue',
-        'content_type': 'text/yaml',
+        'content_type': 'text/yaml; charset=utf-8',
     },
     'events': ['trigger'],
 }
@@ -503,7 +503,10 @@ class TestHTTPCallback(BaseIntegrationTest):
                     'path': '/test',
                     'body': '{"ke\\u00fd": "v\\u00e0lue"}',
                     'headers': [
-                        {'name': 'Content-Type', 'values': ['application/json']}
+                        {
+                            'name': 'Content-Type',
+                            'values': ['application/json; charset=utf-8'],
+                        }
                     ],
                 }
             ),
@@ -603,7 +606,9 @@ class TestHTTPCallback(BaseIntegrationTest):
                     'method': 'POST',
                     'path': '/test',
                     'body': 'keỳ: vàlue',
-                    'headers': [{'name': 'Content-Type', 'values': ['text/yaml']}],
+                    'headers': [
+                        {'name': 'Content-Type', 'values': ['text/yaml; charset=utf-8']}
+                    ],
                 }
             ),
             tries=10,
