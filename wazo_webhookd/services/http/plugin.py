@@ -1,6 +1,7 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import cgi
 import json
 import logging
 import requests
@@ -33,9 +34,7 @@ class Service:
             'wazo_uuid': event['origin_uuid'],
         }
 
-        url = options['url']
-        template = url
-        url = Environment().from_string(template).render(values)
+        url = Environment().from_string(options['url']).render(values)
 
         if subscription['owner_user_uuid'] and cls.url_is_localhost(url):
             # some services only listen on 127.0.0.1 and should not be accessible to users
@@ -46,19 +45,24 @@ class Service:
             )
             return
 
-        content_type = options.get('content_type')
-
         body = options.get('body')
-        if body:
-            template = body
-            body = Environment().from_string(template).render(values)
-            body = body.encode('utf-8')
-        else:
-            body = json.dumps(event['data'])
-            content_type = 'application/json'
 
-        if content_type:
-            headers['Content-Type'] = content_type
+        if body:
+            content_type = options.get('content_type', 'text/plain')
+            # NOTE(sileht): parse_header will drop any erroneous options
+            ct_mimetype, ct_options = cgi.parse_header(content_type)
+            ct_options.setdefault('charset', 'utf-8')
+            data = Environment().from_string(body).render(values)
+        else:
+            ct_mimetype = 'application/json'
+            ct_options = {'charset': 'utf-8'}
+            data = json.dumps(event['data'])
+
+        data = data.encode(ct_options['charset'])
+
+        headers['Content-Type'] = "{}; {}".format(
+            ct_mimetype, "; ".join(map("=".join, ct_options.items()))
+        )
 
         verify = options.get('verify_certificate')
         if verify:
@@ -66,10 +70,12 @@ class Service:
             verify = False if verify == 'false' else verify
 
         with requests_automatic_hook_retry(task):
-            with requests.request(
+            session = requests.Session()
+            session.trust_env = False
+            with session.request(
                 options['method'],
                 url,
-                data=body,
+                data=data,
                 verify=verify,
                 headers=headers,
                 timeout=REQUESTS_TIMEOUT,

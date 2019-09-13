@@ -69,7 +69,7 @@ def hook_runner(task, hook_uuid, ep_name, config, subscription, event):
             task.retry(
                 countdown=retry_backoff, max_retries=config["hook_max_attempts"] - 1
             )
-        except celery.MaxRetriesExceededError:
+        except celery.exceptions.MaxRetriesExceededError:
             return
     except Exception as e:
         if isinstance(e, HookExpectedError):
@@ -137,7 +137,7 @@ class SubscriptionBusEventHandler:
         self._add_one_subscription_to_bus(subscription)
 
     def on_subscription_updated(self, subscription):
-        raw_subscription = subscription_schema.dump(subscription).data
+        raw_subscription = subscription_schema.dump(subscription)
         self._bus_consumer.change_subscription(
             subscription.uuid,
             subscription.events,
@@ -150,7 +150,7 @@ class SubscriptionBusEventHandler:
         self._bus_consumer.unsubscribe_from_event_names(subscription.uuid)
 
     def _add_one_subscription_to_bus(self, subscription):
-        raw_subscription = subscription_schema.dump(subscription).data
+        raw_subscription = subscription_schema.dump(subscription)
         self._bus_consumer.subscribe_to_event_names(
             subscription.uuid,
             subscription.events,
