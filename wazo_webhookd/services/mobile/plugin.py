@@ -233,15 +233,18 @@ class PushNotification(object):
             else:
                 server = 'api.push.apple.com'
 
-            r = httpx.post(
-                "https://{}/3/device/{}".format(
-                    server, self.external_tokens["apns_token"]
-                ),
-                json=payload,
+            client = httpx.Client(
+                http_versions=('HTTP/2',),
                 headers=headers,
                 cert=certfile.name,
                 trust_env=False,
                 timeout=REQUESTS_TIMEOUT,
             )
-            r.raise_for_status()
-            return requests_automatic_detail(r)
+            response = client.post(
+                "https://{}/3/device/{}".format(
+                    server, self.external_tokens["apns_token"]
+                ),
+                json=payload,
+            )
+            response.raise_for_status()
+            return requests_automatic_detail(response)
