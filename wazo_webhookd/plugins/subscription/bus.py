@@ -20,7 +20,15 @@ logger = logging.getLogger(__name__)
 
 
 @app.task(bind=True)
-def hook_runner(task, hook_uuid, ep_name, config, subscription, event):
+def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
+    service = SubscriptionService(config)
+    try:
+        hook_runner(service, task, hook_uuid, ep_name, config, subscription, event)
+    finally:
+        service.close()
+
+
+def hook_runner(service, task, hook_uuid, ep_name, config, subscription, event):
 
     hook = EntryPoint.parse(ep_name).resolve()
     logger.info("running hook %s (%s) for event: %s", ep_name, hook_uuid, event)
@@ -30,7 +38,6 @@ def hook_runner(task, hook_uuid, ep_name, config, subscription, event):
     except KeyError:
         event_name = '<unknown>'
 
-    service = SubscriptionService(config)
     started = datetime.datetime.utcnow()
     try:
         detail = hook.run(task, config, subscription, event)
@@ -172,7 +179,7 @@ class SubscriptionBusEventHandler:
 
         try:
             hook_uuid = str(uuid.uuid4())
-            hook_runner.s(
+            hook_runner_task.s(
                 hook_uuid,
                 str(service.entry_point),
                 self._config.data,
