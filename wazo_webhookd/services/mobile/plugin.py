@@ -224,9 +224,20 @@ class PushNotification(object):
                 cert.write(self.external_config['ios_apn_certificate'] + "\r\n")
                 cert.write(self.external_config['ios_apn_private'])
 
-            headers = {'apns-push-type': 'alert', 'apns-topic': 'io.wazo.songbird.voip'}
+            headers = {
+                'apns-topic': 'io.wazo.songbird.voip',
+                'apns-priority': 5,
+                'apns-expiration': 0,
+            }
 
-            payload = {'aps': {'alert': data, 'badge': 1, 'sound': "default"}}
+            payload = {
+                'aps': {
+                    'alert': data,
+                    'badge': 1,
+                    'sound': "default",
+                    'content-available': 1,
+                }
+            }
 
             if self.external_config['is_sandbox']:
                 server = 'api.sandbox.push.apple.com'
