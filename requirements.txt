@@ -1,6 +1,6 @@
-https://github.com/wazo-pbx/wazo-auth-client/archive/master.zip
-https://github.com/wazo-pbx/xivo-lib-python/archive/master.zip
-https://github.com/wazo-pbx/xivo-lib-rest-client/archive/master.zip
+wazo_auth_client @ https://github.com/wazo-pbx/wazo-auth-client/archive/master.zip#egg=wazo_auth_client
+xivo @ https://github.com/wazo-pbx/xivo-lib-python/archive/master.zip#egg=xivo
+xivo_lib_rest_client @ https://github.com/wazo-pbx/xivo-lib-rest-client/archive/master.zip#egg=xivo_lib_rest_client
 alembic==1.0.0
 celery==4.2.1
 cheroot==6.5.4
