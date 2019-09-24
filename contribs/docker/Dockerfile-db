@@ -7,7 +7,7 @@ RUN true \
     && python3 setup.py install \
     && pg_start \
     && wazo-webhookd-init-db --user postgres \
-    && (cd /usr/src/wazo-webhookd && alembic -c alembic.ini upgrade head) \
+    && (cd /usr/src/wazo-webhookd && python3 -m alembic.config -c alembic.ini upgrade head) \
     && pg_stop \
     && true
 USER postgres
