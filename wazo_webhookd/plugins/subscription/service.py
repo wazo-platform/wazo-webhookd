@@ -27,9 +27,13 @@ class SubscriptionService(object):
     pubsub = Pubsub()
 
     def __init__(self, config):
-        engine = create_engine(config['db_uri'])
+        self._engine = create_engine(config['db_uri'])
         self._Session = scoped_session(sessionmaker())
-        self._Session.configure(bind=engine)
+        self._Session.configure(bind=self._engine)
+
+    def close(self):
+        self._Session.close()
+        self._engine.dispose()
 
     @contextmanager
     def rw_session(self):
