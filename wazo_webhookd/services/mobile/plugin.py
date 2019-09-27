@@ -226,8 +226,8 @@ class PushNotification(object):
 
             headers = {
                 'apns-topic': 'io.wazo.songbird.voip',
-                'apns-priority': 5,
-                'apns-expiration': 0,
+                'apns-priority': "5",
+                'apns-expiration': "0",
             }
 
             payload = {
