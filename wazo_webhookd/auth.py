@@ -20,7 +20,7 @@ def get_token_user_uuid_from_request(auth_client):
     except HTTPError as e:
         logger.warning('HTTP error from wazo-auth while getting token: %s', e)
         raise TokenWithUserUUIDRequiredError()
-    user_uuid = token_infos['xivo_user_uuid']
+    user_uuid = token_infos['metadata']['uuid']
     if not user_uuid:
         raise TokenWithUserUUIDRequiredError()
     return user_uuid
@@ -35,7 +35,7 @@ class Token:
             raise AuthServerUnreachable(auth_client.host, auth_client.port, e)
 
     def user_uuid(self):
-        user_uuid = self._token_infos['xivo_user_uuid']
+        user_uuid = self._token_infos['metadata']['uuid']
         if not user_uuid:
             raise TokenWithUserUUIDRequiredError()
         return user_uuid
