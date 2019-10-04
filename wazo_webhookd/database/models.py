@@ -92,7 +92,7 @@ class SubscriptionLog(Base):
 class Subscription(object):
     '''
     The Subscription class is not declarative, like the others, because it has a
-    matadata attribute, which conflicts with the metadata attribute of the
+    metadata attribute, which conflicts with the metadata attribute of the
     declarative_base().
     See http://docs.sqlalchemy.org/en/rel_0_9/orm/mapping_styles.html#classical-mappings.
     '''
