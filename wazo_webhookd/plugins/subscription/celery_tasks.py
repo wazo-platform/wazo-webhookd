@@ -40,7 +40,7 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
     try:
         detail = hook.run(task, config, subscription, event)
     except HookRetry as e:
-        if task.request.retries + 1 == config["hook_max_attempts"]:
+        if task.request.retries + 1 >= config["hook_max_attempts"]:
             verb = "reached max retries"
             status = "error"
         else:
@@ -69,13 +69,11 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
             e.detail,
         )
 
-        retry_backoff = int(2 ** task.request.retries)
-        try:
-            task.retry(
-                countdown=retry_backoff, max_retries=config["hook_max_attempts"] - 1
-            )
-        except celery.exceptions.MaxRetriesExceededError:
+        if task.request.retries + 1 >= config["hook_max_attempts"]:
             return
+
+        retry_backoff = int(2 ** task.request.retries)
+        task.retry(countdown=retry_backoff)
     except Exception as e:
         if isinstance(e, HookExpectedError):
             detail = e.detail
