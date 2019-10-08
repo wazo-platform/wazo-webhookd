@@ -32,7 +32,7 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
     logger.info("running hook %s (%s) for event: %s", ep_name, hook_uuid, event)
 
     try:
-        event_name = event['data']['name']
+        event_name = event['name']
     except KeyError:
         event_name = '<unknown>'
 
