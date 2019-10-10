@@ -9,7 +9,7 @@ extra_config_files: '/etc/wazo-webhookd/conf.d'
 debug: false
 log_level: info
 log_file: /var/log/wazo-webhookd.log
-pid_file: /var/run/wazo-webhookd/wazo-webhookd.pid
+pid_file: /run/wazo-webhookd/wazo-webhookd.pid
 
 # Connection info to the authentication server
 auth:
@@ -32,7 +32,7 @@ celery:
     broker: amqp://guest:guest@localhost:5672
     exchange_name: celery-webhookd
     queue_name: celery-webhookd
-    worker_pid_file: /var/run/wazo-webhookd/celery-worker.pid
+    worker_pid_file: /run/wazo-webhookd/celery-worker.pid
     worker_min: 3
     worker_max: 5
 
