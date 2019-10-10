@@ -26,7 +26,8 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
 def hook_runner(service, task, hook_uuid, ep_name, config, subscription, event):
 
     hook = EntryPoint.parse(ep_name).resolve()
-    logger.info("running hook %s (%s) for event: %s", ep_name, hook_uuid, event)
+    logger.info("running hook %s (%s) for event: %s [config=%s] [subscription=%s]",
+                ep_name, hook_uuid, event, config, subscription)
 
     try:
         event_name = event['data']['name']

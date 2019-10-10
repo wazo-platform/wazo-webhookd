@@ -17,12 +17,23 @@ BOB_USER_UUID = '19f216be-916c-415c-83b5-6a13af92dd87'
 WAZO_UUID = 'cd030e68-ace9-4ad4-bc4e-13c8dec67898'
 WAZO_UUID_EXTENDED = 'cd030e68-ace9-4ad4-bc4e-13c8dec67898-suffix'
 OTHER_WAZO_UUID = 'cae3a160-6b01-4746-acd2-8588a768e54c'
+
+
 TEST_SUBSCRIPTION = {
     'name': 'test',
     'service': 'http',
     'config': {'url': 'http://third-party-http:1080/test', 'method': 'get'},
     'events': ['trigger'],
 }
+
+TEST_SUBSCRIPTION_1 = TEST_SUBSCRIPTION.copy()
+TEST_SUBSCRIPTION_1["events"] = ['user_deleted', 'user_edited', 'user_created']
+TEST_SUBSCRIPTION_2 = TEST_SUBSCRIPTION.copy()
+TEST_SUBSCRIPTION_2["events"] = ['relocate_answered', 'relocate_completed', 'relocate_ended', 'user_status_update', 'user_voicemail_message_created', 'application_call_entered', 'users_services_incallfilter_updated', 'users_services_dnd_updated', 'users_forwards_unconditional_updated', 'users_forwards_noanswer_updated', 'users_forwards_busy_updated', 'user_voicemail_message_updated', 'user_voicemail_message_deleted', 'chat_message_received', 'chat_message_sent', 'call_updated', 'call_log_user_created', 'call_ended', 'call_created', 'agent_unpaused', 'agent_status_update', 'agent_paused', 'favorite_added', 'endpoint_status_update', 'favorite_deleted', 'relocate_initiated']
+TEST_SUBSCRIPTION_3 = TEST_SUBSCRIPTION.copy()
+TEST_SUBSCRIPTION_3["events"] = ['users_forwards_busy_updated', 'agent_status_update', 'agent_unpaused', 'call_created', 'call_ended', 'call_log_user_created', 'call_updated', 'chat_message_sent', 'chat_message_received', 'endpoint_status_update', 'favorite_added', 'favorite_deleted', 'relocate_initiated', 'relocate_answered', 'relocate_completed', 'relocate_ended', 'user_status_update', 'user_voicemail_message_created', 'user_voicemail_message_deleted', 'user_voicemail_message_updated', 'agent_paused', 'users_forwards_noanswer_updated', 'users_forwards_unconditional_updated', 'users_services_dnd_updated', 'users_services_incallfilter_updated', 'application_call_entered', 'application_user_outgoing_call_created', 'application_node_updated']
+TEST_SUBSCRIPTION_4 = TEST_SUBSCRIPTION.copy()
+TEST_SUBSCRIPTION_4["events"] = ['users_forwards_busy_updated', 'users_forwards_noanswer_updated', 'users_forwards_unconditional_updated', 'users_services_dnd_updated', 'users_services_incallfilter_updated', 'application_call_entered', 'application_user_outgoing_call_created', 'application_node_updated', 'user_voicemail_message_updated', 'user_voicemail_message_deleted', 'user_voicemail_message_created', 'user_status_update', 'relocate_ended', 'relocate_completed', 'relocate_answered', 'relocate_initiated', 'favorite_deleted', 'favorite_added', 'endpoint_status_update', 'chat_message_received', 'chat_message_sent', 'call_updated', 'call_log_user_created', 'call_ended', 'call_created', 'agent_unpaused', 'agent_status_update', 'agent_paused']
 TEST_SUBSCRIPTION_BODY = {
     'name': 'test',
     'service': 'http',
@@ -874,3 +885,72 @@ class TestHTTPCallback(BaseIntegrationTest):
                 has_entries(status="success"),
             ),
         )
+
+    @subscription(TEST_SUBSCRIPTION_2)
+    def test_one_event(self, *args, **kwargs):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test', responseBody="temporary bugged service",
+            statusCode=404
+        )
+        self.bus.publish(
+            event(name='call_created'),
+            routing_key=SOME_ROUTING_KEY,
+            headers={'name': 'call_created'},
+        )
+        time.sleep(30)
+
+    @subscription(TEST_SUBSCRIPTION_4)
+    @subscription(TEST_SUBSCRIPTION_3)
+    @subscription(TEST_SUBSCRIPTION_2)
+    @subscription(TEST_SUBSCRIPTION_1)
+    @subscription(TEST_SUBSCRIPTION_4)
+    @subscription(TEST_SUBSCRIPTION_4)
+    @subscription(TEST_SUBSCRIPTION_3)
+    @subscription(TEST_SUBSCRIPTION_2)
+    @subscription(TEST_SUBSCRIPTION_1)
+    @subscription(TEST_SUBSCRIPTION_3)
+    @subscription(TEST_SUBSCRIPTION_2)
+    @subscription(TEST_SUBSCRIPTION_1)
+    @subscription(TEST_SUBSCRIPTION_4)
+    @subscription(TEST_SUBSCRIPTION_3)
+    @subscription(TEST_SUBSCRIPTION_2)
+    @subscription(TEST_SUBSCRIPTION_1)
+    @subscription(TEST_SUBSCRIPTION_4)
+    @subscription(TEST_SUBSCRIPTION_3)
+    @subscription(TEST_SUBSCRIPTION_2)
+    @subscription(TEST_SUBSCRIPTION_1)
+    def test_many_events(self, *args, **kwargs):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test', responseBody="temporary bugged service",
+            statusCode=404
+        )
+        for i in range(10):
+            self.bus.publish(
+                event(name='call_created', big=str("1" * 10000)),
+                routing_key=SOME_ROUTING_KEY,
+                headers={'name': 'call_created'},
+            )
+            self.bus.publish(
+                event(name='call_updated'),
+                routing_key=SOME_ROUTING_KEY,
+                headers={'name': 'call_updated'},
+            )
+            self.bus.publish(
+                event(name='call_deleted'),
+                routing_key=SOME_ROUTING_KEY,
+                headers={'name': 'call_deleted'},
+            )
+
+        @subscription(TEST_SUBSCRIPTION_1)
+        def noop(self, *args):
+            self.bus.publish(
+                event(name='call_created', big=str("1" * 10000)),
+                routing_key=SOME_ROUTING_KEY,
+                headers={'name': 'call_created'},
+            )
+
+        for i in range(1000):
+            noop(self)
+        time.sleep(60)
