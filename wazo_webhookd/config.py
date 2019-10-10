@@ -40,7 +40,7 @@ _DEFAULT_CONFIG = {
         'queue_name': 'celery-webhookd',
         'worker_pid_file': os.path.join(_PID_DIR, 'celery-worker.pid'),
         'worker_min': 3,
-        'worker_max': 10,
+        'worker_max': 5,
     },
     'consul': {
         'scheme': 'https',

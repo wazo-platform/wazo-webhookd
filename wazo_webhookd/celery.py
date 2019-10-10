@@ -21,6 +21,9 @@ def configure(config):
     app.conf.worker_hijack_root_logger = False
     app.conf.worker_loglevel = logging.getLevelName(config['log_level']).upper()
 
+    app.conf.worker_max_tasks_per_child = 1000
+    app.conf.worker_max_memory_per_child = 100000
+
 
 def spawn_workers(config):
     logger.debug('Starting Celery workers...')

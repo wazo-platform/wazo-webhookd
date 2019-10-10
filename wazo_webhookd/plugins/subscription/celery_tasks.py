@@ -14,16 +14,19 @@ from .service import SubscriptionService
 logger = logging.getLogger(__name__)
 
 
-@app.task(bind=True)
+class ServiceTask(celery.Task):
+    _service = None
+
+    @classmethod
+    def get_service(cls, config):
+        if cls._service is None:
+            cls._service = SubscriptionService(config)
+        return cls._service
+
+
+@app.task(base=ServiceTask, bind=True)
 def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
-    service = SubscriptionService(config)
-    try:
-        hook_runner(service, task, hook_uuid, ep_name, config, subscription, event)
-    finally:
-        service.close()
-
-
-def hook_runner(service, task, hook_uuid, ep_name, config, subscription, event):
+    service = task.get_service(config)
 
     hook = EntryPoint.parse(ep_name).resolve()
     logger.info("running hook %s (%s) for event: %s", ep_name, hook_uuid, event)

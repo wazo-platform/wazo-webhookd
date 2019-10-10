@@ -34,7 +34,7 @@ celery:
     queue_name: celery-webhookd
     worker_pid_file: /var/run/wazo-webhookd/celery-worker.pid
     worker_min: 3
-    worker_max: 10
+    worker_max: 5
 
 # consul connection informations
 consul:
