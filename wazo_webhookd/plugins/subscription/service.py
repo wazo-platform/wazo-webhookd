@@ -4,7 +4,7 @@
 from contextlib import contextmanager
 import logging
 
-from sqlalchemy import and_, create_engine, distinct, func, or_
+from sqlalchemy import and_, create_engine, distinct, func, or_, exc
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from wazo_webhookd.database.models import (
@@ -206,13 +206,14 @@ class SubscriptionService(object):
                 event=event,
                 detail=detail,
             )
-            try:
-                self._get(session, subscription_uuid)
-            except NoSuchSubscription:
-                logger.warning(
-                    "subscription %s have been deleted in the " "meantime",
-                    subscription_uuid,
-                )
-                return hooklog
             session.add(hooklog)
-            return hooklog
+            try:
+                session.commit()
+            except exc.IntegrityError as e:
+                if "violates foreign key constraint" in str(e):
+                    logger.warning(
+                        "subscription %s have been deleted in the meantime",
+                        subscription_uuid,
+                    )
+                else:
+                    raise
