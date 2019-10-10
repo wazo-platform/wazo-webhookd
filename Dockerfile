@@ -8,7 +8,7 @@ WORKDIR /usr/src/wazo-webhookd
 RUN true \
     && adduser --quiet --system --group wazo-webhookd \
     && mkdir -p /etc/wazo-webhookd/conf.d \
-    && install -o wazo-webhookd -g wazo-webhookd -d /var/run/wazo-webhookd \
+    && install -o wazo-webhookd -g wazo-webhookd -d /run/wazo-webhookd \
     && touch /var/log/wazo-webhookd.log \
     && chown wazo-webhookd:wazo-webhookd /var/log/wazo-webhookd.log \
     && pip install -r requirements.txt \

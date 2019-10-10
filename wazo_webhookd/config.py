@@ -10,7 +10,7 @@ from xivo.xivo_logging import get_log_level_by_name
 
 _CERT_FILE = '/usr/share/xivo-certs/server.crt'
 _DEFAULT_HTTPS_PORT = 9300
-_PID_DIR = '/var/run/wazo-webhookd'
+_PID_DIR = '/run/wazo-webhookd'
 
 _DEFAULT_CONFIG = {
     'config_file': '/etc/wazo-webhookd/config.yml',
