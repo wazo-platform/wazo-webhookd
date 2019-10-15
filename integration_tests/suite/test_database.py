@@ -121,9 +121,11 @@ class TestDatabase(AssetLaunchingTestCase):
         service.pubsub.subscribe('created', on_subscription)
         service.create(
             {
-                'uuid': str(uuid.uuid4()),
                 'name': 'test',
                 'owner_tenant_uuid': str(uuid.uuid4()),
+                'service': 'http',
+                'config': {},
+                'events': [],
             }
         )
         assert_that(tracker, has_entries({'uuid': is_(not_none())}))
@@ -142,24 +144,26 @@ class TestDatabase(AssetLaunchingTestCase):
 
         service1.create(
             {
-                'uuid': str(uuid.uuid4()),
                 'name': 'test',
                 'owner_tenant_uuid': str(uuid.uuid4()),
+                'service': 'http',
+                'config': {},
+                'events': [],
             }
         )
         assert_that(tracker, has_entries({'service1': True, 'service2': True}))
 
     def test_purger(self):
-        subscription_uuid = str(uuid.uuid4())
-
         service = SubscriptionService({'db_uri': self.db_uri})
-        service.create(
+        subscription_uuid = service.create(
             {
-                'uuid': subscription_uuid,
                 'name': 'test',
                 'owner_tenant_uuid': str(uuid.uuid4()),
+                'service': 'http',
+                'config': {},
+                'events': [],
             }
-        )
+        ).uuid
 
         def add_log(days_ago):
             started_at = datetime.datetime.now() - datetime.timedelta(days=days_ago)

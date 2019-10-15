@@ -1,6 +1,8 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import itertools
+
 from sqlalchemy import (
     Column,
     DateTime,
@@ -8,16 +10,19 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Table,
     text,
     Text,
     UniqueConstraint,
+    orm,
 )
 from sqlalchemy_utils import JSONType
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, mapper
+from sqlalchemy.orm import relationship
+
 
 Base = declarative_base()
+
+_NOTSET = object()
 
 
 class SubscriptionEvent(Base):
@@ -89,83 +94,84 @@ class SubscriptionLog(Base):
     detail = Column(JSONType)
 
 
-class Subscription(object):
-    '''
-    The Subscription class is not declarative, like the others, because it has a
-    metadata attribute, which conflicts with the metadata attribute of the
-    declarative_base().
-    See http://docs.sqlalchemy.org/en/rel_0_9/orm/mapping_styles.html#classical-mappings.
-    '''
+class Subscription(Base):
+    __tablename__ = 'webhookd_subscription'
+    uuid = Column(
+        String(38), server_default=text('uuid_generate_v4()'), primary_key=True
+    )
+    name = Column(Text())
+    service = Column(Text())
+    events_user_uuid = Column(String(36))
+    events_wazo_uuid = Column(String(36))
+    owner_user_uuid = Column(String(36))
+    owner_tenant_uuid = Column(String(36), nullable=False)
 
-    def __init__(self, **attributes):
-        for attribute, value in attributes.items():
-            setattr(self, attribute, value)
+    events_rel = relationship(
+        "SubscriptionEvent", lazy='joined', cascade='all, delete-orphan'
+    )
+    options_rel = relationship(
+        "SubscriptionOption", lazy='joined', cascade='all, delete-orphan'
+    )
+    metadata_rel = relationship(
+        "SubscriptionMetadatum", lazy='joined', cascade='all, delete-orphan'
+    )
+
+    def make_transient(self):
+        for instance in itertools.chain(
+            [self], self.events_rel, self.options_rel, self.metadata_rel
+        ):
+            orm.session.make_transient(instance)
 
     @property
     def config(self):
         return {option.name: option.value for option in self.options_rel}
 
-    @config.setter
-    def config(self, config):
-        self.options_rel = [
-            SubscriptionOption(name=key, value=value) for (key, value) in config.items()
-        ]
+    @property
+    def metadata_(self):
+        return {metadatum.key: metadatum.value for metadatum in self.metadata_rel}
 
     @property
     def events(self):
         return [event.event_name for event in self.events_rel]
 
-    @events.setter
-    def events(self, events):
-        self.events_rel = [SubscriptionEvent(event_name=event) for event in events]
-
-    @property
-    def metadata(self):
-        return {metadatum.key: metadatum.value for metadatum in self.metadata_rel}
-
-    @metadata.setter
-    def metadata(self, metadata):
-        self.metadata_rel = [
-            SubscriptionMetadatum(key=key, value=value)
-            for (key, value) in metadata.items()
-        ]
-
     def clear_relations(self):
-        self.events_rel.clear()
+        # FIXME(sileht): We should delete all orm objects explictly instead of
+        # relying on delete-orphan magic
         self.options_rel.clear()
+        self.events_rel.clear()
+        self.metadata_rel.clear()
 
-    def update(self, **attributes):
-        for attribute, value in attributes.items():
-            setattr(self, attribute, value)
+    def from_schema(
+        self,
+        name,
+        service,
+        config,
+        events,
+        metadata_=None,
+        events_wazo_uuid=_NOTSET,
+        events_user_uuid=_NOTSET,
+        owner_user_uuid=_NOTSET,
+        owner_tenant_uuid=_NOTSET,
+    ):
 
+        self.name = name
+        self.service = service
 
-metadata = Base.metadata
-subscription_table = Table(
-    'webhookd_subscription',
-    metadata,
-    Column(
-        'uuid', String(38), server_default=text('uuid_generate_v4()'), primary_key=True
-    ),
-    Column('name', Text()),
-    Column('service', Text()),
-    Column('events_user_uuid', String(36)),
-    Column('events_wazo_uuid', String(36)),
-    Column('owner_user_uuid', String(36)),
-    Column('owner_tenant_uuid', String(36), nullable=False),
-)
+        for name, value in config.items():
+            self.options_rel.append(SubscriptionOption(name=name, value=value))
 
-mapper(
-    Subscription,
-    subscription_table,
-    properties={
-        'events_rel': relationship(
-            SubscriptionEvent, lazy='joined', cascade='all, delete-orphan'
-        ),
-        'options_rel': relationship(
-            SubscriptionOption, lazy='joined', cascade='all, delete-orphan'
-        ),
-        'metadata_rel': relationship(
-            SubscriptionMetadatum, lazy='joined', cascade='all, delete-orphan'
-        ),
-    },
-)
+        for name in events:
+            self.events_rel.append(SubscriptionEvent(event_name=name))
+
+        if metadata_:
+            for key, value in metadata_.items():
+                self.metadata_rel.append(SubscriptionMetadatum(key=key, value=value))
+
+        if events_user_uuid is not _NOTSET:
+            self.events_user_uuid = events_user_uuid
+        if events_wazo_uuid is not _NOTSET:
+            self.events_wazo_uuid = events_wazo_uuid
+        if owner_user_uuid is not _NOTSET:
+            self.owner_user_uuid = owner_user_uuid
+        if owner_tenant_uuid is not _NOTSET:
+            self.owner_tenant_uuid = owner_tenant_uuid

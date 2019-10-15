@@ -99,7 +99,7 @@ class SubscriptionSchema(Schema):
     # TODO(sileht): We should also add an events_tenant_uuid to filter
     # event on tenant_uuid. Currently if I have the
     # "webhookd.subscriptions.create" I can receive event of all tenants...
-    metadata = fields.Dict()
+    metadata_ = fields.Dict(data_key="metadata")
 
 
 class UserSubscriptionSchema(Schema):
@@ -115,7 +115,7 @@ class UserSubscriptionSchema(Schema):
         required=True,
     )
     config = ConfigField(allow_none=False, required=True)
-    metadata_ = fields.Dict(load_from='metadata')
+    metadata_ = fields.Dict(data_key='metadata')
 
 
 class SubscriptionListParamsSchema(Schema):

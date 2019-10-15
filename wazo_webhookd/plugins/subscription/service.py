@@ -109,13 +109,16 @@ class SubscriptionService(object):
                 session, subscription_uuid, owner_tenant_uuids, owner_user_uuid
             )
 
-    def create(self, subscription):
+    def create(self, new_subscription):
         with self.rw_session() as session:
-            new_subscription = Subscription(**subscription)
-            session.add(new_subscription)
+            subscription = Subscription()
+            subscription.from_schema(**new_subscription)
+            subscription = session.merge(subscription)
             session.flush()
-            self.pubsub.publish('created', new_subscription)
-            return new_subscription
+            session.expire_all()
+            subscription.make_transient()
+            self.pubsub.publish('created', subscription)
+            return subscription
 
     def update(
         self,
@@ -130,11 +133,11 @@ class SubscriptionService(object):
             )
             subscription.clear_relations()
             session.flush()
-            subscription.update(**new_subscription)
+            subscription.from_schema(**new_subscription)
             session.flush()
+            session.expire_all()
+            subscription.make_transient()
             self.pubsub.publish('updated', subscription)
-
-            session.expunge_all()
             return subscription
 
     def delete(self, subscription_uuid, owner_tenant_uuids=None, owner_user_uuid=None):
