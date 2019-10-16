@@ -138,10 +138,6 @@ class Subscription(object):
         for attribute, value in attributes.items():
             setattr(self, attribute, value)
 
-    @property
-    def logs(self):
-        return self.logs_rel
-
 
 metadata = Base.metadata
 subscription_table = Table(
@@ -170,9 +166,6 @@ mapper(
         ),
         'metadata_rel': relationship(
             SubscriptionMetadatum, lazy='joined', cascade='all, delete-orphan'
-        ),
-        'logs_rel': relationship(
-            SubscriptionLog, lazy='joined', cascade='all, delete-orphan'
         ),
     },
 )
