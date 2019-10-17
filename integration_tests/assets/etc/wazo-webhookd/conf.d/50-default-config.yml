@@ -11,3 +11,4 @@ enabled_plugins:
   tenant_migration: True
 service_discovery:
   enabled: false
+hook_max_attempts: 3

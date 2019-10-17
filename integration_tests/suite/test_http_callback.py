@@ -1,6 +1,7 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
+import time
 
 from hamcrest import assert_that, contains, contains_string, has_entries, is_
 from mockserver import MockServerClient
@@ -872,5 +873,49 @@ class TestHTTPCallback(BaseIntegrationTest):
                 has_entries(status="failure"),
                 has_entries(status="success"),
                 has_entries(status="success"),
+            ),
+        )
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_given_one_http_subscription_max_retries(self, subscription):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test', responseBody="temporary bugged service", statusCode=404
+        )
+        self.bus.publish(
+            trigger_event(),
+            routing_key=SOME_ROUTING_KEY,
+            headers={'name': TRIGGER_EVENT_NAME},
+        )
+
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=3, exact=True
+            ),
+            tries=30,
+            interval=0.5,
+        )
+
+        # Ensure that we din't retry anymore
+        time.sleep(5)
+
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=3, exact=True
+            ),
+            tries=30,
+            interval=0.5,
+        )
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        # Default order
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], 3)
+        assert_that(
+            logs['items'],
+            contains(
+                has_entries(status="error"),
+                has_entries(status="failure"),
+                has_entries(status="failure"),
             ),
         )
