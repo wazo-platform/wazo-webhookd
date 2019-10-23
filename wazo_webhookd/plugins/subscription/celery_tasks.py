@@ -13,6 +13,15 @@ from .service import SubscriptionService
 
 logger = logging.getLogger(__name__)
 
+MAX_BODY_LOG_LENGTH = 250
+
+
+def truncated(detail):
+    if len(detail) >= MAX_BODY_LOG_LENGTH:
+        return detail[:MAX_BODY_LOG_LENGTH] + "... [truncated]"
+    else:
+        return detail
+
 
 class ServiceTask(celery.Task):
     _service = None
@@ -54,7 +63,7 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
             verb,
             task.request.retries + 1,
             config["hook_max_attempts"],
-            e.detail,
+            truncated(e.detail),
         )
         ended = datetime.datetime.utcnow()
         service.create_hook_log(
@@ -78,7 +87,11 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
         if isinstance(e, HookExpectedError):
             detail = e.detail
             logger.error(
-                "Hook `%s/%s` (%s) failure: %s", ep_name, hook_uuid, event_name, detail
+                "Hook `%s/%s` (%s) failure: %s",
+                ep_name,
+                hook_uuid,
+                event_name,
+                truncated(detail),
             )
         else:
             # TODO(sileht): Maybe we should not record the raw error
@@ -88,7 +101,7 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
                 ep_name,
                 hook_uuid,
                 event_name,
-                detail,
+                truncated(detail),
                 exc_info=True,
             )
         ended = datetime.datetime.utcnow()
@@ -106,7 +119,11 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
 
     else:
         logger.debug(
-            "Hook `%s/%s` (%s) succeed: %s", ep_name, hook_uuid, event_name, detail
+            "Hook `%s/%s` (%s) succeed: %s",
+            ep_name,
+            hook_uuid,
+            event_name,
+            truncated(detail),
         )
         ended = datetime.datetime.utcnow()
         service.create_hook_log(
