@@ -46,7 +46,7 @@ class TestSubscriptionSchema(TestCase):
         )
 
     def test_given_unknown_service_and_non_dict_of_string_config_when_load_then_raise(
-        self
+        self,
     ):
         subscription = dict(VALID_SUBSCRIPTION)
         subscription['service'] = 'unknown'
@@ -127,7 +127,7 @@ class TestSubscriptionSchema(TestCase):
         )
 
     def test_given_http_service_and_verify_certificate_wrong_value_when_load_then_fail(
-        self
+        self,
     ):
         subscription = dict(VALID_SUBSCRIPTION)
         subscription['config'] = dict(VALID_SUBSCRIPTION['config'])
