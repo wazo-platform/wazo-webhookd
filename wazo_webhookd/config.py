@@ -72,7 +72,6 @@ _DEFAULT_CONFIG = {
         'services': True,
         'status': True,
         'subscriptions': True,
-        'tenant_migration': False,
     },
     'enabled_services': {'http': True, 'mobile': True},
     'hook_max_attempts': 10,
