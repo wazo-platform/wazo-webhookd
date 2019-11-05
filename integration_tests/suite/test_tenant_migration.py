@@ -10,7 +10,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from wazo_webhookd.database.models import Subscription
-from xivo import url_helpers
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN
@@ -70,10 +69,9 @@ class TestTenantMigration(BaseIntegrationTest):
                 {Subscription.owner_tenant_uuid: "00000000-0000-0000-0000-000000000000"}
             )
 
-        base = 'https://localhost:{port}/1.0/'.format(
+        url = 'https://localhost:{port}/1.0/tenant-migration'.format(
             port=self.service_port(9300, 'webhookd')
         )
-        url = url_helpers.base_join(base, 'tenant-migration')
 
         payload = [
             {'owner_user_uuid': USER_1_UUID, 'owner_tenant_uuid': USER_1_UUID},
