@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-import sys
 
 from xivo import xivo_logging
 from xivo.config_helper import set_xivo_uuid, UUIDNotFound
@@ -18,7 +17,7 @@ FOREGROUND = True  # Always in foreground systemd takes care of daemonizing
 
 
 def main():
-    conf = config.load_config(sys.argv[1:])
+    conf = config.load_config()
 
     if conf['user']:
         change_user(conf['user'])
