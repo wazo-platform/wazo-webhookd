@@ -362,7 +362,7 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
         )
 
     def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(
-        self
+        self,
     ):
         webhookd = self.make_webhookd(USER_1_TOKEN)
 

@@ -13,8 +13,7 @@ services:
       - "./ssl:/usr/local/share/ssl"
 
   third-party-http:
-    # image: jamesdbloom/mockserver:mockserver-5.2.3
-    image: sileht/mockserver
+    image: jamesdbloom/mockserver:mockserver-5.7.0
     ports:
       - "1080"
 
@@ -29,9 +28,7 @@ services:
     command: [nginx-debug, '-g', 'daemon off;']
 
   fcm.googleapis.com:
-    # image: jamesdbloom/mockserver:mockserver-5.2.3
-    # command: ["/bin/bash", "-xv", "/opt/mockserver/run_mockserver.sh", "-logLevel", "DEBUG", "-serverPort", "443", "-proxyPort", "1090", "-genericJVMOptions", "-Dmockserver.sslCertificateDomainName='fcm.googleapis.com'"]
-    image: sileht/mockserver
+    image: jamesdbloom/mockserver:mockserver-5.7.0
     command: ["-logLevel", "DEBUG", "-serverPort", "443", "-proxyPort", "1090", "-genericJVMOptions", "-Dmockserver.sslCertificateDomainName='fcm.googleapis.com'"]
     user: root
     ports:
