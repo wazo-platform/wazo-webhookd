@@ -17,6 +17,7 @@ MAX_BODY_LOG_LENGTH = 250
 
 
 def truncated(detail):
+    detail = str(detail)
     if len(detail) >= MAX_BODY_LOG_LENGTH:
         return detail[:MAX_BODY_LOG_LENGTH] + "... [truncated]"
     else:
