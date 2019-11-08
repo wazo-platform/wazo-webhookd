@@ -74,7 +74,7 @@ class Service:
                     'owner_user_uuid': user_uuid,
                     'owner_tenant_uuid': tenant_uuid,
                     'config': {},
-                    'metadata': {'mobile': 'true'},
+                    'metadata_': {'mobile': 'true'},
                 }
             )
             logger.info('User registered: %s/%s', tenant_uuid, user_uuid)
