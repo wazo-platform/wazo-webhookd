@@ -31,4 +31,4 @@ class TestCeleryWorks(BaseIntegrationTest):
             assert_that(master_found, equal_to(True))
             assert_that(worker_count, equal_to(3), output)
 
-        until.assert_(check_ps, tries=10, interval=0.5)
+        until.assert_(check_ps, timeout=10, interval=0.5)

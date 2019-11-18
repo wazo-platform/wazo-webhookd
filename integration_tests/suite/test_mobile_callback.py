@@ -68,7 +68,7 @@ class TestMobileCallback(BaseIntegrationTest):
             logs = func()
             assert_that(logs['total'], number)
 
-        until.assert_(check, tries=10, interval=0.5)
+        until.assert_(check, timeout=10, interval=0.5)
 
     def test_workflow_fcm(self):
         third_party = MockServerClient(
