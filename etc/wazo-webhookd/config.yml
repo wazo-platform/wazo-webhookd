@@ -68,7 +68,7 @@ rest_api:
     enabled: True
 
     #Allow JSON preflight requests
-    allow_headers: [Content-Type, X-Auth-Token]
+    allow_headers: [Content-Type, X-Auth-Token, Wazo-Tenant]
 
 # Service discovery configuration. all time intervals are in seconds
 service_discovery:
