@@ -2,7 +2,6 @@
     templates:
       - wazo-tox-py37
       - wazo-tox-linters
-      - debian-packaging-template
     check:
       jobs:
         - webhookd-tox-integration:
