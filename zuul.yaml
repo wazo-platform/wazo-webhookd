@@ -2,7 +2,6 @@
     templates:
       - wazo-tox-py37
       - wazo-tox-linters
-      - debian-packaging-template
     check:
       jobs:
         - webhookd-tox-integration:
@@ -17,3 +16,5 @@
     description: Run webhookd integration tests
     parent: wazo-tox-integration
     timeout: 3600
+    vars:
+      integration_test_timeout: 60
