@@ -177,7 +177,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             except requests.exceptions.ConnectionError:
                 raise AssertionError()
 
-        until.assert_(subscribed, tries=10, interval=0.5)
+        until.assert_(subscribed, timeout=10, interval=0.5)
 
     def ensure_webhookd_not_consume_uuid(self, uuid):
         sentinel = self.make_sentinel()
@@ -188,7 +188,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             except requests.exceptions.ConnectionError:
                 raise AssertionError()
 
-        until.assert_(subscribed, tries=10, interval=0.5)
+        until.assert_(subscribed, timeout=10, interval=0.5)
 
     @contextmanager
     def auth_stopped(self):
@@ -196,7 +196,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         yield
         self.start_service('auth')
         auth = self.make_auth()
-        until.true(auth.is_up, tries=5, message='wazo-auth did not come back up')
+        until.true(auth.is_up, timeout=5, message='wazo-auth did not come back up')
         self.configured_wazo_auth()
 
     @contextmanager
@@ -205,4 +205,4 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         yield
         self.start_service('rabbitmq')
         bus = self.make_bus()
-        until.true(bus.is_up, tries=5, message='rabbitmq did not come back up')
+        until.true(bus.is_up, timeout=5, message='rabbitmq did not come back up')

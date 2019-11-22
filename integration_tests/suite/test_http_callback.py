@@ -189,7 +189,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -219,7 +219,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -252,7 +252,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -290,7 +290,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=2, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -347,7 +347,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -372,14 +372,14 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/new-url'}
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
         until.assert_(
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -402,7 +402,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -425,7 +425,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -439,7 +439,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         # FIXME(sileht): BusClient should reconnect automatically
         self.bus = self.make_bus()
-        until.true(self.bus.is_up, tries=5, message='rabbitmq did not come back up')
+        until.true(self.bus.is_up, timeout=5, message='rabbitmq did not come back up')
 
         self.bus.publish(
             trigger_event(),
@@ -451,7 +451,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -482,7 +482,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                     ],
                 }
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -511,7 +511,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                     ],
                 }
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -534,7 +534,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                     'body': '{"body_keỳ": "body_vàlue"}',
                 }
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -553,7 +553,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test', 'body': 'trigger value'}
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -586,7 +586,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -612,7 +612,7 @@ class TestHTTPCallback(BaseIntegrationTest):
                     ],
                 }
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -653,7 +653,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -685,7 +685,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
         assert_that(self.sentinel.called(), is_(False))
@@ -706,7 +706,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         def sentinel_was_called():
             assert_that(self.sentinel.called(), is_(True))
 
-        until.assert_(sentinel_was_called, tries=10, interval=0.5)
+        until.assert_(sentinel_was_called, timeout=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_FILTER_WAZO_UUID)
     def test_given_http_subscription_with_wazo_uuid_when_bus_events_then_only_callback_when_wazo_uuid_match(
@@ -734,7 +734,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
-            tries=10,
+            timeout=10,
             interval=0.5,
         )
 
@@ -760,7 +760,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=3, exact=True
             ),
-            tries=20,
+            timeout=20,
             interval=0.5,
         )
 
@@ -782,7 +782,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=2, exact=True
             ),
-            tries=20,
+            timeout=20,
             interval=0.5,
         )
 
@@ -892,7 +892,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=3, exact=True
             ),
-            tries=30,
+            timeout=30,
             interval=0.5,
         )
 
@@ -903,7 +903,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             self.make_third_party_verify_callback(
                 request={'method': 'GET', 'path': '/test'}, count=3, exact=True
             ),
-            tries=30,
+            timeout=30,
             interval=0.5,
         )
         webhookd = self.make_webhookd(MASTER_TOKEN)
