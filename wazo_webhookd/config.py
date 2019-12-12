@@ -43,7 +43,7 @@ _DEFAULT_CONFIG = {
         'worker_max': 5,
     },
     'consul': {
-        'scheme': 'https',
+        'scheme': 'http',
         'host': 'localhost',
         'port': 8500,
         'verify': '/usr/share/xivo-certs/server.crt',
