@@ -4,8 +4,9 @@ After=network.target
 Before=monit.service
 
 [Service]
+Environment=PYTHONUNBUFFERED=TRUE
 ExecStartPre=/usr/bin/install -d -o wazo-webhookd -g wazo-webhookd /run/wazo-webhookd
-ExecStart=/usr/bin/python3 /usr/bin/wazo-webhookd
+ExecStart=/usr/bin/wazo-webhookd
 
 [Install]
 WantedBy=multi-user.target
