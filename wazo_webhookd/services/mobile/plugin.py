@@ -260,13 +260,23 @@ class PushNotification(object):
         apn_certificate = self.external_config.get('ios_apn_certificate', None)
         apn_private = self.external_config.get('ios_apn_private', None)
 
+        url = "https://{}:{}/3/device/{}".format(
+            self.config['mobile_apns_host'],
+            self.config['mobile_apns_port'],
+            self.external_tokens["apns_token"]
+        )
+
         with self._certificate_filename(apn_certificate, apn_private) as apn_cert_filename:
+            logger.debug(
+                'Sending push notification to APNS: POST %s, headers: %s,'
+                'certificate: %s, payload: %s',
+                url,
+                headers,
+                apn_cert_filename,
+                payload,
+            )
             response = self.push_client.post(
-                "https://{}:{}/3/device/{}".format(
-                    self.config['mobile_apns_host'],
-                    self.config['mobile_apns_port'],
-                    self.external_tokens["apns_token"]
-                ),
+                url,
                 cert=apn_cert_filename,
                 headers=headers,
                 json=payload,
