@@ -1,13 +1,14 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+import httpx
 import logging
 import tempfile
 import uuid
+
+from contextlib import contextmanager
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
-
-import httpx
 
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
@@ -256,24 +257,31 @@ class PushNotification(object):
         if self.jwt:
             headers['Authorization'] = 'Bearer ' + self.jwt
 
-        cert = None
         apn_certificate = self.external_config.get('ios_apn_certificate', None)
         apn_private = self.external_config.get('ios_apn_private', None)
 
-        if apn_certificate and apn_private:
-            cert = tempfile.NamedTemporaryFile(mode="w+t", delete=True)
-            cert.write(apn_certificate + "\r\n")
-            cert.write(apn_private)
-            cert.flush()
-
-        response = self.push_client.post(
-            "https://{}/3/device/{}".format(
-                self.config.get('apns_proxy_server', 'apns.push.wazo.io'),
-                self.external_tokens["apns_token"]
-            ),
-            cert=cert.name if cert else None,
-            headers=headers,
-            json=payload,
-        )
+        with self._certificate_filename(apn_certificate, apn_private) as apn_cert_filename:
+            response = self.push_client.post(
+                "https://{}/3/device/{}".format(
+                    self.config.get('apns_proxy_server', 'apns.push.wazo.io'),
+                    self.external_tokens["apns_token"]
+                ),
+                cert=apn_cert_filename,
+                headers=headers,
+                json=payload,
+            )
         response.raise_for_status()
         return requests_automatic_detail(response)
+
+    @staticmethod
+    @contextmanager
+    def _certificate_filename(certificate, private_key):
+        if certificate and private_key:
+            with tempfile.NamedTemporaryFile(mode="w+") as cert_file:
+                cert_file.write(certificate + "\r\n")
+                cert_file.write(private_key)
+                cert_file.flush()
+
+                yield cert_file.name
+        else:
+            yield None
