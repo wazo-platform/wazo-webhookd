@@ -262,8 +262,9 @@ class PushNotification(object):
 
         with self._certificate_filename(apn_certificate, apn_private) as apn_cert_filename:
             response = self.push_client.post(
-                "https://{}/3/device/{}".format(
-                    self.config.get('apns_proxy_server', 'apns.push.wazo.io'),
+                "https://{}:{}/3/device/{}".format(
+                    self.config['mobile_apns_host'],
+                    self.config['mobile_apns_port'],
                     self.external_tokens["apns_token"]
                 ),
                 cert=apn_cert_filename,
