@@ -224,7 +224,7 @@ class PushNotification(object):
             return notification
 
     @property
-    def push_client(self):
+    def _apn_push_client(self):
         headers = {
             'apns-topic': 'io.wazo.songbird.voip',
             'apns-priority': "5",
@@ -275,7 +275,7 @@ class PushNotification(object):
                 apn_cert_filename,
                 payload,
             )
-            response = self.push_client.post(
+            response = self._apn_push_client.post(
                 url,
                 cert=apn_cert_filename,
                 headers=headers,
