@@ -249,9 +249,10 @@ class PushNotification(object):
                 'content-available': 1,
             }
         }
+        use_sandbox = self.external_config.get('use_sandbox', False)
 
         headers = {}
-        if self.external_config.get('use_sandbox', False):
+        if use_sandbox:
             headers['X-Use-Sandbox'] = '1'
 
         if self.jwt:
@@ -260,8 +261,12 @@ class PushNotification(object):
         apn_certificate = self.external_config.get('ios_apn_certificate', None)
         apn_private = self.external_config.get('ios_apn_private', None)
 
+        host = self.config['mobile_apns_host']
+        if use_sandbox and host == 'api.push.apple.com':
+            host = 'api.sandbox.push.apple.com'
+
         url = "https://{}:{}/3/device/{}".format(
-            self.config['mobile_apns_host'],
+            host,
             self.config['mobile_apns_port'],
             self.external_tokens["apns_token"]
         )
