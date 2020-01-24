@@ -120,7 +120,6 @@ class Service:
 
         return (external_tokens, external_config, jwt)
 
-
     @classmethod
     def run(cls, task, config, subscription, event):
         user_uuid = subscription['events_user_uuid']
@@ -266,12 +265,12 @@ class PushNotification(object):
             host = 'api.sandbox.push.apple.com'
 
         url = "https://{}:{}/3/device/{}".format(
-            host,
-            self.config['mobile_apns_port'],
-            self.external_tokens["apns_token"]
+            host, self.config['mobile_apns_port'], self.external_tokens["apns_token"]
         )
 
-        with self._certificate_filename(apn_certificate, apn_private) as apn_cert_filename:
+        with self._certificate_filename(
+            apn_certificate, apn_private
+        ) as apn_cert_filename:
             logger.debug(
                 'Sending push notification to APNS: POST %s, headers: %s,'
                 'certificate: %s, payload: %s',
@@ -281,10 +280,7 @@ class PushNotification(object):
                 payload,
             )
             response = self._apn_push_client.post(
-                url,
-                cert=apn_cert_filename,
-                headers=headers,
-                json=payload,
+                url, cert=apn_cert_filename, headers=headers, json=payload,
             )
         response.raise_for_status()
         return requests_automatic_detail(response)
