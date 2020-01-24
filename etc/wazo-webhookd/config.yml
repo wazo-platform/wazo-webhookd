@@ -102,3 +102,6 @@ enabled_plugins:
 enabled_services:
   http: True
   mobile: True
+
+mobile_apns_host: api.push.apple.com
+mobile_apns_port: 443

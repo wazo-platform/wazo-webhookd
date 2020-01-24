@@ -78,6 +78,8 @@ _DEFAULT_CONFIG = {
     },
     'enabled_services': {'http': True, 'mobile': True},
     'hook_max_attempts': 10,
+    'mobile_apns_host': 'api.push.apple.com',
+    'mobile_apns_port': 443,
 }
 
 

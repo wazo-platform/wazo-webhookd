@@ -1,13 +1,14 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
+import httpx
 import logging
 import tempfile
 import uuid
+
+from contextlib import contextmanager
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
-
-import httpx
 
 from wazo_auth_client import Client as AuthClient
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
@@ -94,7 +95,7 @@ class Service:
             logger.info('User unregistered: %s/%s', tenant_uuid, user_uuid)
 
     def get_tenant_uuid(self, user_uuid):
-        auth = self.get_auth(self._config)
+        auth, jwt = self.get_auth(self._config)
         return auth.users.get(user_uuid)["tenant_uuid"]
 
     @classmethod
@@ -105,18 +106,19 @@ class Service:
         auth = AuthClient(**auth_config)
         token = auth.token.new('wazo_user', expiration=3600)
         auth.set_token(token["token"])
+        jwt = token.get("metadata", {}).get("jwt", "")
         auth.username = None
         auth.password = None
-        return auth
+        return (auth, jwt)
 
     @classmethod
     def get_external_data(cls, config, user_uuid):
-        auth = cls.get_auth(config)
+        auth, jwt = cls.get_auth(config)
         external_tokens = auth.external.get('mobile', user_uuid)
         tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        return (external_tokens, external_config)
+        return (external_tokens, external_config, jwt)
 
     @classmethod
     def run(cls, task, config, subscription, event):
@@ -133,8 +135,8 @@ class Service:
         ):
             return
 
-        external_tokens, external_config = cls.get_external_data(config, user_uuid)
-        push = PushNotification(task, external_tokens, external_config)
+        external_tokens, external_config, jwt = cls.get_external_data(config, user_uuid)
+        push = PushNotification(task, config, external_tokens, external_config, jwt)
 
         data = event.get('data')
         name = event.get('name')
@@ -145,10 +147,12 @@ class Service:
 
 
 class PushNotification(object):
-    def __init__(self, task, external_tokens, external_config):
+    def __init__(self, task, config, external_tokens, external_config, jwt):
         self.task = task
+        self.config = config
         self.external_tokens = external_tokens
         self.external_config = external_config
+        self.jwt = jwt
 
     def incomingCall(self, data):
         return self._send_notification(
@@ -218,44 +222,78 @@ class PushNotification(object):
                 logger.error('Error to send push notification: %s', notification)
             return notification
 
+    @property
+    def _apn_push_client(self):
+        headers = {
+            'apns-topic': 'io.wazo.songbird.voip',
+            'apns-priority': "5",
+            'apns-expiration': "0",
+            'User-Agent': 'wazo-webhookd',
+        }
+
+        return httpx.Client(
+            http_versions=['HTTP/2', 'HTTP/1.1'],
+            headers=headers,
+            verify=True,
+            trust_env=False,
+            timeout=REQUESTS_TIMEOUT,
+        )
+
     def _send_via_apn(self, data):
-        with tempfile.NamedTemporaryFile() as certfile:
-            with open(certfile.name, 'w') as cert:
-                cert.write(self.external_config['ios_apn_certificate'] + "\r\n")
-                cert.write(self.external_config['ios_apn_private'])
-
-            headers = {
-                'apns-topic': 'io.wazo.songbird.voip',
-                'apns-priority': "5",
-                'apns-expiration': "0",
+        payload = {
+            'aps': {
+                'alert': data,
+                'badge': 1,
+                'sound': "default",
+                'content-available': 1,
             }
+        }
+        use_sandbox = self.external_config.get('use_sandbox', False)
 
-            payload = {
-                'aps': {
-                    'alert': data,
-                    'badge': 1,
-                    'sound': "default",
-                    'content-available': 1,
-                }
-            }
+        headers = {}
+        if use_sandbox:
+            headers['X-Use-Sandbox'] = '1'
 
-            if self.external_config['is_sandbox']:
-                server = 'api.sandbox.push.apple.com'
-            else:
-                server = 'api.push.apple.com'
+        if self.jwt:
+            headers['Authorization'] = 'Bearer ' + self.jwt
 
-            client = httpx.Client(
-                http_versions=['HTTP/2'],
-                headers=headers,
-                cert=certfile.name,
-                trust_env=False,
-                timeout=REQUESTS_TIMEOUT,
+        apn_certificate = self.external_config.get('ios_apn_certificate', None)
+        apn_private = self.external_config.get('ios_apn_private', None)
+
+        host = self.config['mobile_apns_host']
+        if use_sandbox and host == 'api.push.apple.com':
+            host = 'api.sandbox.push.apple.com'
+
+        url = "https://{}:{}/3/device/{}".format(
+            host, self.config['mobile_apns_port'], self.external_tokens["apns_token"]
+        )
+
+        with self._certificate_filename(
+            apn_certificate, apn_private
+        ) as apn_cert_filename:
+            logger.debug(
+                'Sending push notification to APNS: POST %s, headers: %s,'
+                'certificate: %s, payload: %s',
+                url,
+                headers,
+                apn_cert_filename,
+                payload,
             )
-            response = client.post(
-                "https://{}/3/device/{}".format(
-                    server, self.external_tokens["apns_token"]
-                ),
-                json=payload,
+            response = self._apn_push_client.post(
+                url, cert=apn_cert_filename, headers=headers, json=payload,
             )
-            response.raise_for_status()
-            return requests_automatic_detail(response)
+        response.raise_for_status()
+        return requests_automatic_detail(response)
+
+    @staticmethod
+    @contextmanager
+    def _certificate_filename(certificate, private_key):
+        if certificate and private_key:
+            with tempfile.NamedTemporaryFile(mode="w+") as cert_file:
+                cert_file.write(certificate + "\r\n")
+                cert_file.write(private_key)
+                cert_file.flush()
+
+                yield cert_file.name
+        else:
+            yield None
