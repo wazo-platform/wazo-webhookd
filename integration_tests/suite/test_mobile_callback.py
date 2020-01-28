@@ -108,6 +108,8 @@ class TestMobileCallback(BaseIntegrationTest):
                 events=[
                     'chatd_user_room_message_created',
                     'call_push_notification',
+                    'call_updated',
+                    'call_ended',
                     'user_voicemail_message_created',
                 ],
                 owner_tenant_uuid=USERS_TENANT,
@@ -188,6 +190,8 @@ class TestMobileCallback(BaseIntegrationTest):
                 events=[
                     'chatd_user_room_message_created',
                     'call_push_notification',
+                    'call_updated',
+                    'call_ended',
                     'user_voicemail_message_created',
                 ],
                 owner_tenant_uuid=USERS_TENANT,

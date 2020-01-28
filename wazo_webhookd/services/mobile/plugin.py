@@ -26,6 +26,8 @@ REQUESTS_TIMEOUT = (10, 15, 15)  # seconds
 MAP_NAME_TO_NOTIFICATION_TYPE = {
     'user_voicemail_message_created': 'voicemailReceived',
     'call_push_notification': 'incomingCall',
+    'call_updated': 'callUpdated',
+    'call_ended': 'callEnded',
     'chatd_user_room_message_created': 'messageReceived',
 }
 
@@ -68,6 +70,8 @@ class Service:
                     'events': [
                         'chatd_user_room_message_created',
                         'call_push_notification',
+                        'call_updated',
+                        'call_ended',
                         'user_voicemail_message_created',
                     ],
                     'events_user_uuid': user_uuid,
@@ -115,10 +119,11 @@ class Service:
     def get_external_data(cls, config, user_uuid):
         auth, jwt = cls.get_auth(config)
         external_tokens = auth.external.get('mobile', user_uuid)
-        tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
+        user = auth.users.get(user_uuid)
+        tenant_uuid = user['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        return (external_tokens, external_config, jwt)
+        return (external_tokens, external_config, user, jwt)
 
     @classmethod
     def run(cls, task, config, subscription, event):
@@ -135,8 +140,12 @@ class Service:
         ):
             return
 
-        external_tokens, external_config, jwt = cls.get_external_data(config, user_uuid)
-        push = PushNotification(task, config, external_tokens, external_config, jwt)
+        external_tokens, external_config, user, jwt = cls.get_external_data(
+            config, user_uuid
+        )
+        push = PushNotification(
+            task, config, external_tokens, external_config, user, jwt
+        )
 
         data = event.get('data')
         name = event.get('name')
@@ -147,11 +156,12 @@ class Service:
 
 
 class PushNotification(object):
-    def __init__(self, task, config, external_tokens, external_config, jwt):
+    def __init__(self, task, config, external_tokens, external_config, user, jwt):
         self.task = task
         self.config = config
         self.external_tokens = external_tokens
         self.external_config = external_config
+        self.user = user
         self.jwt = jwt
 
     def incomingCall(self, data):
@@ -162,6 +172,26 @@ class PushNotification(object):
             'wazo-notification-call',
             data,
         )
+
+    def callUpdated(self, data):
+        if data['status'] == 'Up' and not data['is_caller']:
+            return self._send_notification(
+                'callAnswered',
+                'Call answered',
+                'From: {}'.format(data['peer_caller_id_number']),
+                'wazo-notification-call',
+                data,
+            )
+
+    def callEnded(self, data):
+        if data['user_uuid'] == self.user['uuid']:
+            return self._send_notification(
+                'callEnded',
+                'Call ended',
+                'From: {}'.format(data['peer_caller_id_number']),
+                'wazo-notification-call',
+                data,
+            )
 
     def voicemailReceived(self, data):
         return self._send_notification(
@@ -198,6 +228,11 @@ class PushNotification(object):
                 raise HookRetry({"error": str(e)})
 
     def _send_via_fcm(self, message_title, message_body, channel_id, data):
+        logger.debug(
+            'Sending push notification to Android: %s, %s'
+            % (message_title, message_body)
+        )
+
         push_service = FCMNotification(api_key=self.external_config['fcm_api_key'])
 
         if message_title and message_body:
