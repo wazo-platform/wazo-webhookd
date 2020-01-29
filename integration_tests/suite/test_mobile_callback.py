@@ -78,13 +78,19 @@ class TestMobileCallback(BaseIntegrationTest):
         )
         third_party.reset()
         third_party.mock_simple_response(
-            path='/fcm/send', responseBody={'message_id': 'message-id-incoming-call'}, statusCode=200
+            path='/fcm/send',
+            responseBody={'message_id': 'message-id-incoming-call'},
+            statusCode=200,
         )
         third_party.mock_simple_response(
-            path='/fcm/send', responseBody={'message_id': 'message-id-call-answered'}, statusCode=200
+            path='/fcm/send',
+            responseBody={'message_id': 'message-id-call-answered'},
+            statusCode=200,
         )
         third_party.mock_simple_response(
-            path='/fcm/send', responseBody={'message_id': 'message-id-call-hungup'}, statusCode=200
+            path='/fcm/send',
+            responseBody={'message_id': 'message-id-call-hungup'},
+            statusCode=200,
         )
 
         auth = self.make_auth()
@@ -169,10 +175,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 },
             },
             routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'call_updated',
-                'user_uuid:{}'.format(USER_1_UUID): True,
-            },
+            headers={'name': 'call_updated', 'user_uuid:{}'.format(USER_1_UUID): True},
         )
 
         self._wait_items(
@@ -183,12 +186,17 @@ class TestMobileCallback(BaseIntegrationTest):
             logs = webhookd.subscriptions.get_logs(subscription["uuid"])
             assert_that(
                 logs['items'],
-                has_item(has_entries(
-                    status="success",
-                    detail=has_entry('topic_message_id', 'message-id-call-answered'),
-                    attempts=1,
-                ))
+                has_item(
+                    has_entries(
+                        status="success",
+                        detail=has_entry(
+                            'topic_message_id', 'message-id-call-answered'
+                        ),
+                        attempts=1,
+                    )
+                ),
             )
+
         until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
 
         # Send call hungup push notification
@@ -197,15 +205,10 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_ended',
                 'origin_uuid': 'my-origin-uuid',
                 'user_uuid:{}'.format(USER_1_UUID): True,
-                'data': {
-                    'peer_caller_id_number': 'caller-id',
-                },
+                'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'call_ended',
-                'user_uuid:{}'.format(USER_1_UUID): True,
-            },
+            headers={'name': 'call_ended', 'user_uuid:{}'.format(USER_1_UUID): True},
         )
 
         self._wait_items(
@@ -216,12 +219,15 @@ class TestMobileCallback(BaseIntegrationTest):
             logs = webhookd.subscriptions.get_logs(subscription["uuid"])
             assert_that(
                 logs['items'],
-                has_item(has_entries(
-                    status="success",
-                    detail=has_entry('topic_message_id', 'message-id-call-hungup'),
-                    attempts=1,
-                ))
+                has_item(
+                    has_entries(
+                        status="success",
+                        detail=has_entry('topic_message_id', 'message-id-call-hungup'),
+                        attempts=1,
+                    )
+                ),
             )
+
         until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
 
         webhookd.subscriptions.delete(subscription["uuid"])
@@ -331,10 +337,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 },
             },
             routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'call_updated',
-                'user_uuid:{}'.format(USER_2_UUID): True,
-            },
+            headers={'name': 'call_updated', 'user_uuid:{}'.format(USER_2_UUID): True},
         )
 
         self._wait_items(
@@ -345,15 +348,24 @@ class TestMobileCallback(BaseIntegrationTest):
             logs = webhookd.subscriptions.get_logs(subscription["uuid"])
             assert_that(
                 logs['items'],
-                has_item(has_entries(
-                    status="success",
-                    detail=has_entry('request_body',
-                                     has_entry('aps',
-                                               has_entry('alert',
-                                                         has_entry('notification_type', 'callAnswered')))),
-                    attempts=1,
-                ))
+                has_item(
+                    has_entries(
+                        status="success",
+                        detail=has_entry(
+                            'request_body',
+                            has_entry(
+                                'aps',
+                                has_entry(
+                                    'alert',
+                                    has_entry('notification_type', 'callAnswered'),
+                                ),
+                            ),
+                        ),
+                        attempts=1,
+                    )
+                ),
             )
+
         until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
 
         # Send call hungup push notification
@@ -362,15 +374,10 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_ended',
                 'origin_uuid': 'my-origin-uuid',
                 'user_uuid:{}'.format(USER_2_UUID): True,
-                'data': {
-                    'peer_caller_id_number': 'caller-id',
-                },
+                'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'call_ended',
-                'user_uuid:{}'.format(USER_2_UUID): True,
-            },
+            headers={'name': 'call_ended', 'user_uuid:{}'.format(USER_2_UUID): True},
         )
 
         self._wait_items(
@@ -381,15 +388,23 @@ class TestMobileCallback(BaseIntegrationTest):
             logs = webhookd.subscriptions.get_logs(subscription["uuid"])
             assert_that(
                 logs['items'],
-                has_item(has_entries(
-                    status="success",
-                    detail=has_entry('request_body',
-                                     has_entry('aps',
-                                               has_entry('alert',
-                                                         has_entry('notification_type', 'callEnded')))),
-                    attempts=1,
-                ))
+                has_item(
+                    has_entries(
+                        status="success",
+                        detail=has_entry(
+                            'request_body',
+                            has_entry(
+                                'aps',
+                                has_entry(
+                                    'alert', has_entry('notification_type', 'callEnded')
+                                ),
+                            ),
+                        ),
+                        attempts=1,
+                    )
+                ),
             )
+
         until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
 
         webhookd.subscriptions.delete(subscription["uuid"])
