@@ -1,7 +1,7 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import functools
-from hamcrest import assert_that, has_entries, has_entry
+from hamcrest import assert_that, has_entries, has_entry, has_item
 import requests
 from mockserver import MockServerClient
 from xivo_test_helpers import until
@@ -78,7 +78,13 @@ class TestMobileCallback(BaseIntegrationTest):
         )
         third_party.reset()
         third_party.mock_simple_response(
-            path='/fcm/send', responseBody={'message_id': 'message-id'}, statusCode=200
+            path='/fcm/send', responseBody={'message_id': 'message-id-incoming-call'}, statusCode=200
+        )
+        third_party.mock_simple_response(
+            path='/fcm/send', responseBody={'message_id': 'message-id-call-answered'}, statusCode=200
+        )
+        third_party.mock_simple_response(
+            path='/fcm/send', responseBody={'message_id': 'message-id-call-hungup'}, statusCode=200
         )
 
         auth = self.make_auth()
@@ -120,6 +126,7 @@ class TestMobileCallback(BaseIntegrationTest):
 
         subscription = subscriptions['items'][0]
 
+        # Send incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
@@ -144,10 +151,79 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entry('topic_message_id', 'message-id'),
+                detail=has_entry('topic_message_id', 'message-id-incoming-call'),
                 attempts=1,
             ),
         )
+
+        # Send call answered elsewhere push notification
+        self.bus.publish(
+            {
+                'name': 'call_updated',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_1_UUID): True,
+                'data': {
+                    'status': 'Up',
+                    'is_caller': False,
+                    'peer_caller_id_number': 'caller-id',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_updated',
+                'user_uuid:{}'.format(USER_1_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        def call_updated_push_notification_sent():
+            logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(
+                logs['items'],
+                has_item(has_entries(
+                    status="success",
+                    detail=has_entry('topic_message_id', 'message-id-call-answered'),
+                    attempts=1,
+                ))
+            )
+        until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
+
+        # Send call hungup push notification
+        self.bus.publish(
+            {
+                'name': 'call_ended',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_1_UUID): True,
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_ended',
+                'user_uuid:{}'.format(USER_1_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        def call_ended_push_notification_sent():
+            logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(
+                logs['items'],
+                has_item(has_entries(
+                    status="success",
+                    detail=has_entry('topic_message_id', 'message-id-call-hungup'),
+                    attempts=1,
+                ))
+            )
+        until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
+
         webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_workflow_apns(self):
@@ -161,6 +237,16 @@ class TestMobileCallback(BaseIntegrationTest):
             )
         )
         third_party.reset()
+        third_party.mock_simple_response(
+            path='/3/device/token-ios',
+            responseBody={'tracker': 'tracker'},
+            statusCode=200,
+        )
+        third_party.mock_simple_response(
+            path='/3/device/token-ios',
+            responseBody={'tracker': 'tracker'},
+            statusCode=200,
+        )
         third_party.mock_simple_response(
             path='/3/device/token-ios',
             responseBody={'tracker': 'tracker'},
@@ -202,6 +288,7 @@ class TestMobileCallback(BaseIntegrationTest):
 
         subscription = subscriptions['items'][0]
 
+        # Send incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
@@ -230,4 +317,79 @@ class TestMobileCallback(BaseIntegrationTest):
                 attempts=1,
             ),
         )
+
+        # Send call answered elsewhere push notification
+        self.bus.publish(
+            {
+                'name': 'call_updated',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+                'data': {
+                    'status': 'Up',
+                    'is_caller': False,
+                    'peer_caller_id_number': 'caller-id',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_updated',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        def call_updated_push_notification_sent():
+            logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(
+                logs['items'],
+                has_item(has_entries(
+                    status="success",
+                    detail=has_entry('request_body',
+                                     has_entry('aps',
+                                               has_entry('alert',
+                                                         has_entry('notification_type', 'callAnswered')))),
+                    attempts=1,
+                ))
+            )
+        until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
+
+        # Send call hungup push notification
+        self.bus.publish(
+            {
+                'name': 'call_ended',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_ended',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        def call_ended_push_notification_sent():
+            logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(
+                logs['items'],
+                has_item(has_entries(
+                    status="success",
+                    detail=has_entry('request_body',
+                                     has_entry('aps',
+                                               has_entry('alert',
+                                                         has_entry('notification_type', 'callEnded')))),
+                    attempts=1,
+                ))
+            )
+        until.assert_(call_updated_push_notification_sent, timeout=10, interval=0.5)
+
         webhookd.subscriptions.delete(subscription["uuid"])
