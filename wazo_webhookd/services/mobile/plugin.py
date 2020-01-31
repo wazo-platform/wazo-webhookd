@@ -177,20 +177,20 @@ class PushNotification(object):
         if data['status'] == 'Up' and not data['is_caller']:
             return self._send_notification(
                 'callAnswered',
-                'Call answered',
+                'Call Answered',
                 'From: {}'.format(data['peer_caller_id_number']),
-                'wazo-notification-call',
-                data,
+                'wazo-notification-call-answered',
+                dict(call_id=data['call_id']),
             )
 
     def callEnded(self, data):
         if data['user_uuid'] == self.user['uuid']:
             return self._send_notification(
                 'callEnded',
-                'Call ended',
+                'Call Ended',
                 'From: {}'.format(data['peer_caller_id_number']),
-                'wazo-notification-call',
-                data,
+                'wazo-notification-call-ended',
+                dict(call_id=data['call_id']),
             )
 
     def voicemailReceived(self, data):
@@ -215,6 +215,8 @@ class PushNotification(object):
         self, notification_type, message_title, message_body, channel_id, items
     ):
         data = {'notification_type': notification_type, 'items': items}
+        # APNS is only needed for push notifications that use the VoIP API of iOS.
+        # In all other cases (regardless of iOS or Android), we can use FCM.
         if (
             self.external_tokens.get('apns_token')
             and channel_id == 'wazo-notification-call'
@@ -239,6 +241,15 @@ class PushNotification(object):
 
             if channel_id == 'wazo-notification-call':
                 notification = push_service.notify_single_device(
+                    registration_id=self.external_tokens['token'],
+                    data_message=data,
+                    extra_notification_kwargs=dict(priority='high'),
+                )
+            elif channel_id in (
+                'wazo-notification-call-answered',
+                'wazo-notification-call-ended',
+            ):
+                notification = push_service.single_device_data_message(
                     registration_id=self.external_tokens['token'],
                     data_message=data,
                     extra_notification_kwargs=dict(priority='high'),

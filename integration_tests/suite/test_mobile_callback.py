@@ -1,6 +1,7 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import functools
+import json
 from hamcrest import assert_that, has_entries, has_entry, has_item
 import requests
 from mockserver import MockServerClient
@@ -77,20 +78,68 @@ class TestMobileCallback(BaseIntegrationTest):
             )
         )
         third_party.reset()
-        third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-incoming-call'},
-            statusCode=200,
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'peer_caller_id_number': 'caller-id'},
+                                'notification_type': 'incomingCall',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-incoming-call'}),
+                },
+            }
         )
-        third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-call-answered'},
-            statusCode=200,
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callAnswered',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-answered'}),
+                },
+            }
         )
-        third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-call-hungup'},
-            statusCode=200,
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callEnded',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-hungup'}),
+                },
+            }
         )
 
         auth = self.make_auth()
@@ -169,6 +218,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'origin_uuid': 'my-origin-uuid',
                 'user_uuid:{}'.format(USER_1_UUID): True,
                 'data': {
+                    'call_id': 'some-call-id',
                     'status': 'Up',
                     'is_caller': False,
                     'peer_caller_id_number': 'caller-id',
@@ -205,7 +255,10 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_ended',
                 'origin_uuid': 'my-origin-uuid',
                 'user_uuid:{}'.format(USER_1_UUID): True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'call_id': 'some-call-id',
+                    'peer_caller_id_number': 'caller-id',
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={'name': 'call_ended', 'user_uuid:{}'.format(USER_1_UUID): True},
@@ -235,28 +288,66 @@ class TestMobileCallback(BaseIntegrationTest):
     def test_workflow_apns(self):
         auth = self.make_auth()
         auth.reset_external_auth()
-        auth.set_external_auth({'token': None, 'apns_token': 'token-ios'})
+        auth.set_external_auth({'token': 'token-android', 'apns_token': 'token-ios'})
 
-        third_party = MockServerClient(
+        apns_third_party = MockServerClient(
             'http://localhost:{port}'.format(
                 port=self.service_port(1080, 'third-party-http')
             )
         )
-        third_party.reset()
-        third_party.mock_simple_response(
+        fcm_third_party = MockServerClient(
+            'http://localhost:{port}'.format(
+                port=self.service_port(443, 'fcm.googleapis.com')
+            )
+        )
+        apns_third_party.reset()
+        apns_third_party.mock_simple_response(
             path='/3/device/token-ios',
             responseBody={'tracker': 'tracker'},
             statusCode=200,
         )
-        third_party.mock_simple_response(
-            path='/3/device/token-ios',
-            responseBody={'tracker': 'tracker'},
-            statusCode=200,
+        fcm_third_party.reset()
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callAnswered',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-answered'}),
+                },
+            }
         )
-        third_party.mock_simple_response(
-            path='/3/device/token-ios',
-            responseBody={'tracker': 'tracker'},
-            statusCode=200,
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callEnded',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-hungup'}),
+                },
+            }
         )
 
         self.bus.publish(
@@ -331,6 +422,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'origin_uuid': 'my-origin-uuid',
                 'user_uuid:{}'.format(USER_2_UUID): True,
                 'data': {
+                    'call_id': 'some-call-id',
                     'status': 'Up',
                     'is_caller': False,
                     'peer_caller_id_number': 'caller-id',
@@ -352,14 +444,7 @@ class TestMobileCallback(BaseIntegrationTest):
                     has_entries(
                         status="success",
                         detail=has_entry(
-                            'request_body',
-                            has_entry(
-                                'aps',
-                                has_entry(
-                                    'alert',
-                                    has_entry('notification_type', 'callAnswered'),
-                                ),
-                            ),
+                            'topic_message_id', 'message-id-call-answered'
                         ),
                         attempts=1,
                     )
@@ -374,7 +459,10 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_ended',
                 'origin_uuid': 'my-origin-uuid',
                 'user_uuid:{}'.format(USER_2_UUID): True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'call_id': 'some-call-id',
+                    'peer_caller_id_number': 'caller-id',
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={'name': 'call_ended', 'user_uuid:{}'.format(USER_2_UUID): True},
@@ -391,15 +479,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 has_item(
                     has_entries(
                         status="success",
-                        detail=has_entry(
-                            'request_body',
-                            has_entry(
-                                'aps',
-                                has_entry(
-                                    'alert', has_entry('notification_type', 'callEnded')
-                                ),
-                            ),
-                        ),
+                        detail=has_entry('topic_message_id', 'message-id-call-hungup'),
                         attempts=1,
                     )
                 ),
