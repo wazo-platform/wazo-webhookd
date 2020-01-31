@@ -78,63 +78,69 @@ class TestMobileCallback(BaseIntegrationTest):
             )
         )
         third_party.reset()
-        third_party.mock_any_response({
-            'httpRequest': {
-                'path': '/fcm/send',
-                'body': {
-                    'type': 'JSON',
-                    'json': {
-                        'data': {
-                            'items': {'peer_caller_id_number': 'caller-id'},
-                            'notification_type': 'incomingCall',
-                        }
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'peer_caller_id_number': 'caller-id'},
+                                'notification_type': 'incomingCall',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
                     },
-                    'matchType': 'ONLY_MATCHING_FIELDS',
                 },
-            },
-            'httpResponse': {
-                'statusCode': 200,
-                'body': json.dumps({'message_id': 'message-id-incoming-call'})
-            },
-        })
-        third_party.mock_any_response({
-            'httpRequest': {
-                'path': '/fcm/send',
-                'body': {
-                    'type': 'JSON',
-                    'json': {
-                        'data': {
-                            'items': {'call_id': 'some-call-id'},
-                            'notification_type': 'callAnswered',
-                        }
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-incoming-call'}),
+                },
+            }
+        )
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callAnswered',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
                     },
-                    'matchType': 'ONLY_MATCHING_FIELDS',
                 },
-            },
-            'httpResponse': {
-                'statusCode': 200,
-                'body': json.dumps({'message_id': 'message-id-call-answered'})
-            },
-        })
-        third_party.mock_any_response({
-            'httpRequest': {
-                'path': '/fcm/send',
-                'body': {
-                    'type': 'JSON',
-                    'json': {
-                        'data': {
-                            'items': {'call_id': 'some-call-id'},
-                            'notification_type': 'callEnded',
-                        }
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-answered'}),
+                },
+            }
+        )
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callEnded',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
                     },
-                    'matchType': 'ONLY_MATCHING_FIELDS',
                 },
-            },
-            'httpResponse': {
-                'statusCode': 200,
-                'body': json.dumps({'message_id': 'message-id-call-hungup'})
-            },
-        })
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-hungup'}),
+                },
+            }
+        )
 
         auth = self.make_auth()
         auth.reset_external_auth()
@@ -251,7 +257,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'user_uuid:{}'.format(USER_1_UUID): True,
                 'data': {
                     'call_id': 'some-call-id',
-                    'peer_caller_id_number': 'caller-id'
+                    'peer_caller_id_number': 'caller-id',
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -301,44 +307,48 @@ class TestMobileCallback(BaseIntegrationTest):
             statusCode=200,
         )
         fcm_third_party.reset()
-        fcm_third_party.mock_any_response({
-            'httpRequest': {
-                'path': '/fcm/send',
-                'body': {
-                    'type': 'JSON',
-                    'json': {
-                        'data': {
-                            'items': {'call_id': 'some-call-id'},
-                            'notification_type': 'callAnswered',
-                        }
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callAnswered',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
                     },
-                    'matchType': 'ONLY_MATCHING_FIELDS',
                 },
-            },
-            'httpResponse': {
-                'statusCode': 200,
-                'body': json.dumps({'message_id': 'message-id-call-answered'})
-            },
-        })
-        fcm_third_party.mock_any_response({
-            'httpRequest': {
-                'path': '/fcm/send',
-                'body': {
-                    'type': 'JSON',
-                    'json': {
-                        'data': {
-                            'items': {'call_id': 'some-call-id'},
-                            'notification_type': 'callEnded',
-                        }
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-answered'}),
+                },
+            }
+        )
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'call_id': 'some-call-id'},
+                                'notification_type': 'callEnded',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
                     },
-                    'matchType': 'ONLY_MATCHING_FIELDS',
                 },
-            },
-            'httpResponse': {
-                'statusCode': 200,
-                'body': json.dumps({'message_id': 'message-id-call-hungup'})
-            },
-        })
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-call-hungup'}),
+                },
+            }
+        )
 
         self.bus.publish(
             {
@@ -451,7 +461,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'user_uuid:{}'.format(USER_2_UUID): True,
                 'data': {
                     'call_id': 'some-call-id',
-                    'peer_caller_id_number': 'caller-id'
+                    'peer_caller_id_number': 'caller-id',
                 },
             },
             routing_key=SOME_ROUTING_KEY,

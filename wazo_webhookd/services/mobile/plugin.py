@@ -245,7 +245,10 @@ class PushNotification(object):
                     data_message=data,
                     extra_notification_kwargs=dict(priority='high'),
                 )
-            elif channel_id in ('wazo-notification-call-answered', 'wazo-notification-call-ended'):
+            elif channel_id in (
+                'wazo-notification-call-answered',
+                'wazo-notification-call-ended',
+            ):
                 notification = push_service.single_device_data_message(
                     registration_id=self.external_tokens['token'],
                     data_message=data,
