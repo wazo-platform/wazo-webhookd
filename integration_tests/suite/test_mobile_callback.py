@@ -1,6 +1,7 @@
 # Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import functools
+import json
 from hamcrest import assert_that, has_entries, has_entry, has_item
 import requests
 from mockserver import MockServerClient
@@ -77,21 +78,63 @@ class TestMobileCallback(BaseIntegrationTest):
             )
         )
         third_party.reset()
-        third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-incoming-call'},
-            statusCode=200,
-        )
-        third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-call-answered'},
-            statusCode=200,
-        )
-        third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-call-hungup'},
-            statusCode=200,
-        )
+        third_party.mock_any_response({
+            'httpRequest': {
+                'path': '/fcm/send',
+                'body': {
+                    'type': 'JSON',
+                    'json': {
+                        'data': {
+                            'items': {'peer_caller_id_number': 'caller-id'},
+                            'notification_type': 'incomingCall',
+                        }
+                    },
+                    'matchType': 'ONLY_MATCHING_FIELDS',
+                },
+            },
+            'httpResponse': {
+                'statusCode': 200,
+                'body': json.dumps({'message_id': 'message-id-incoming-call'})
+            },
+        })
+        third_party.mock_any_response({
+            'httpRequest': {
+                'path': '/fcm/send',
+                'body': {
+                    'type': 'JSON',
+                    'json': {
+                        'data': {
+                            'items': {'call_id': 'some-call-id'},
+                            'notification_type': 'callAnswered',
+                        }
+                    },
+                    'matchType': 'ONLY_MATCHING_FIELDS',
+                },
+            },
+            'httpResponse': {
+                'statusCode': 200,
+                'body': json.dumps({'message_id': 'message-id-call-answered'})
+            },
+        })
+        third_party.mock_any_response({
+            'httpRequest': {
+                'path': '/fcm/send',
+                'body': {
+                    'type': 'JSON',
+                    'json': {
+                        'data': {
+                            'items': {'call_id': 'some-call-id'},
+                            'notification_type': 'callEnded',
+                        }
+                    },
+                    'matchType': 'ONLY_MATCHING_FIELDS',
+                },
+            },
+            'httpResponse': {
+                'statusCode': 200,
+                'body': json.dumps({'message_id': 'message-id-call-hungup'})
+            },
+        })
 
         auth = self.make_auth()
         auth.reset_external_auth()
@@ -258,16 +301,44 @@ class TestMobileCallback(BaseIntegrationTest):
             statusCode=200,
         )
         fcm_third_party.reset()
-        fcm_third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-call-answered'},
-            statusCode=200,
-        )
-        fcm_third_party.mock_simple_response(
-            path='/fcm/send',
-            responseBody={'message_id': 'message-id-call-hungup'},
-            statusCode=200,
-        )
+        fcm_third_party.mock_any_response({
+            'httpRequest': {
+                'path': '/fcm/send',
+                'body': {
+                    'type': 'JSON',
+                    'json': {
+                        'data': {
+                            'items': {'call_id': 'some-call-id'},
+                            'notification_type': 'callAnswered',
+                        }
+                    },
+                    'matchType': 'ONLY_MATCHING_FIELDS',
+                },
+            },
+            'httpResponse': {
+                'statusCode': 200,
+                'body': json.dumps({'message_id': 'message-id-call-answered'})
+            },
+        })
+        fcm_third_party.mock_any_response({
+            'httpRequest': {
+                'path': '/fcm/send',
+                'body': {
+                    'type': 'JSON',
+                    'json': {
+                        'data': {
+                            'items': {'call_id': 'some-call-id'},
+                            'notification_type': 'callEnded',
+                        }
+                    },
+                    'matchType': 'ONLY_MATCHING_FIELDS',
+                },
+            },
+            'httpResponse': {
+                'statusCode': 200,
+                'body': json.dumps({'message_id': 'message-id-call-hungup'})
+            },
+        })
 
         self.bus.publish(
             {
