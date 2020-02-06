@@ -107,7 +107,10 @@ class TestMobileCallback(BaseIntegrationTest):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'call_id': 'some-call-id'},
+                                'items': {
+                                    'call_id': 'some-call-id',
+                                    'sip_call_id': 'some-sip-call-id',
+                                },
                                 'notification_type': 'callAnswered',
                             }
                         },
@@ -128,7 +131,10 @@ class TestMobileCallback(BaseIntegrationTest):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'call_id': 'some-call-id'},
+                                'items': {
+                                    'call_id': 'some-call-id',
+                                    'sip_call_id': 'some-sip-call-id',
+                                },
                                 'notification_type': 'callEnded',
                             }
                         },
@@ -222,6 +228,7 @@ class TestMobileCallback(BaseIntegrationTest):
                     'status': 'Up',
                     'is_caller': False,
                     'peer_caller_id_number': 'caller-id',
+                    'sip_call_id': 'some-sip-call-id',
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -258,6 +265,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'data': {
                     'call_id': 'some-call-id',
                     'peer_caller_id_number': 'caller-id',
+                    'sip_call_id': 'some-sip-call-id',
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -315,7 +323,10 @@ class TestMobileCallback(BaseIntegrationTest):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'call_id': 'some-call-id'},
+                                'items': {
+                                    'call_id': 'some-call-id',
+                                    'sip_call_id': 'some-sip-call-id',
+                                },
                                 'notification_type': 'callAnswered',
                             }
                         },
@@ -336,7 +347,10 @@ class TestMobileCallback(BaseIntegrationTest):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'call_id': 'some-call-id'},
+                                'items': {
+                                    'call_id': 'some-call-id',
+                                    'sip_call_id': 'some-sip-call-id',
+                                },
                                 'notification_type': 'callEnded',
                             }
                         },
@@ -426,6 +440,7 @@ class TestMobileCallback(BaseIntegrationTest):
                     'status': 'Up',
                     'is_caller': False,
                     'peer_caller_id_number': 'caller-id',
+                    'sip_call_id': 'some-sip-call-id',
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -462,6 +477,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'data': {
                     'call_id': 'some-call-id',
                     'peer_caller_id_number': 'caller-id',
+                    'sip_call_id': 'some-sip-call-id',
                 },
             },
             routing_key=SOME_ROUTING_KEY,

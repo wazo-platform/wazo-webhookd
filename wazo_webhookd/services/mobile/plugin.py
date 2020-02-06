@@ -180,7 +180,7 @@ class PushNotification(object):
                 'Call Answered',
                 'From: {}'.format(data['peer_caller_id_number']),
                 'wazo-notification-call-answered',
-                dict(call_id=data['call_id']),
+                dict(call_id=data['call_id'], sip_call_id=data['sip_call_id']),
             )
 
     def callEnded(self, data):
@@ -190,7 +190,7 @@ class PushNotification(object):
                 'Call Ended',
                 'From: {}'.format(data['peer_caller_id_number']),
                 'wazo-notification-call-ended',
-                dict(call_id=data['call_id']),
+                dict(call_id=data['call_id'], sip_call_id=data['sip_call_id']),
             )
 
     def voicemailReceived(self, data):
