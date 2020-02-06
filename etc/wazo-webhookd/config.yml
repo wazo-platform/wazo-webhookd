@@ -105,3 +105,4 @@ enabled_services:
 
 mobile_apns_host: api.push.apple.com
 mobile_apns_port: 443
+mobile_use_subscription_token: false

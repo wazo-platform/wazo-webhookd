@@ -21,3 +21,4 @@ stevedore==1.29.0
 pyfcm==1.4.7
 httpx==0.7.2
 werkzeug==0.14.1
+pyjwt==1.7.0

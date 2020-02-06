@@ -80,6 +80,7 @@ _DEFAULT_CONFIG = {
     'hook_max_attempts': 10,
     'mobile_apns_host': 'api.push.apple.com',
     'mobile_apns_port': 443,
+    'mobile_use_subscription_token': False,
 }
 
 

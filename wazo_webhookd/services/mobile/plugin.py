@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import httpx
+import jwt
 import logging
 import tempfile
 import uuid
@@ -99,7 +100,7 @@ class Service:
             logger.info('User unregistered: %s/%s', tenant_uuid, user_uuid)
 
     def get_tenant_uuid(self, user_uuid):
-        auth, jwt = self.get_auth(self._config)
+        auth = self.get_auth(self._config)
         return auth.users.get(user_uuid)["tenant_uuid"]
 
     @classmethod
@@ -110,20 +111,19 @@ class Service:
         auth = AuthClient(**auth_config)
         token = auth.token.new('wazo_user', expiration=3600)
         auth.set_token(token["token"])
-        jwt = token.get("metadata", {}).get("jwt", "")
         auth.username = None
         auth.password = None
-        return (auth, jwt)
+        return auth
 
     @classmethod
     def get_external_data(cls, config, user_uuid):
-        auth, jwt = cls.get_auth(config)
+        auth = cls.get_auth(config)
         external_tokens = auth.external.get('mobile', user_uuid)
         user = auth.users.get(user_uuid)
         tenant_uuid = user['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        return (external_tokens, external_config, user, jwt)
+        return (external_tokens, external_config, user)
 
     @classmethod
     def run(cls, task, config, subscription, event):
@@ -140,12 +140,10 @@ class Service:
         ):
             return
 
-        external_tokens, external_config, user, jwt = cls.get_external_data(
+        external_tokens, external_config, user = cls.get_external_data(
             config, user_uuid
         )
-        push = PushNotification(
-            task, config, external_tokens, external_config, user, jwt
-        )
+        push = PushNotification(task, config, external_tokens, external_config, user)
 
         data = event.get('data')
         name = event.get('name')
@@ -156,13 +154,40 @@ class Service:
 
 
 class PushNotification(object):
-    def __init__(self, task, config, external_tokens, external_config, user, jwt):
+    _subscription_token = ""
+
+    def __init__(self, task, config, external_tokens, external_config, user):
         self.task = task
         self.config = config
         self.external_tokens = external_tokens
         self.external_config = external_config
         self.user = user
-        self.jwt = jwt
+
+    @property
+    def subscription_token(self):
+        if self.config["mobile_use_subscription_token"] and (
+            not PushNotification._subscription_token
+            or not self._is_valid(PushNotification._subscription_token)
+        ):
+            auth_config = dict(self.config['auth'])
+            auth_config['verify_certificate'] = False
+            auth = AuthClient(**auth_config)
+            PushNotification._subscription_token = auth.subscription_token.get()
+
+        return PushNotification._subscription_token
+
+    @classmethod
+    def _is_valid(cls, token):
+        try:
+            jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+        except jwt.ExpiredSignatureError:
+            logger.debug("Cached subscription authorization is expired: %s", token)
+            return False
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return True
 
     def incomingCall(self, data):
         return self._send_notification(
@@ -300,8 +325,8 @@ class PushNotification(object):
         if use_sandbox:
             headers['X-Use-Sandbox'] = '1'
 
-        if self.jwt:
-            headers['Authorization'] = 'Bearer ' + self.jwt
+        if self.subscription_token:
+            headers['Authorization'] = 'Bearer ' + self.subscription_token
 
         apn_certificate = self.external_config.get('ios_apn_certificate', None)
         apn_private = self.external_config.get('ios_apn_private', None)
