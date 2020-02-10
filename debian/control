@@ -30,6 +30,7 @@ Depends:
  python3-sqlalchemy-utils,
  python3-stevedore,
  python3-yaml,
+ python3-werkzeug,
  wazo-auth-client-python3,
  xivo-dbms (>= 19.07~20190429.122922.25c3757.deb9),
  xivo-lib-python-python3
