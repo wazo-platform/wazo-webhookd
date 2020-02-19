@@ -1,9 +1,12 @@
 # Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 import functools
 import json
-from hamcrest import assert_that, has_entries, has_entry, has_item
+
 import requests
+
+from hamcrest import assert_that, has_entries, has_entry
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
