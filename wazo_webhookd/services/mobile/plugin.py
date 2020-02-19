@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 import httpx
@@ -26,8 +26,6 @@ REQUESTS_TIMEOUT = (10, 15, 15)  # seconds
 MAP_NAME_TO_NOTIFICATION_TYPE = {
     'user_voicemail_message_created': 'voicemailReceived',
     'call_push_notification': 'incomingCall',
-    'call_updated': 'callUpdated',
-    'call_ended': 'callEnded',
     'chatd_user_room_message_created': 'messageReceived',
 }
 
@@ -70,8 +68,6 @@ class Service:
                     'events': [
                         'chatd_user_room_message_created',
                         'call_push_notification',
-                        'call_updated',
-                        'call_ended',
                         'user_voicemail_message_created',
                     ],
                     'events_user_uuid': user_uuid,
@@ -119,11 +115,10 @@ class Service:
     def get_external_data(cls, config, user_uuid):
         auth, jwt = cls.get_auth(config)
         external_tokens = auth.external.get('mobile', user_uuid)
-        user = auth.users.get(user_uuid)
-        tenant_uuid = user['tenant_uuid']
+        tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
         external_config = auth.external.get_config('mobile', tenant_uuid)
 
-        return (external_tokens, external_config, user, jwt)
+        return (external_tokens, external_config, jwt)
 
     @classmethod
     def run(cls, task, config, subscription, event):
@@ -140,12 +135,8 @@ class Service:
         ):
             return
 
-        external_tokens, external_config, user, jwt = cls.get_external_data(
-            config, user_uuid
-        )
-        push = PushNotification(
-            task, config, external_tokens, external_config, user, jwt
-        )
+        external_tokens, external_config, jwt = cls.get_external_data(config, user_uuid)
+        push = PushNotification(task, config, external_tokens, external_config, jwt)
 
         data = event.get('data')
         name = event.get('name')
@@ -156,12 +147,11 @@ class Service:
 
 
 class PushNotification(object):
-    def __init__(self, task, config, external_tokens, external_config, user, jwt):
+    def __init__(self, task, config, external_tokens, external_config, jwt):
         self.task = task
         self.config = config
         self.external_tokens = external_tokens
         self.external_config = external_config
-        self.user = user
         self.jwt = jwt
 
     def incomingCall(self, data):
@@ -172,26 +162,6 @@ class PushNotification(object):
             'wazo-notification-call',
             data,
         )
-
-    def callUpdated(self, data):
-        if data['status'] == 'Up' and not data['is_caller']:
-            return self._send_notification(
-                'callAnswered',
-                'Call Answered',
-                'From: {}'.format(data['peer_caller_id_number']),
-                'wazo-notification-call-answered',
-                dict(call_id=data['call_id'], sip_call_id=data['sip_call_id']),
-            )
-
-    def callEnded(self, data):
-        if data['user_uuid'] == self.user['uuid']:
-            return self._send_notification(
-                'callEnded',
-                'Call Ended',
-                'From: {}'.format(data['peer_caller_id_number']),
-                'wazo-notification-call-ended',
-                dict(call_id=data['call_id'], sip_call_id=data['sip_call_id']),
-            )
 
     def voicemailReceived(self, data):
         return self._send_notification(
