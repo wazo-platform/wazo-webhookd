@@ -218,5 +218,6 @@ class SubscriptionService(object):
                         "subscription %s have been deleted in the meantime",
                         subscription_uuid,
                     )
+                    session.rollback()
                 else:
                     raise
