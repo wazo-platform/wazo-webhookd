@@ -6,7 +6,7 @@ import json
 
 import requests
 
-from hamcrest import assert_that, has_entries, has_entry
+from hamcrest import assert_that, equal_to, has_entries, has_entry
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
@@ -70,7 +70,7 @@ class TestMobileCallback(BaseIntegrationTest):
     def _wait_items(func, number=1):
         def check():
             logs = func()
-            assert_that(logs['total'], number)
+            assert_that(logs['total'], equal_to(number))
 
         until.assert_(check, timeout=10, interval=0.5)
 
@@ -120,7 +120,7 @@ class TestMobileCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
         subscriptions = webhookd.subscriptions.list(recurse=True)
-        assert_that(subscriptions['total'], 1)
+        assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
             has_entries(
@@ -160,7 +160,7 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        assert_that(logs['total'], 1)
+        assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
             has_entries(
@@ -207,7 +207,7 @@ class TestMobileCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
         subscriptions = webhookd.subscriptions.list(recurse=True)
-        assert_that(subscriptions['total'], 1)
+        assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
             has_entries(
@@ -247,7 +247,7 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        assert_that(logs['total'], 1)
+        assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
             has_entries(

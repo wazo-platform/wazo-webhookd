@@ -7,7 +7,16 @@ import uuid
 
 from contextlib import contextmanager
 from functools import partial
-from hamcrest import assert_that, calling, has_entries, is_, none, not_none, raises
+from hamcrest import (
+    assert_that,
+    calling,
+    equal_to,
+    has_entries,
+    is_,
+    none,
+    not_none,
+    raises,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -184,11 +193,11 @@ class TestDatabase(AssetLaunchingTestCase):
             add_log(days_ago=days)
 
         logs = service.get_logs(subscription_uuid)
-        assert_that(len(logs), 10)
+        assert_that(len(logs), equal_to(10))
 
         with service.rw_session() as session:
             days_to_purge = 2
             SubscriptionLogsPurger().purge(days_to_purge, session)
 
         logs = service.get_logs(subscription_uuid)
-        assert_that(len(logs), 4)
+        assert_that(len(logs), equal_to(4))
