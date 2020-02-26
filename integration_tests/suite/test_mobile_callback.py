@@ -6,7 +6,7 @@ import json
 
 import requests
 
-from hamcrest import assert_that, has_entries, has_entry
+from hamcrest import assert_that, equal_to, has_entries, has_entry
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
