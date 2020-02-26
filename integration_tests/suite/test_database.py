@@ -201,3 +201,21 @@ class TestDatabase(AssetLaunchingTestCase):
 
         logs = service.get_logs(subscription_uuid)
         assert_that(len(logs), equal_to(4))
+
+    def test_subscription_log_on_subscription_deleted(self):
+        service = SubscriptionService({'db_uri': self.db_uri})
+        subscription_uuid_not_found = str(uuid.uuid4())
+
+        service.create_hook_log(
+            uuid=str(uuid.uuid4()),
+            subscription_uuid=subscription_uuid_not_found,
+            status="failure",
+            attempts=1,
+            max_attempts=3,
+            started_at=datetime.datetime.now(),
+            ended_at=datetime.datetime.now() + datetime.timedelta(minutes=1),
+            event={},
+            detail={},
+        )
+
+        # assert no exception
