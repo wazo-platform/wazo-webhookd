@@ -212,36 +212,25 @@ class PushNotification(object):
 
         push_service = FCMNotification(api_key=self.external_config['fcm_api_key'])
 
-        if message_title and message_body:
+        if channel_id == 'wazo-notification-call':
+            notification = push_service.notify_single_device(
+                registration_id=self.external_tokens['token'],
+                data_message=data,
+                extra_notification_kwargs=dict(priority='high'),
+            )
+        else:
+            notification = push_service.notify_single_device(
+                registration_id=self.external_tokens['token'],
+                message_title=message_title,
+                message_body=message_body,
+                badge=1,
+                extra_notification_kwargs=dict(android_channel_id=channel_id),
+                data_message=data,
+            )
 
-            if channel_id == 'wazo-notification-call':
-                notification = push_service.notify_single_device(
-                    registration_id=self.external_tokens['token'],
-                    data_message=data,
-                    extra_notification_kwargs=dict(priority='high'),
-                )
-            elif channel_id in (
-                'wazo-notification-call-answered',
-                'wazo-notification-call-ended',
-            ):
-                notification = push_service.single_device_data_message(
-                    registration_id=self.external_tokens['token'],
-                    data_message=data,
-                    extra_notification_kwargs=dict(priority='high'),
-                )
-            else:
-                notification = push_service.notify_single_device(
-                    registration_id=self.external_tokens['token'],
-                    message_title=message_title,
-                    message_body=message_body,
-                    badge=1,
-                    extra_notification_kwargs=dict(android_channel_id=channel_id),
-                    data_message=data,
-                )
-
-            if notification.get('failure') != 0:
-                logger.error('Error to send push notification: %s', notification)
-            return notification
+        if notification.get('failure') != 0:
+            logger.error('Error to send push notification: %s', notification)
+        return notification
 
     @property
     def _apn_push_client(self):
