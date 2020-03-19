@@ -18,6 +18,7 @@ from wazo_webhookd.services.helpers import (
     requests_automatic_hook_retry,
     requests_automatic_detail,
 )
+from .exceptions import NotificationError
 
 logger = logging.getLogger(__name__)
 
@@ -185,19 +186,23 @@ class PushNotification(object):
         self, notification_type, message_title, message_body, channel_id, items
     ):
         data = {'notification_type': notification_type, 'items': items}
-        # APNS is only needed for push notifications that use the VoIP API of iOS.
-        # In all other cases (regardless of iOS or Android), we can use FCM.
-        if (
-            self.external_tokens.get('apns_token')
-            and channel_id == 'wazo-notification-call'
-        ):
+        if (self._can_send_to_apn(self.external_tokens)):
             with requests_automatic_hook_retry(self.task):
-                return self._send_via_apn(data)
+                return self._send_via_apn(message_title, message_body, channel_id, data)
         else:
             try:
                 return self._send_via_fcm(message_title, message_body, channel_id, data)
             except RetryAfterException as e:
                 raise HookRetry({"error": str(e)})
+
+    @staticmethod
+    def _can_send_to_apn(external_tokens):
+        return bool(
+            (
+                external_tokens.get('apns_voip_token')
+                or external_tokens.get('apns_notification_token')
+            ) or external_tokens.get('apns_token')
+        )
 
     def _send_via_fcm(self, message_title, message_body, channel_id, data):
         logger.debug(
@@ -241,7 +246,6 @@ class PushNotification(object):
     @property
     def _apn_push_client(self):
         headers = {
-            'apns-topic': 'io.wazo.songbird.voip',
             'apns-priority': "5",
             'apns-expiration': "0",
             'User-Agent': 'wazo-webhookd',
@@ -255,18 +259,48 @@ class PushNotification(object):
             timeout=REQUESTS_TIMEOUT,
         )
 
-    def _send_via_apn(self, data):
-        payload = {
-            'aps': {
-                'alert': data,
-                'badge': 1,
-                'sound': "default",
-                'content-available': 1,
+    def _send_via_apn(self, message_title, message_body, channel_id, data):
+        if channel_id == 'wazo-notification-call':
+            headers = {
+                'apns-topic': 'io.wazo.songbird.voip',
             }
-        }
+            payload = {
+                'aps': {
+                    'alert': data,
+                    'badge': 1,
+                    'sound': "default",
+                    'content-available': 1,
+                }
+            }
+            token = self.external_tokens.get("apns_voip_token") or self.external_tokens["apns_token"]
+        else:
+            headers = {
+                'apns-topic': 'io.wazo.songbird',
+                # 'apns-push-type': 'alert',
+            }
+            payload = {
+                'aps': {
+                    'alert': {
+                        'title': message_title,
+                        'subtitle': '',
+                        'body': message_body,
+                    },
+                    'badge': 1,
+                    'sound': "default",
+                    # 'content-available': 1,
+                },
+                **data,
+            }
+            try:
+                token = self.external_tokens['apns_notification_token']
+            except KeyError:
+                details = {
+                    'message': 'Mobile application did not upload external auth token `apns_notification_token`',
+                }
+                raise NotificationError(details)
+
         use_sandbox = self.external_config.get('use_sandbox', False)
 
-        headers = {}
         if use_sandbox:
             headers['X-Use-Sandbox'] = '1'
 
@@ -281,7 +315,7 @@ class PushNotification(object):
             host = 'api.sandbox.push.apple.com'
 
         url = "https://{}:{}/3/device/{}".format(
-            host, self.config['mobile_apns_port'], self.external_tokens["apns_token"]
+            host, self.config['mobile_apns_port'], token
         )
 
         with self._certificate_filename(

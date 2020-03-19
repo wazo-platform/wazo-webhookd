@@ -6,7 +6,14 @@ import json
 
 import requests
 
-from hamcrest import assert_that, equal_to, has_entries, has_entry
+from hamcrest import (
+    assert_that,
+    contains_string,
+    equal_to,
+    has_entries,
+    has_entry,
+    has_item,
+)
 from mockserver import MockServerClient
 from xivo_test_helpers import until
 
@@ -172,19 +179,15 @@ class TestMobileCallback(BaseIntegrationTest):
 
         webhookd.subscriptions.delete(subscription["uuid"])
 
-    def test_workflow_apns(self):
+    def test_workflow_apns_with_app_using_one_token(self):
         auth = self.make_auth()
         auth.reset_external_auth()
+        # Older iOS apps used only one APNs token
         auth.set_external_auth({'token': 'token-android', 'apns_token': 'token-ios'})
 
         apns_third_party = MockServerClient(
             'http://localhost:{port}'.format(
                 port=self.service_port(1080, 'third-party-http')
-            )
-        )
-        fcm_third_party = MockServerClient(
-            'http://localhost:{port}'.format(
-                port=self.service_port(443, 'fcm.googleapis.com')
             )
         )
         apns_third_party.reset()
@@ -193,7 +196,6 @@ class TestMobileCallback(BaseIntegrationTest):
             responseBody={'tracker': 'tracker'},
             statusCode=200,
         )
-        fcm_third_party.reset()
         self.bus.publish(
             {
                 'name': 'auth_user_external_auth_added',
@@ -253,6 +255,166 @@ class TestMobileCallback(BaseIntegrationTest):
             has_entries(
                 status="success",
                 detail=has_entry('response_body', has_entry('tracker', 'tracker')),
+                attempts=1,
+            ),
+        )
+
+        # Send chat message push notification
+        self.bus.publish(
+            {
+                'name': 'chatd_user_room_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'alias': 'sender-name', 'content': 'chat content'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'chatd_user_room_message_created',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(2))
+        assert_that(
+            logs['items'],
+            has_item(
+                has_entries(
+                    status='error',
+                    detail=has_entries(
+                        message=contains_string('apns_notification_token'),
+                        error_id='notification-error',
+                    ),
+                    attempts=1,
+                )
+            ),
+        )
+
+        webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_workflow_apns_with_app_using_two_tokens(self):
+        auth = self.make_auth()
+        auth.reset_external_auth()
+        # Newer iOS apps use two APNs token
+        auth.set_external_auth(
+            {
+                'token': 'token-android',
+                'apns_token': 'apns-voip-token',
+                'apns_voip_token': 'apns-voip-token',
+                'apns_notification_token': 'apns-notification-token',
+            }
+        )
+
+        apns_third_party = MockServerClient(
+            'http://localhost:{port}'.format(
+                port=self.service_port(1080, 'third-party-http')
+            )
+        )
+        apns_third_party.reset()
+        apns_third_party.mock_simple_response(
+            path='/3/device/apns-voip-token',
+            responseBody={'tracker': 'tracker-voip'},
+            statusCode=200,
+        )
+        apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': 'tracker-notification'},
+            statusCode=200,
+        )
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_2_UUID},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={'name': 'auth_user_external_auth_added'},
+        )
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
+        subscriptions = webhookd.subscriptions.list(recurse=True)
+        assert_that(subscriptions['total'], equal_to(1))
+        assert_that(
+            subscriptions['items'][0],
+            has_entries(
+                name="Push notification mobile for user {}/{}".format(
+                    USERS_TENANT, USER_2_UUID
+                ),
+                events=[
+                    'chatd_user_room_message_created',
+                    'call_push_notification',
+                    'user_voicemail_message_created',
+                ],
+                owner_tenant_uuid=USERS_TENANT,
+                owner_user_uuid=USER_2_UUID,
+                service='mobile',
+            ),
+        )
+
+        subscription = subscriptions['items'][0]
+
+        # Send incoming call push notification
+        self.bus.publish(
+            {
+                'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+                'data': {'peer_caller_id_number': 'caller-id'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_push_notification',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry('response_body', has_entry('tracker', 'tracker-voip')),
+                attempts=1,
+            ),
+        )
+
+        # Send chat message push notification
+        self.bus.publish(
+            {
+                'name': 'chatd_user_room_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'alias': 'sender-name', 'content': 'chat content'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'chatd_user_room_message_created',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            number=2,
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(2))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'response_body', has_entry('tracker', 'tracker-notification')
+                ),
                 attempts=1,
             ),
         )
