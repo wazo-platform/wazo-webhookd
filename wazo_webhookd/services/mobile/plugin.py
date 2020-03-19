@@ -246,7 +246,6 @@ class PushNotification(object):
     @property
     def _apn_push_client(self):
         headers = {
-            'apns-priority': "5",
             'apns-expiration': "0",
             'User-Agent': 'wazo-webhookd',
         }
@@ -263,31 +262,30 @@ class PushNotification(object):
         if channel_id == 'wazo-notification-call':
             headers = {
                 'apns-topic': 'io.wazo.songbird.voip',
+                'apns-push-type': 'voip',
+                'apns-priority': '10',
             }
             payload = {
                 'aps': {
                     'alert': data,
                     'badge': 1,
-                    'sound': "default",
-                    'content-available': 1,
                 }
             }
             token = self.external_tokens.get("apns_voip_token") or self.external_tokens["apns_token"]
         else:
             headers = {
                 'apns-topic': 'io.wazo.songbird',
-                # 'apns-push-type': 'alert',
+                'apns-push-type': 'alert',
+                'apns-priority': '5',
             }
             payload = {
                 'aps': {
                     'alert': {
                         'title': message_title,
-                        'subtitle': '',
                         'body': message_body,
                     },
                     'badge': 1,
                     'sound': "default",
-                    # 'content-available': 1,
                 },
                 **data,
             }
