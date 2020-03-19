@@ -258,7 +258,8 @@ class PushNotification(object):
                 'aps': {
                     'alert': data,
                     'badge': 1,
-                }
+                },
+                **data,
             }
             token = self.external_tokens.get("apns_voip_token") or self.external_tokens["apns_token"]
         else:
