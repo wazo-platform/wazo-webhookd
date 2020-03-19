@@ -248,6 +248,45 @@ class PushNotification(object):
         )
 
     def _send_via_apn(self, message_title, message_body, channel_id, data):
+        headers, payload, token = self._create_apn_message(message_title, message_body, channel_id, data)
+
+        use_sandbox = self.external_config.get('use_sandbox', False)
+
+        if use_sandbox:
+            headers['X-Use-Sandbox'] = '1'
+
+        if self.jwt:
+            headers['Authorization'] = 'Bearer ' + self.jwt
+
+        apn_certificate = self.external_config.get('ios_apn_certificate', None)
+        apn_private = self.external_config.get('ios_apn_private', None)
+
+        host = self.config['mobile_apns_host']
+        if use_sandbox and host == 'api.push.apple.com':
+            host = 'api.sandbox.push.apple.com'
+
+        url = "https://{}:{}/3/device/{}".format(
+            host, self.config['mobile_apns_port'], token
+        )
+
+        with self._certificate_filename(
+            apn_certificate, apn_private
+        ) as apn_cert_filename:
+            logger.debug(
+                'Sending push notification to APNS: POST %s, headers: %s,'
+                'certificate: %s, payload: %s',
+                url,
+                headers,
+                apn_cert_filename,
+                payload,
+            )
+            response = self._apn_push_client.post(
+                url, cert=apn_cert_filename, headers=headers, json=payload,
+            )
+        response.raise_for_status()
+        return requests_automatic_detail(response)
+
+    def _create_apn_message(self, message_title, message_body, channel_id, data):
         if channel_id == 'wazo-notification-call':
             headers = {
                 'apns-topic': 'io.wazo.songbird.voip',
@@ -286,42 +325,7 @@ class PushNotification(object):
                     'message': 'Mobile application did not upload external auth token `apns_notification_token`',
                 }
                 raise NotificationError(details)
-
-        use_sandbox = self.external_config.get('use_sandbox', False)
-
-        if use_sandbox:
-            headers['X-Use-Sandbox'] = '1'
-
-        if self.jwt:
-            headers['Authorization'] = 'Bearer ' + self.jwt
-
-        apn_certificate = self.external_config.get('ios_apn_certificate', None)
-        apn_private = self.external_config.get('ios_apn_private', None)
-
-        host = self.config['mobile_apns_host']
-        if use_sandbox and host == 'api.push.apple.com':
-            host = 'api.sandbox.push.apple.com'
-
-        url = "https://{}:{}/3/device/{}".format(
-            host, self.config['mobile_apns_port'], token
-        )
-
-        with self._certificate_filename(
-            apn_certificate, apn_private
-        ) as apn_cert_filename:
-            logger.debug(
-                'Sending push notification to APNS: POST %s, headers: %s,'
-                'certificate: %s, payload: %s',
-                url,
-                headers,
-                apn_cert_filename,
-                payload,
-            )
-            response = self._apn_push_client.post(
-                url, cert=apn_cert_filename, headers=headers, json=payload,
-            )
-        response.raise_for_status()
-        return requests_automatic_detail(response)
+        return headers, payload, token
 
     @staticmethod
     @contextmanager
