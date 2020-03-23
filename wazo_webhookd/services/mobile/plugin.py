@@ -186,7 +186,7 @@ class PushNotification(object):
         self, notification_type, message_title, message_body, channel_id, items
     ):
         data = {'notification_type': notification_type, 'items': items}
-        if (self._can_send_to_apn(self.external_tokens)):
+        if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
                 return self._send_via_apn(message_title, message_body, channel_id, data)
         else:
@@ -201,7 +201,8 @@ class PushNotification(object):
             (
                 external_tokens.get('apns_voip_token')
                 or external_tokens.get('apns_notification_token')
-            ) or external_tokens.get('apns_token')
+            )
+            or external_tokens.get('apns_token')
         )
 
     def _send_via_fcm(self, message_title, message_body, channel_id, data):
@@ -248,7 +249,9 @@ class PushNotification(object):
         )
 
     def _send_via_apn(self, message_title, message_body, channel_id, data):
-        headers, payload, token = self._create_apn_message(message_title, message_body, channel_id, data)
+        headers, payload, token = self._create_apn_message(
+            message_title, message_body, channel_id, data
+        )
 
         use_sandbox = self.external_config.get('use_sandbox', False)
 
@@ -294,13 +297,13 @@ class PushNotification(object):
                 'apns-priority': '10',
             }
             payload = {
-                'aps': {
-                    'alert': data,
-                    'badge': 1,
-                },
+                'aps': {'alert': data, 'badge': 1},
                 **data,
             }
-            token = self.external_tokens.get("apns_voip_token") or self.external_tokens["apns_token"]
+            token = (
+                self.external_tokens.get("apns_voip_token")
+                or self.external_tokens["apns_token"]
+            )
         else:
             headers = {
                 'apns-topic': 'io.wazo.songbird',
@@ -309,10 +312,7 @@ class PushNotification(object):
             }
             payload = {
                 'aps': {
-                    'alert': {
-                        'title': message_title,
-                        'body': message_body,
-                    },
+                    'alert': {'title': message_title, 'body': message_body},
                     'badge': 1,
                     'sound': "default",
                 },
