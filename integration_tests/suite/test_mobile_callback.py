@@ -42,7 +42,6 @@ class TestMobileCallback(BaseIntegrationTest):
                 'uuid': USER_1_UUID,
             },
             headers={'Wazo-Tenant': USERS_TENANT},
-            verify=False,
         )
         requests.post(
             auth.url('0.1/users'),
@@ -53,7 +52,6 @@ class TestMobileCallback(BaseIntegrationTest):
                 'uuid': USER_2_UUID,
             },
             headers={'Wazo-Tenant': USERS_TENANT},
-            verify=False,
         )
 
         with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
