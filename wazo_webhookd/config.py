@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
@@ -8,7 +8,6 @@ from xivo.chain_map import ChainMap
 from xivo.config_helper import parse_config_file, read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
-_CERT_FILE = '/usr/share/xivo-certs/server.crt'
 _DEFAULT_HTTPS_PORT = 9300
 _PID_DIR = '/run/wazo-webhookd'
 
@@ -23,7 +22,8 @@ _DEFAULT_CONFIG = {
     'auth': {
         'host': 'localhost',
         'port': 9497,
-        'verify_certificate': _CERT_FILE,
+        'prefix': None,
+        'https': False,
         'key_file': '/var/lib/wazo-auth-keys/wazo-webhookd-key.yml',
     },
     'bus': {
@@ -52,7 +52,7 @@ _DEFAULT_CONFIG = {
     'rest_api': {
         'listen': '0.0.0.0',
         'port': _DEFAULT_HTTPS_PORT,
-        'certificate': _CERT_FILE,
+        'certificate': '/usr/share/xivo-certs/server.crt',
         'private_key': '/usr/share/xivo-certs/server.key',
         'cors': {
             'enabled': True,
