@@ -272,7 +272,8 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            number=2,
         )
 
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
