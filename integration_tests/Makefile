@@ -1,7 +1,7 @@
 test-setup: egg-info webhookd webhookd-test db
 
 test:
-	nosetests -x
+	pytest -x
 
 egg-info:
 	cd .. && python setup.py egg_info
