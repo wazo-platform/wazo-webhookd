@@ -30,7 +30,7 @@ class TestMobileCallback(BaseIntegrationTest):
     wait_strategy = ConnectedWaitStrategy()
 
     def setUp(self):
-        super().__init__()
+        super().setUp()
         self.bus = self.make_bus()
         auth = self.make_auth()
         requests.post(

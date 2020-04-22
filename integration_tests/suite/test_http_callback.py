@@ -159,7 +159,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         return callback
 
     def setUp(self):
-        super().__init__()
+        super().setUp()
         self.third_party = MockServerClient(
             'http://localhost:{port}'.format(
                 port=self.service_port(1080, 'third-party-http')
