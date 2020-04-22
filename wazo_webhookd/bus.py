@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -33,7 +33,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         with kombu.Connection(self._bus_url) as connection:
             self.connection = connection
 
-            super(CoreBusConsumer, self).run()
+            super().run()
 
     def get_consumers(self, Consumer, channel):
         for consumer in self._consumers.values():
@@ -49,7 +49,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             queue_.name = None
 
     def on_connection_error(self, exc, interval):
-        super(CoreBusConsumer, self).on_connection_error(exc, interval)
+        super().on_connection_error(exc, interval)
         for consumer in self._consumers:
             try:
                 consumer.cancel()
@@ -58,7 +58,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
         self._is_running = False
 
     def on_connection_revived(self):
-        super(CoreBusConsumer, self).on_connection_revived()
+        super().on_connection_revived()
         self._is_running = True
 
     @contextmanager
