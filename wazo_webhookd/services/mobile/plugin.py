@@ -147,7 +147,7 @@ class Service:
             return getattr(push, notification_type)(data)
 
 
-class PushNotification(object):
+class PushNotification:
     def __init__(self, task, config, external_tokens, external_config, jwt):
         self.task = task
         self.config = config

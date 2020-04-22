@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -30,7 +30,7 @@ def log_request_params(response):
     return response
 
 
-class CoreRestApi(object):
+class CoreRestApi:
     def __init__(self, global_config):
         self.config = global_config['rest_api']
         http_helpers.add_logger(app, logger)
