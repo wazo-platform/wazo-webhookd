@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import contextlib
@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 class HookExpectedError(Exception):
     def __init__(self, detail):
         self.detail = detail
-        super(HookExpectedError, self).__init__()
+        super().__init__()
 
 
 class HookRetry(Exception):
     def __init__(self, detail):
         self.detail = detail
-        super(HookRetry, self).__init__()
+        super().__init__()
 
 
 def _decode(data):
