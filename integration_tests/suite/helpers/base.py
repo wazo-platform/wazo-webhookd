@@ -1,6 +1,7 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
 import os
 
 import requests
@@ -17,6 +18,9 @@ from xivo_test_helpers.auth import AuthClient
 from xivo_test_helpers.bus import BusClient
 
 from .wait_strategy import WaitStrategy
+
+logging.getLogger('amqp').setLevel(logging.INFO)
+logging.getLogger('stevedore.extension').setLevel(level=logging.INFO)
 
 VALID_TOKEN = "valid-token"
 

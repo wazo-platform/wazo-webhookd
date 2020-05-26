@@ -1,23 +1,33 @@
-FROM python:3.7-buster
+FROM python:3.7-slim-buster AS compile-image
+LABEL maintainer="Wazo Maintainers <dev@wazo.community>"
 
-ADD . /usr/src/wazo-webhookd
-ADD ./contribs/docker/certs /usr/share/xivo-certs
+RUN python -m venv /opt/venv
+# Activate virtual env
+ENV PATH="/opt/venv/bin:$PATH"
 
+RUN apt-get -q update
+RUN apt-get -yq install gcc
+
+COPY . /usr/src/wazo-webhookd
 WORKDIR /usr/src/wazo-webhookd
+RUN pip install -r requirements.txt
+RUN python setup.py install
 
+FROM python:3.7-slim-buster AS build-image
+COPY --from=compile-image /opt/venv /opt/venv
+
+COPY ./etc/. /etc/
+COPY ./contribs/docker/certs /usr/share/xivo-certs
 RUN true \
     && adduser --quiet --system --group wazo-webhookd \
     && mkdir -p /etc/wazo-webhookd/conf.d \
     && install -o wazo-webhookd -g wazo-webhookd -d /run/wazo-webhookd \
-    && touch /var/log/wazo-webhookd.log \
-    && chown wazo-webhookd:wazo-webhookd /var/log/wazo-webhookd.log \
-    && pip install -r requirements.txt \
-    && python setup.py install \
-    && cp -r etc/* /etc \
-    && apt-get -yqq autoremove \
+    && install -o wazo-webhookd -g wazo-webhookd /dev/null /var/log/wazo-webhookd.log \
     && openssl req -x509 -newkey rsa:4096 -keyout /usr/share/xivo-certs/server.key -out /usr/share/xivo-certs/server.crt -nodes -config /usr/share/xivo-certs/openssl.cfg -days 3650 \
     && chown wazo-webhookd:wazo-webhookd /usr/share/xivo-certs/*
 
 EXPOSE 9300
 
+# Activate virtual env
+ENV PATH="/opt/venv/bin:$PATH"
 CMD ["wazo-webhookd"]
