@@ -8,7 +8,7 @@ from xivo.chain_map import ChainMap
 from xivo.config_helper import parse_config_file, read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
-_DEFAULT_HTTPS_PORT = 9300
+_DEFAULT_HTTP_PORT = 9300
 _PID_DIR = '/run/wazo-webhookd'
 
 _DEFAULT_CONFIG = {
@@ -50,10 +50,10 @@ _DEFAULT_CONFIG = {
     },
     'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk',
     'rest_api': {
-        'listen': '0.0.0.0',
-        'port': _DEFAULT_HTTPS_PORT,
-        'certificate': '/usr/share/xivo-certs/server.crt',
-        'private_key': '/usr/share/xivo-certs/server.key',
+        'listen': '127.0.0.1',
+        'port': _DEFAULT_HTTP_PORT,
+        'certificate': None,
+        'private_key': None,
         'cors': {
             'enabled': True,
             'allow_headers': ['Content-Type', 'X-Auth-Token', 'Wazo-Tenant'],
@@ -62,7 +62,7 @@ _DEFAULT_CONFIG = {
     'service_discovery': {
         'advertise_address': 'auto',
         'advertise_address_interface': 'eth0',
-        'advertise_port': _DEFAULT_HTTPS_PORT,
+        'advertise_port': _DEFAULT_HTTP_PORT,
         'enabled': True,
         'ttl_interval': 30,
         'refresh_interval': 27,

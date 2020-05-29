@@ -54,13 +54,10 @@ hook_max_attempts: 10
 rest_api:
 
   # Listening address
-  listen: 0.0.0.0
+  listen: 127.0.0.1
 
   # Listening port
   port: 9300
-
-  certificate: /usr/share/xivo-certs/server.crt
-  private_key: /usr/share/xivo-certs/server.key
 
   #CORS configuration. See Flask-CORS documentation for other values.
   cors:

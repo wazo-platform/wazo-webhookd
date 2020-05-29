@@ -96,22 +96,14 @@ TEST_SUBSCRIPTION_FILTER_USER_ALICE = {
 TEST_SUBSCRIPTION_LOCALHOST_SENTINEL = {
     'name': 'localhost',
     'service': 'http',
-    'config': {
-        'url': 'https://localhost:9300/1.0/sentinel',
-        'method': 'post',
-        'verify_certificate': 'false',
-    },
+    'config': {'url': 'http://localhost:9300/1.0/sentinel', 'method': 'post'},
     'events': ['trigger'],
     'events_user_uuid': ALICE_USER_UUID,
 }
 TEST_USER_SUBSCRIPTION_LOCALHOST_SENTINEL = {
     'name': 'localhost',
     'service': 'http',
-    'config': {
-        'url': 'https://localhost:9300/1.0/sentinel',
-        'method': 'post',
-        'verify_certificate': 'false',
-    },
+    'config': {'url': 'http://localhost:9300/1.0/sentinel', 'method': 'post'},
     'events': ['trigger'],
     'owner_user_uuid': ALICE_USER_UUID,
     'events_user_uuid': ALICE_USER_UUID,
