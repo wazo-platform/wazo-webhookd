@@ -16,15 +16,12 @@ RUN python setup.py install
 FROM python:3.7-slim-buster AS build-image
 COPY --from=compile-image /opt/venv /opt/venv
 
-COPY ./etc/. /etc/
-COPY ./contribs/docker/certs /usr/share/xivo-certs
+COPY ./etc/wazo-webhookd /etc/wazo-webhookd
 RUN true \
     && adduser --quiet --system --group wazo-webhookd \
     && mkdir -p /etc/wazo-webhookd/conf.d \
     && install -o wazo-webhookd -g wazo-webhookd -d /run/wazo-webhookd \
-    && install -o wazo-webhookd -g wazo-webhookd /dev/null /var/log/wazo-webhookd.log \
-    && openssl req -x509 -newkey rsa:4096 -keyout /usr/share/xivo-certs/server.key -out /usr/share/xivo-certs/server.crt -nodes -config /usr/share/xivo-certs/openssl.cfg -days 3650 \
-    && chown wazo-webhookd:wazo-webhookd /usr/share/xivo-certs/*
+    && install -o wazo-webhookd -g wazo-webhookd /dev/null /var/log/wazo-webhookd.log
 
 EXPOSE 9300
 

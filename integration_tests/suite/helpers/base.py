@@ -74,9 +74,10 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         return WebhookdClient(
             'localhost',
             cls.service_port(9300, 'webhookd'),
+            prefix=None,
+            https=False,
             token=token,
             tenant=tenant,
-            verify_certificate=False,
         )
 
     @classmethod
@@ -167,7 +168,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             def reset(self):
                 requests.delete(self._url, verify=False)
 
-        url = 'https://localhost:{port}/1.0/sentinel'.format(
+        url = 'http://localhost:{port}/1.0/sentinel'.format(
             port=self.service_port(9300, 'webhookd')
         )
         return Sentinel(url)
