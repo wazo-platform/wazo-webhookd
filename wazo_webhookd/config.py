@@ -42,12 +42,7 @@ _DEFAULT_CONFIG = {
         'worker_min': 3,
         'worker_max': 5,
     },
-    'consul': {
-        'scheme': 'http',
-        'host': 'localhost',
-        'port': 8500,
-        'verify': '/usr/share/xivo-certs/server.crt',
-    },
+    'consul': {'scheme': 'http', 'host': 'localhost', 'port': 8500},
     'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk',
     'rest_api': {
         'listen': '127.0.0.1',
