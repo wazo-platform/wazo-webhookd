@@ -1,12 +1,15 @@
 [Unit]
 Description=wazo-webhookd server
 After=network.target
-Before=monit.service
+StartLimitBurst=15
+StartLimitIntervalSec=150
 
 [Service]
 Environment=PYTHONUNBUFFERED=TRUE
 ExecStartPre=/usr/bin/install -d -o wazo-webhookd -g wazo-webhookd /run/wazo-webhookd
 ExecStart=/usr/bin/wazo-webhookd
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
