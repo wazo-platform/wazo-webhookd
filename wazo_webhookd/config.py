@@ -17,7 +17,6 @@ _DEFAULT_CONFIG = {
     'extra_config_files': '/etc/wazo-webhookd/conf.d',
     'log_file': '/var/log/wazo-webhookd.log',
     'log_level': 'info',
-    'pid_file': os.path.join(_PID_DIR, 'wazo-webhookd.pid'),
     'user': 'wazo-webhookd',
     'auth': {
         'host': 'localhost',

@@ -9,7 +9,6 @@ extra_config_files: '/etc/wazo-webhookd/conf.d'
 debug: false
 log_level: info
 log_file: /var/log/wazo-webhookd.log
-pid_file: /run/wazo-webhookd/wazo-webhookd.pid
 
 # Connection info to the authentication server
 auth:
