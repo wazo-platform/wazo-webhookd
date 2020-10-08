@@ -284,7 +284,10 @@ class PushNotification:
                 payload,
             )
             response = self._apn_push_client.post(
-                url, cert=apn_cert_filename, headers=headers, json=payload,
+                url,
+                cert=apn_cert_filename,
+                headers=headers,
+                json=payload,
             )
         response.raise_for_status()
         return requests_automatic_detail(response)
