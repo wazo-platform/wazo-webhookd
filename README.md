@@ -11,7 +11,7 @@ using a simple HTTP interface.
 
 ## Docker
 
-The official docker image for this service is `wazopbx/wazo-webhookd`.
+The official docker image for this service is `wazoplatform/wazo-webhookd`.
 
 
 ### Getting the image
@@ -19,14 +19,14 @@ The official docker image for this service is `wazopbx/wazo-webhookd`.
 To download the latest image from the docker hub
 
 ```sh
-docker pull wazopbx/wazo-webhookd
+docker pull wazoplatform/wazo-webhookd
 ```
 
 
 ### Running wazo-webhookd
 
 ```sh
-docker run -e"XIVO_UUID=<the wazo UUID>" wazopbx/wazo-webhookd
+docker run -e"XIVO_UUID=<the wazo UUID>" wazoplatform/wazo-webhookd
 ```
 
 ### Building the image
@@ -34,5 +34,5 @@ docker run -e"XIVO_UUID=<the wazo UUID>" wazopbx/wazo-webhookd
 Building the docker image:
 
 ```sh
-docker build -t wazopbx/wazo-webhookd .
+docker build -t wazoplatform/wazo-webhookd .
 ```

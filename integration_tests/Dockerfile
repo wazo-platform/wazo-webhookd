@@ -1,4 +1,4 @@
-FROM wazopbx/wazo-webhookd
+FROM wazoplatform/wazo-webhookd
 
 ENV PYTHONDONTWRITEBYTECODE='true'
 
