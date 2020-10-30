@@ -2,13 +2,13 @@ https://github.com/wazo-platform/wazo-lib-rest-client/archive/master.zip
 https://github.com/wazo-platform/wazo-auth-client/archive/master.zip
 https://github.com/wazo-platform/xivo-lib-python/archive/master.zip
 alembic==1.0.0
-celery==4.2.1
+celery==4.4.6
 cheroot==6.5.4
 flask-cors==3.0.7
 flask-restful==0.3.7
 flask==1.0.2
 jinja2==2.10
-kombu==4.2.1
+kombu==4.6.11
 setproctitle==1.1.10
 marshmallow==3.0.0b14
 netifaces==0.10.4
