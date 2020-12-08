@@ -10,7 +10,7 @@ egg-info:
 webhookd:
 	docker build -t wazoplatform/wazo-webhookd ..
 
-webhookd-test: egg-info
+webhookd-test: webhookd egg-info
 	docker build --no-cache -t wazo-webhookd-test -f Dockerfile ..
 
 db:
