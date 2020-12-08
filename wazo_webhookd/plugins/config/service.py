@@ -11,22 +11,29 @@ class ConfigService:
     _lock = threading.Lock()
 
     def __init__(self, config):
-        self._config = config
+        self._config = dict(config)
         self._enabled = False
         self._lock = threading.Lock()
 
-    def get_runtime_debug(self):
+    def get_config(self):
         with self._lock:
-            return self._enabled
+            return dict(self._config)
 
-    def enable_runtime_debug(self):
+    def update_config(self, config):
         with self._lock:
-            root_logger = logging.getLogger()
-            root_logger.setLevel(logging.DEBUG)
-            self._enabled = True
+            self._update_debug(config['debug'])
+            self._config['debug'] = config['debug']
 
-    def disable_runtime_debug(self):
-        with self._lock:
-            root_logger = logging.getLogger()
-            root_logger.setLevel(self._config['log_level'])
-            self._enabled = False
+    def _update_debug(self, debug):
+        if debug:
+            self._enable_debug()
+        else:
+            self._disable_debug()
+
+    def _enable_debug(self):
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+
+    def _disable_debug(self):
+        root_logger = logging.getLogger()
+        root_logger.setLevel(self._config['log_level'])

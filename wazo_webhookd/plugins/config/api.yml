@@ -11,42 +11,27 @@ paths:
       responses:
         '200':
           'description': The configuration of the service
-  /config/debug:
-    get:
+
+  /config:
+    put:
       produces:
         - application/json
-      summary: Show whether debug mode is being forced.
-      description: '**Required ACL:** `webhookd.config.debug.read`'
-      operationId: getConfigDebug
+      summary: Update the current configuration. Changes are not persistent across service restart.
+      description: '**Required ACL:** `webhookd.config.update`'
+      operationId: putConfig
       tags:
         - config
-      responses:
-        '200':
-          'description': The debug mode status
-          schema:
-            $ref: '#/definitions/ConfigDebug'
-    post:
-      summary: Force debug mode. This change the level of logs produced.
-      description: '**Required ACL:** `webhookd.config.debug.create`'
-      operationId: postConfigDebug
-      tags:
-        - config
+      parameters:
+        - $ref: "#/parameters/Config"
       responses:
         '204':
-          'description': The debug has been enabled
-    delete:
-      summary: Restore debug mode from configuration.
-      description: '**Required ACL:** `webhookd.config.debug.delete`'
-      operationId: deleteConfigDebug
-      tags:
-        - config
-      responses:
-        '204':
-          'description': The debug mode has been restored from the configuration
-definitions:
-  ConfigDebug:
+          description: The config was updated
+        '400':
+          description: The given confiuration is invalid
+parameters:
+  Config:
     type: object
     properties:
-      debug-runtime:
+      debug:
         type: boolean
-        description: Is the debug mode being forced?
+        description: Enable debug logs
