@@ -22,4 +22,5 @@ class ConfigResource(AuthResource):
         config_patch = config_patch_schema.load(request.get_json(), many=True)
         config = self._config_service.get_config()
         patched_config = JsonPatch(config_patch).apply(config)
-        return self._config_service.update_config(patched_config)
+        self._config_service.update_config(patched_config)
+        return '', 204
