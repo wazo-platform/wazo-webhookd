@@ -25,8 +25,8 @@ paths:
       parameters:
         - $ref: "#/parameters/ConfigPatch"
       responses:
-        '204':
-          description: The config was updated
+        '200':
+          description: The updated configuration of the service
         '400':
           description: The given confiuration is invalid
 parameters:
