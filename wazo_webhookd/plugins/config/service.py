@@ -7,7 +7,8 @@ import threading
 
 class ConfigService:
 
-    # share the lock between service instances
+    # Changing root logger log-level requires application-wide lock.
+    # This lock will be shared across all instances.
     _lock = threading.Lock()
 
     def __init__(self, config):
