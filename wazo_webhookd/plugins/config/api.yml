@@ -14,8 +14,11 @@ paths:
     patch:
       produces:
         - application/json
-      summary: Update the current configuration. Changes are not persistent across service restart.
-      description: '**Required ACL:** `webhookd.config.update`'
+      summary: Update the current configuration.
+      description: |
+        **Required ACL:** `webhookd.config.update`
+
+        Changes are not persistent across service restart.
       operationId: patchConfig
       tags:
         - config
