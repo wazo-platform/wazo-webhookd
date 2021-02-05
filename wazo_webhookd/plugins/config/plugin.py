@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from .http import ConfigResource
+from .service import ConfigService
 
 
 class Plugin:
     def load(self, dependencies):
         api = dependencies['api']
         config = dependencies['config']
-        api.add_resource(ConfigResource, '/config', resource_class_args=[config])
+        config_service = ConfigService(config)
+        api.add_resource(
+            ConfigResource, '/config', resource_class_args=[config_service]
+        )

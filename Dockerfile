@@ -8,9 +8,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN apt-get -q update
 RUN apt-get -yq install gcc
 
-COPY . /usr/src/wazo-webhookd
+COPY requirements.txt /usr/src/wazo-webhookd/
 WORKDIR /usr/src/wazo-webhookd
 RUN pip install -r requirements.txt
+
+COPY setup.py /usr/src/wazo-webhookd/
+COPY wazo_webhookd /usr/src/wazo-webhookd/wazo_webhookd
 RUN python setup.py install
 
 FROM python:3.7-slim-buster AS build-image
