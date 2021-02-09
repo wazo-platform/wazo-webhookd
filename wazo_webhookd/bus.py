@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -7,6 +7,7 @@ import kombu.mixins
 
 from collections import deque
 from contextlib import contextmanager
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             exclusive=True,
             bindings=self._create_bindings(event_names, user_uuid, wazo_uuid),
         )
+        callback = partial(self._on_bus_message, callback)
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._new_consumers.append((uuid, consumer))
 
@@ -131,6 +133,7 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             exclusive=True,
             bindings=self._create_bindings(event_names, user_uuid, wazo_uuid),
         )
+        callback = partial(self._on_bus_message, callback)
         consumer = kombu.Consumer(channel=None, queues=queue, callbacks=[callback])
         self._updated_consumers.append((uuid, consumer))
 
@@ -155,3 +158,13 @@ class CoreBusConsumer(kombu.mixins.ConsumerMixin):
             result.append(binding)
 
         return result
+
+    @staticmethod
+    def _on_bus_message(callback, body, message):
+        logger.debug('running callback %s', callback)
+        try:
+            callback(body, message)
+        except Exception:
+            logger.exception('Consumer callback exception')
+        finally:
+            message.ack()
