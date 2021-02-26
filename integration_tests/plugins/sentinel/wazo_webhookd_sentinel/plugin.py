@@ -1,6 +1,8 @@
 # Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import time
+
 from flask_restful import Resource
 
 called = False
@@ -11,11 +13,10 @@ class SentinelResource(Resource):
         self._bus_consumer = bus_consumer
 
     def get(self):
-        # NOTE(sileht): returns only uuid in sync with the database
-        consumers = list(
-            set(self._bus_consumer._consumers.keys())
-            - set([uuid for uuid, _ in self._bus_consumer._updated_consumers])
-        )
+        # wait for changes to be applied
+        while not self._bus_consumer._consumer_updates.empty():
+            time.sleep(0.1)
+        consumers = list(self._bus_consumer._consumers.keys())
         return {'called': called, 'consumers': consumers}
 
     def post(self):
