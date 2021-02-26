@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
@@ -66,7 +66,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                 self.ensure_webhookd_not_consume_uuid(sub['uuid'])
 
     @classmethod
-    def make_webhookd(cls, token, tenant=None):
+    def make_webhookd(cls, token, tenant=None, **kwargs):
         return WebhookdClient(
             'localhost',
             cls.service_port(9300, 'webhookd'),
@@ -74,6 +74,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             https=False,
             token=token,
             tenant=tenant,
+            **kwargs
         )
 
     @classmethod
