@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
@@ -9,6 +9,7 @@ import requests
 from hamcrest import (
     assert_that,
     contains_string,
+    contains_inanyorder,
     equal_to,
     has_entries,
     has_entry,
@@ -132,11 +133,11 @@ class TestMobileCallback(BaseIntegrationTest):
                 name="Push notification mobile for user {}/{}".format(
                     USERS_TENANT, USER_1_UUID
                 ),
-                events=[
+                events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
                     'user_voicemail_message_created',
-                ],
+                ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_1_UUID,
                 service='mobile',
@@ -214,11 +215,11 @@ class TestMobileCallback(BaseIntegrationTest):
                 name="Push notification mobile for user {}/{}".format(
                     USERS_TENANT, USER_2_UUID
                 ),
-                events=[
+                events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
                     'user_voicemail_message_created',
-                ],
+                ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_2_UUID,
                 service='mobile',
@@ -343,11 +344,11 @@ class TestMobileCallback(BaseIntegrationTest):
                 name="Push notification mobile for user {}/{}".format(
                     USERS_TENANT, USER_2_UUID
                 ),
-                events=[
+                events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
                     'user_voicemail_message_created',
-                ],
+                ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_2_UUID,
                 service='mobile',

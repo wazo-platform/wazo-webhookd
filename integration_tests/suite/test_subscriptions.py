@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import (
@@ -159,7 +159,8 @@ class TestGetSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_get_subscription_then_503(self):
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        more_than_auth_timeout = 12
+        webhookd = self.make_webhookd(MASTER_TOKEN, timeout=more_than_auth_timeout)
 
         with self.auth_stopped():
             assert_that(
@@ -200,7 +201,8 @@ class TestGetSubscriptionLogs(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_get_subscription_then_503(self):
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        more_than_auth_timeout = 12
+        webhookd = self.make_webhookd(MASTER_TOKEN, timeout=more_than_auth_timeout)
 
         with self.auth_stopped():
             assert_that(
@@ -272,7 +274,8 @@ class TestCreateSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_create_subscription_then_503(self):
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        more_than_auth_timeout = 12
+        webhookd = self.make_webhookd(MASTER_TOKEN, timeout=more_than_auth_timeout)
 
         with self.auth_stopped():
             assert_that(
@@ -397,7 +400,8 @@ class TestEditSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_edit_subscription_then_503(self):
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        more_than_auth_timeout = 12
+        webhookd = self.make_webhookd(MASTER_TOKEN, timeout=more_than_auth_timeout)
 
         with self.auth_stopped():
             assert_that(
@@ -528,7 +532,8 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
     wait_strategy = NoWaitStrategy()
 
     def test_given_no_auth_server_when_delete_subscription_then_503(self):
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        more_than_auth_timeout = 12
+        webhookd = self.make_webhookd(MASTER_TOKEN, timeout=more_than_auth_timeout)
 
         with self.auth_stopped():
             assert_that(
