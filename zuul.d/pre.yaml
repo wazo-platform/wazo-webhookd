@@ -1,0 +1,8 @@
+---
+- hosts: all
+  tasks:
+    - name: Install rabbitmq
+      become: yes
+      apt:
+        name: rabbitmq-server
+        state: present

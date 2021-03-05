@@ -2,15 +2,20 @@
     templates:
       - wazo-tox-py37
       - wazo-tox-linters
-      - debian-packaging-template
     check:
       jobs:
         - webhookd-tox-integration:
             nodeset: debian10-vm
+        - webhookd-debian-packaging:
+            nodeset: debian10-vm
+            required-projects: wazo-platform/xivo-ci
     gate:
       jobs:
         - webhookd-tox-integration:
             nodeset: debian10-vm
+        - webhookd-debian-packaging:
+            nodeset: debian10-vm
+            required-projects: wazo-platform/xivo-ci
 
 - job:
     name: webhookd-tox-integration
@@ -19,3 +24,9 @@
     timeout: 3600
     vars:
       integration_test_timeout: 60
+
+- job:
+    name: webhookd-debian-packaging
+    description: Run webhookd debian packaging
+    parent: debian-packaging
+    pre-run: zuul.d/pre.yaml
