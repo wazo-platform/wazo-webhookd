@@ -5,8 +5,8 @@ psycopg2-binary
 pyhamcrest
 pytest
 requests
-sqlalchemy
-sqlalchemy_utils
+sqlalchemy==1.2.18
+sqlalchemy_utils==0.32.21
 stevedore
 https://github.com/wazo-platform/wazo-lib-rest-client/archive/master.zip
 https://github.com/wazo-platform/wazo-webhookd-client/archive/master.zip
