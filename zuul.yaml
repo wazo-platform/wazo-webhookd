@@ -4,18 +4,12 @@
       - wazo-tox-linters
     check:
       jobs:
-        - webhookd-tox-integration:
-            nodeset: vm-debian-10-m1s
-        - webhookd-debian-packaging:
-            nodeset: vm-debian-10-m1s
-            required-projects: wazo-platform/xivo-ci
+        - webhookd-tox-integration
+        - webhookd-debian-packaging
     gate:
       jobs:
-        - webhookd-tox-integration:
-            nodeset: vm-debian-10-m1s
-        - webhookd-debian-packaging:
-            nodeset: vm-debian-10-m1s
-            required-projects: wazo-platform/xivo-ci
+        - webhookd-tox-integration
+        - webhookd-debian-packaging
 
 - job:
     name: webhookd-tox-integration
