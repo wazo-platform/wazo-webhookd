@@ -82,7 +82,7 @@ class TestMobileCallback(BaseIntegrationTest):
 
     def test_workflow_fcm(self):
         third_party = MockServerClient(
-            'http://localhost:{port}'.format(
+            'http://127.0.0.1:{port}'.format(
                 port=self.service_port(443, 'fcm.googleapis.com')
             )
         )
@@ -185,7 +185,7 @@ class TestMobileCallback(BaseIntegrationTest):
         auth.set_external_auth({'token': 'token-android', 'apns_token': 'token-ios'})
 
         apns_third_party = MockServerClient(
-            'http://localhost:{port}'.format(
+            'http://127.0.0.1:{port}'.format(
                 port=self.service_port(1080, 'third-party-http')
             )
         )
@@ -309,7 +309,7 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         apns_third_party = MockServerClient(
-            'http://localhost:{port}'.format(
+            'http://127.0.0.1:{port}'.format(
                 port=self.service_port(1080, 'third-party-http')
             )
         )

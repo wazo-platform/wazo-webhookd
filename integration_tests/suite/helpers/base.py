@@ -68,7 +68,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     @classmethod
     def make_webhookd(cls, token, tenant=None, **kwargs):
         return WebhookdClient(
-            'localhost',
+            '127.0.0.1',
             cls.service_port(9300, 'webhookd'),
             prefix=None,
             https=False,
@@ -79,7 +79,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     @classmethod
     def make_auth(cls):
-        return AuthClient('localhost', cls.service_port(9497, 'auth'))
+        return AuthClient('127.0.0.1', cls.service_port(9497, 'auth'))
 
     @classmethod
     def configured_wazo_auth(cls):
@@ -144,7 +144,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     def make_bus(self):
         return BusClient.from_connection_fields(
-            host='localhost', port=self.service_port(5672, 'rabbitmq')
+            host='127.0.0.1', port=self.service_port(5672, 'rabbitmq')
         )
 
     def make_sentinel(self):
@@ -165,7 +165,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             def reset(self):
                 requests.delete(self._url, verify=False)
 
-        url = 'http://localhost:{port}/1.0/sentinel'.format(
+        url = 'http://127.0.0.1:{port}/1.0/sentinel'.format(
             port=self.service_port(9300, 'webhookd')
         )
         return Sentinel(url)

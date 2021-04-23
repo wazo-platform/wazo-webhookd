@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
 import time
@@ -153,7 +153,7 @@ class TestHTTPCallback(BaseIntegrationTest):
     def setUp(self):
         super().setUp()
         self.third_party = MockServerClient(
-            'http://localhost:{port}'.format(
+            'http://127.0.0.1:{port}'.format(
                 port=self.service_port(1080, 'third-party-http')
             )
         )
