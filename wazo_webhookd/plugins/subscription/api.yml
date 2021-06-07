@@ -24,7 +24,7 @@ paths:
       description: '**Required ACL:** `webhookd.subscriptions.create`
       
 
-      For more information: http://documentation.wazo.community/en/stable/api_sdk/rest_api/webhookd/api.html'
+      For more information: https://wazo-platform.org/documentation/api/webhook.html'
       operationId: create
       parameters:
         - $ref: '#/parameters/SubscriptionBody'
@@ -122,7 +122,7 @@ paths:
       description: '**Required ACL:** `webhookd.users.me.subscriptions.create`
 
 
-      For more information: http://documentation.wazo.community/en/stable/api_sdk/rest_api/webhookd/api.html'
+      For more information: https://wazo-platform.org/documentation/api/webhook.html'
       operationId: user_create
       parameters:
         - $ref: '#/parameters/UserSubscriptionBody'
