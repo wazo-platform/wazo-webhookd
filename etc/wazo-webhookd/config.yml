@@ -44,7 +44,7 @@ consul:
   token: 'the_one_ring'
 
 # database connection informations
-db_uri: postgresql://asterisk:proformatique@localhost/asterisk
+db_uri: postgresql://asterisk:proformatique@localhost/asterisk?application_name=wazo-webhookd
 
 hook_max_attempts: 10
 

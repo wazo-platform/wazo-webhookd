@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
@@ -42,7 +42,7 @@ _DEFAULT_CONFIG = {
         'worker_max': 5,
     },
     'consul': {'scheme': 'http', 'host': 'localhost', 'port': 8500},
-    'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk',
+    'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk?application_name=wazo-webhookd',
     'rest_api': {
         'listen': '127.0.0.1',
         'port': _DEFAULT_HTTP_PORT,
