@@ -1,5 +1,12 @@
 # Changelog
 
+## 21.02
+
+* New endpoint to update configuration of `wazo-webhookd`:
+
+  * `PATCH /config`
+    * Only the `debug` attribute may be modified.
+
 ## 20.08
 
 * Deprecate SSL configuration
