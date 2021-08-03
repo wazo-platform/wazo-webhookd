@@ -16,15 +16,15 @@ pipeline {
         ]
       }
     }
-  }
-  stage('Docker build') {
-    steps {
-      sh "docker build -t wazoplatform/${JOB_NAME}:latest ."
+    stage('Docker build') {
+      steps {
+        sh "docker build -t wazoplatform/${JOB_NAME}:latest ."
+      }
     }
-  }
-  stage('Docker publish') {
-    steps {
-      sh "docker push wazoplatform/${JOB_NAME}:latest"
+    stage('Docker publish') {
+      steps {
+        sh "docker push wazoplatform/${JOB_NAME}:latest"
+      }
     }
   }
   post {
