@@ -26,6 +26,16 @@ pipeline {
         sh "docker push wazoplatform/${JOB_NAME}:latest"
       }
     }
+    stage('Docker build DB') {
+      steps {
+        sh "docker build -t wazoplatform/${JOB_NAME}-db:latest -f contribs/docker/Dockerfile-db ."
+      }
+    }
+    stage('Docker publish DB') {
+      steps {
+        sh "docker push wazoplatform/${JOB_NAME}-db:latest"
+      }
+    }
   }
   post {
     failure {
