@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 
@@ -26,10 +26,10 @@ def _parse_cli_args(args):
         help="The DSN to connect to the postgres DB as an superuser",
     )
     parser.add_argument(
-        '--auth_db_uri',
+        '--webhookd_db_uri',
         action='store',
         default='postgresql:///asterisk',
-        help="The DSN to connect to the auth DB as an superuser",
+        help="The DSN to connect to the webhookd DB as an superuser",
     )
     parser.add_argument(
         '--db',
@@ -76,7 +76,7 @@ def main():
             if not db_helper.db_exists(cursor, args.db):
                 db_helper.create_db(cursor, args.db, args.owner)
 
-    conn = psycopg2.connect(args.auth_db_uri)
+    conn = psycopg2.connect(args.webhookd_db_uri)
     with conn:
         with conn.cursor() as cursor:
             db_helper.create_db_extensions(cursor, ['uuid-ossp'])
