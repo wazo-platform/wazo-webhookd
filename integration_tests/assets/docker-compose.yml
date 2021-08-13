@@ -33,7 +33,7 @@ services:
       - "443"
 
   postgres:
-    image: wazoplatform/wazo-webhookd-db
+    image: wazoplatform/wazo-webhookd-db:local
     ports:
       - "5432"
 
