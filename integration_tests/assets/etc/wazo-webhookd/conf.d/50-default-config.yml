@@ -2,7 +2,7 @@ rest_api:
   listen: 0.0.0.0
 auth:
   host: auth
-db_uri: postgresql://asterisk:proformatique@postgres/asterisk
+db_uri: postgresql://wazo-webhookd:Secr7t@postgres/wazo-webhookd
 bus:
   host: rabbitmq
 celery:

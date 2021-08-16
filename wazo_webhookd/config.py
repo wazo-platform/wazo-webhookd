@@ -127,7 +127,7 @@ def _parse_cli_args(args):
         help='Log debug mesages. Override log_level',
     )
     parser.add_argument('-u', '--user', action='store', help='The owner of the process')
-    parsed_args = parser.parse_args()
+    parsed_args = parser.parse_args(args)
 
     result = {}
     if parsed_args.config_file:

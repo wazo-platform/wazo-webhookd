@@ -1,12 +1,16 @@
 FROM wazoplatform/wazo-base-db
-MAINTAINER Wazo Maintainers <dev@wazo.community>
+LABEL maintainer="Wazo Maintainers <dev@wazo.community>"
 
-ADD . /usr/src/wazo-webhookd
+COPY . /usr/src/wazo-webhookd
 WORKDIR /usr/src/wazo-webhookd
+ENV ALEMBIC_DB_URI postgresql://wazo-webhookd:Secr7t@localhost/wazo-webhookd
+
 RUN true \
     && python3 setup.py install \
     && pg_start \
-    && wazo-webhookd-init-db --user postgres \
+    && su postgres -c "psql -c \"CREATE ROLE \\"'"'"wazo-webhookd\\"'"'" LOGIN PASSWORD 'Secr7t';\"" \
+    && su postgres -c "psql -c 'CREATE DATABASE \"wazo-webhookd\" WITH OWNER \"wazo-webhookd\";'" \
+    && su postgres -c "psql \"wazo-webhookd\" -c 'CREATE EXTENSION \"uuid-ossp\";'" \
     && (cd /usr/src/wazo-webhookd && python3 -m alembic.config -c alembic.ini upgrade head) \
     && pg_stop \
     && true

@@ -27,7 +27,7 @@ from wazo_webhookd.database.models import SubscriptionOption
 from wazo_webhookd.database.purger import SubscriptionLogsPurger
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 
-DB_URI = os.getenv('DB_URI', 'postgresql://asterisk:proformatique@127.0.0.1:{port}')
+DB_URI = os.getenv('DB_URI', 'postgresql://wazo-webhookd:Secr7t@127.0.0.1:{port}')
 
 
 class TestDatabase(AssetLaunchingTestCase):
