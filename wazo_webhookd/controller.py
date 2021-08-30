@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -8,8 +8,10 @@ from functools import partial
 from threading import Thread
 from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
+from xivo.token_renewer import TokenRenewer
 from wazo_auth_client import Client as AuthClient
 
+from . import auth
 from .bus import CoreBusConsumer
 from .rest_api import api, CoreRestApi
 from wazo_webhookd import celery
@@ -35,6 +37,11 @@ class Controller:
         ]
 
         self._auth_client = AuthClient(**config['auth'])
+        self._token_renewer = TokenRenewer(self._auth_client)
+        if not config['auth'].get('master_tenant_uuid'):
+            self._token_renewer.subscribe_to_next_token_details_change(
+                auth.init_master_tenant
+            )
         self._bus_consumer = CoreBusConsumer(config)
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
@@ -67,7 +74,8 @@ class Controller:
         bus_consumer_thread.start()
         try:
             with ServiceCatalogRegistration(*self._service_discovery_args):
-                self.rest_api.run()
+                with self._token_renewer:
+                    self.rest_api.run()
         finally:
             logger.info('wazo-webhookd stopping...')
             self._bus_consumer.should_stop = True
