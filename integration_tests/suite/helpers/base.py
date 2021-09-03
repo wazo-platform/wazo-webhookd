@@ -17,8 +17,6 @@ from xivo_test_helpers.bus import BusClient
 
 from .wait_strategy import WaitStrategy
 
-VALID_TOKEN = "valid-token"
-
 WAZO_UUID = '00000000-0000-4000-8000-00003eb8004d'
 
 MASTER_TOKEN = '00000000-0000-4000-8000-000000000101'
@@ -47,7 +45,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        webhookd = cls.make_webhookd(VALID_TOKEN)
+        webhookd = cls.make_webhookd(MASTER_TOKEN)
         cls.wait_strategy.wait(webhookd)
         if cls.asset == "base":
             cls.configured_wazo_auth()
