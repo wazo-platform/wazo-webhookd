@@ -9,7 +9,6 @@ from hamcrest import assert_that, is_in, not_
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
-from xivo.config_helper import parse_config_file
 from xivo_test_helpers import until
 from xivo_test_helpers.auth import MockCredentials, MockUserToken
 from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
@@ -83,15 +82,9 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     @classmethod
     def configured_wazo_auth(cls):
-        # NOTE(sileht): This creates a tenant tree and associated users
-        key_file = parse_config_file(
-            os.path.join(cls.assets_root, "keys", "wazo-webhookd-key.yml")
-        )
         auth = cls.make_auth()
-        auth.set_valid_credentials(
-            MockCredentials(key_file['service_id'], key_file['service_key']),
-            MASTER_TOKEN,
-        )
+        credential = MockCredentials('webhookd-service', 'webhookd-password')
+        auth.set_valid_credentials(credential, MASTER_TOKEN)
         auth.set_token(
             MockUserToken(
                 MASTER_TOKEN,
