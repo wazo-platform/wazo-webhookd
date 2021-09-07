@@ -42,6 +42,9 @@ class Controller:
             self._token_renewer.subscribe_to_next_token_details_change(
                 auth.init_master_tenant
             )
+        self._token_renewer.subscribe_to_next_token_details_change(
+            lambda t: self._token_renewer.emit_stop()
+        )
         self._bus_consumer = CoreBusConsumer(config)
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
