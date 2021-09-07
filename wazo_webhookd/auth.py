@@ -5,7 +5,7 @@ import logging
 
 from flask import request
 from requests import HTTPError
-from xivo.auth_verifier import AuthServerUnreachable, required_acl, required_tenant
+from xivo.auth_verifier import AuthServerUnreachable, required_tenant
 from xivo.rest_api_helpers import APIException
 
 from werkzeug.local import LocalProxy as Proxy
@@ -54,7 +54,6 @@ def get_master_tenant_uuid():
 
 
 master_tenant_uuid = Proxy(get_master_tenant_uuid)
-__all__ = ['required_acl', 'required_tenant']
 
 
 class Token:
