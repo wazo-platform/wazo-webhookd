@@ -16,15 +16,23 @@ class NoWaitStrategy(WaitStrategy):
         pass
 
 
-class InitializedWaitStrategy(WaitStrategy):
+class EverythingOkWaitStrategy(WaitStrategy):
     def wait(self, webhookd):
-        def webhookd_is_initialized():
+        def is_ready():
             try:
-                webhookd.config.get()
-            except RequestException as e:
-                raise AssertionError(e)
+                status = webhookd.status.get()
+            except RequestException:
+                status = {}
 
-        until.assert_(webhookd_is_initialized, timeout=30, interval=1)
+            assert_that(
+                status,
+                has_entries(
+                    bus_consumer=has_entries(status='ok'),
+                    master_tenant=has_entries(status='ok'),
+                ),
+            )
+
+        until.assert_(is_ready, tries=60)
 
 
 class ConnectedWaitStrategy(WaitStrategy):
