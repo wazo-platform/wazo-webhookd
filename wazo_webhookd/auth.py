@@ -28,10 +28,10 @@ def get_token_user_uuid_from_request(auth_client):
     return user_uuid
 
 
-class NotInitializedException(APIException):
+class MasterTenantNotInitializedException(APIException):
     def __init__(self):
-        msg = 'wazo-webhookd is not initialized'
-        super().__init__(503, msg, 'not-initialized')
+        msg = 'wazo-webhookd master tenant is not initialized'
+        super().__init__(503, msg, 'master-tenant-not-initialized')
 
 
 def required_master_tenant():
@@ -49,7 +49,7 @@ def get_master_tenant_uuid():
 
     tenant_uuid = app.config['auth'].get('master_tenant_uuid')
     if not tenant_uuid:
-        raise NotInitializedException()
+        raise MasterTenantNotInitializedException()
     return tenant_uuid
 
 
