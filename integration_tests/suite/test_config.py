@@ -10,13 +10,13 @@ from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN, USER_1_TOKEN
-from .helpers.wait_strategy import ConnectedWaitStrategy
+from .helpers.wait_strategy import InitializedWaitStrategy
 
 
 class TestConfig(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = ConnectedWaitStrategy()
+    wait_strategy = InitializedWaitStrategy()
 
     def test_config(self):
         webhookd = self.make_webhookd(MASTER_TOKEN)

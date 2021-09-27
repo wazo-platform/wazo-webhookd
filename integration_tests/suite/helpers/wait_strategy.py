@@ -16,6 +16,17 @@ class NoWaitStrategy(WaitStrategy):
         pass
 
 
+class InitializedWaitStrategy(WaitStrategy):
+    def wait(self, webhookd):
+        def webhookd_is_initialized():
+            try:
+                webhookd.config.get()
+            except RequestException as e:
+                raise AssertionError(e)
+
+        until.assert_(webhookd_is_initialized, timeout=30, interval=1)
+
+
 class ConnectedWaitStrategy(WaitStrategy):
     def wait(self, webhookd):
         def webhookd_is_connected():
