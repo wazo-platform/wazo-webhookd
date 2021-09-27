@@ -76,6 +76,8 @@ class TestConfig(BaseIntegrationTest):
                 assert e.status_code == 503
             except RequestException as e:
                 raise AssertionError(e)
+            else:
+                raise AssertionError('Should not return a success')
 
         until.assert_(_returns_503, tries=10)
 
