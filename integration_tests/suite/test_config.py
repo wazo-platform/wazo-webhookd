@@ -1,7 +1,6 @@
 # Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from time import sleep
 from requests import RequestException
 from hamcrest import assert_that, equal_to, has_key, has_entry, has_properties, calling
 from xivo_test_helpers import until
@@ -11,16 +10,15 @@ from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN, USER_1_TOKEN
-from .helpers.wait_strategy import NoWaitStrategy
+from .helpers.wait_strategy import ConnectedWaitStrategy
 
 
 class TestConfig(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = ConnectedWaitStrategy()
 
     def test_config(self):
-        sleep(5)  # Necessary wait for services to initialize
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         result = webhookd.config.get()
