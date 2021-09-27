@@ -59,6 +59,12 @@ class TestConfig(BaseIntegrationTest):
             calling(webhookd.config.get),
             raises(WebhookdError, has_properties('status_code', 401)),
         )
+        assert_that(
+            calling(webhookd.config.patch).with_args(
+                {'op': 'replace', 'path': '/debug', 'value': True}
+            ),
+            raises(WebhookdError, has_properties('status_code', 401)),
+        )
 
     def test_restrict_on_with_slow_wazo_auth(self):
         self.stop_service('webhookd')
