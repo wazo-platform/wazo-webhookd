@@ -16,6 +16,25 @@ class NoWaitStrategy(WaitStrategy):
         pass
 
 
+class EverythingOkWaitStrategy(WaitStrategy):
+    def wait(self, webhookd):
+        def is_ready():
+            try:
+                status = webhookd.status.get()
+            except RequestException:
+                status = {}
+
+            assert_that(
+                status,
+                has_entries(
+                    bus_consumer=has_entries(status='ok'),
+                    master_tenant=has_entries(status='ok'),
+                ),
+            )
+
+        until.assert_(is_ready, tries=60)
+
+
 class ConnectedWaitStrategy(WaitStrategy):
     def wait(self, webhookd):
         def webhookd_is_connected():

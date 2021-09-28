@@ -9,7 +9,6 @@ from hamcrest import assert_that, is_in, not_
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
-from xivo.config_helper import parse_config_file
 from xivo_test_helpers import until
 from xivo_test_helpers.auth import MockCredentials, MockUserToken
 from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
@@ -18,23 +17,21 @@ from xivo_test_helpers.bus import BusClient
 
 from .wait_strategy import WaitStrategy
 
-VALID_TOKEN = "valid-token"
+WAZO_UUID = '00000000-0000-4000-8000-00003eb8004d'
 
-WAZO_UUID = '613747fd-f7e7-4329-b115-3869e44a05d2'
+MASTER_TOKEN = '00000000-0000-4000-8000-000000000101'
+MASTER_TENANT = '00000000-0000-4000-8000-000000000201'
+MASTER_USER_UUID = '00000000-0000-4000-8000-000000000301'
 
-MASTER_TENANT = '4eb57648-b914-446b-a69f-58643ae08dd4'
-MASTER_USER_UUID = '5b6e5030-0f23-499a-8030-4a390392aad2'
-MASTER_TOKEN = 'cfe6dd71-5d0e-41c8-9178-0ce6578b5a71'
+USERS_TENANT = '00000000-0000-4000-8000-000000000202'
+USER_1_UUID = '00000000-0000-4000-8000-000000000302'
+USER_1_TOKEN = '00000000-0000-4000-8000-000000000102'
+USER_2_UUID = '00000000-0000-4000-8000-000000000303'
+USER_2_TOKEN = '00000000-0000-4000-8000-000000000103'
 
-USERS_TENANT = 'f0fe8e3a-2d7a-4dd7-8e93-8229d51cfe04'
-USER_1_UUID = 'b17d9f99-fcc7-4257-8e89-3d0e36e0b48d'
-USER_1_TOKEN = '756b980b-1cab-4048-933e-f3564ac1f5fc'
-USER_2_UUID = 'f79fd307-467c-4851-b614-e65bc8d922fc'
-USER_2_TOKEN = 'df8b0b7e-2621-4244-87f8-e85d27fe3955'
-
-OTHER_TENANT = '0a5afd22-6325-49b1-8e35-b04618e78b58'
-OTHER_USER_UUID = '35faa8d3-3d89-4a72-b897-0706125c7a35'
-OTHER_USER_TOKEN = '2c369402-fa85-4ea5-84ed-933cbd1002f0'
+OTHER_TENANT = '00000000-0000-4000-8000-000000000204'
+OTHER_USER_UUID = '00000000-0000-4000-8000-000000000304'
+OTHER_USER_TOKEN = '00000000-0000-4000-8000-000000000204'
 
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
@@ -48,11 +45,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        webhookd = cls.make_webhookd(VALID_TOKEN)
-        cls.wait_strategy.wait(webhookd)
+        webhookd = cls.make_webhookd(MASTER_TOKEN)
         if cls.asset == "base":
             cls.configured_wazo_auth()
             cls.docker_exec(['wazo-webhookd-init-amqp', '--host', 'rabbitmq'])
+        cls.wait_strategy.wait(webhookd)
 
     def setUp(self):
         if self.asset == "base":
@@ -83,15 +80,9 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
     @classmethod
     def configured_wazo_auth(cls):
-        # NOTE(sileht): This creates a tenant tree and associated users
-        key_file = parse_config_file(
-            os.path.join(cls.assets_root, "keys", "wazo-webhookd-key.yml")
-        )
         auth = cls.make_auth()
-        auth.set_valid_credentials(
-            MockCredentials(key_file['service_id'], key_file['service_key']),
-            MASTER_TOKEN,
-        )
+        credential = MockCredentials('webhookd-service', 'webhookd-password')
+        auth.set_valid_credentials(credential, MASTER_TOKEN)
         auth.set_token(
             MockUserToken(
                 MASTER_TOKEN,

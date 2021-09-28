@@ -1,5 +1,10 @@
 # Changelog
 
+## 21.13
+
+* The `/config` endpoint is now restricted to the master tenant
+* The `master_tenant` property has been added to the `/status` endpoint
+
 ## 21.02
 
 * New endpoint to update configuration of `wazo-webhookd`:
