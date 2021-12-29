@@ -5,7 +5,7 @@ import time
 
 from hamcrest import assert_that, contains, contains_string, equal_to, has_entries, is_
 from mockserver import MockServerClient
-from xivo_test_helpers import until
+from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN

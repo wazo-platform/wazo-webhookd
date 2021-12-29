@@ -9,11 +9,11 @@ from hamcrest import assert_that, is_in, not_
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
-from xivo_test_helpers import until
-from xivo_test_helpers.auth import MockCredentials, MockUserToken
-from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
-from xivo_test_helpers.auth import AuthClient
-from xivo_test_helpers.bus import BusClient
+from wazo_test_helpers import until
+from wazo_test_helpers.auth import MockCredentials, MockUserToken
+from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
+from wazo_test_helpers.auth import AuthClient
+from wazo_test_helpers.bus import BusClient
 
 from .wait_strategy import WaitStrategy
 

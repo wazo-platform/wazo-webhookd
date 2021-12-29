@@ -16,7 +16,7 @@ from hamcrest import (
     has_item,
 )
 from mockserver import MockServerClient
-from xivo_test_helpers import until
+from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN, USER_1_UUID, USER_2_UUID, USERS_TENANT

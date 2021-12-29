@@ -3,7 +3,7 @@
 
 from hamcrest import assert_that, has_entries
 from requests import RequestException
-from xivo_test_helpers import until
+from wazo_test_helpers import until
 
 
 class WaitStrategy:
