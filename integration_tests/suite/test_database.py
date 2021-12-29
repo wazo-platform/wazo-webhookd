@@ -20,7 +20,7 @@ from hamcrest import (
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, scoped_session
-from xivo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
+from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from wazo_webhookd.database.models import Subscription
 from wazo_webhookd.database.models import SubscriptionEvent
 from wazo_webhookd.database.models import SubscriptionOption

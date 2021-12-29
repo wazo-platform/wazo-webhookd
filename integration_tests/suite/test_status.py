@@ -4,7 +4,7 @@
 from hamcrest import assert_that
 from hamcrest import equal_to
 from hamcrest import has_entries
-from xivo_test_helpers import until
+from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN

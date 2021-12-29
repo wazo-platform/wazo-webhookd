@@ -3,8 +3,8 @@
 
 from requests import RequestException
 from hamcrest import assert_that, equal_to, has_key, has_entry, has_properties, calling
-from xivo_test_helpers import until
-from xivo_test_helpers.hamcrest.raises import raises
+from wazo_test_helpers import until
+from wazo_test_helpers.hamcrest.raises import raises
 
 from wazo_webhookd_client.exceptions import WebhookdError
 
