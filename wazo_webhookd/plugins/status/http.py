@@ -1,6 +1,7 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from wazo_webhookd import auth
 from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
 
@@ -12,14 +13,17 @@ class StatusResource(AuthResource):
 
     @required_acl('webhookd.status.read')
     def get(self):
+        try:
+            auth.get_master_tenant_uuid()
+        except auth.MasterTenantNotInitializedException:
+            master_tenant_status = 'fail'
+        else:
+            master_tenant_status = 'ok'
+
         result = {
             'bus_consumer': {
                 'status': 'ok' if self._bus_consumer.is_running() else 'fail'
             },
-            'master_tenant': {
-                'status': 'ok'
-                if self._config['auth'].get('master_tenant_uuid')
-                else 'fail'
-            },
+            'master_tenant': {'status': master_tenant_status},
         }
         return result, 200
