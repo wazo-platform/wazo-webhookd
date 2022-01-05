@@ -33,6 +33,8 @@ OTHER_TENANT = '00000000-0000-4000-8000-000000000204'
 OTHER_USER_UUID = '00000000-0000-4000-8000-000000000304'
 OTHER_USER_TOKEN = '00000000-0000-4000-8000-000000000204'
 
+START_TIMEOUT = int(os.environ.get('INTEGRATION_TEST_TIMEOUT', '30'))
+
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
 
@@ -189,7 +191,9 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         yield
         self.start_service('auth')
         auth = self.make_auth()
-        until.true(auth.is_up, timeout=5, message='wazo-auth did not come back up')
+        until.true(
+            auth.is_up, timeout=START_TIMEOUT, message='wazo-auth did not come back up'
+        )
         self.configured_wazo_auth()
 
     @contextmanager
@@ -198,4 +202,6 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         yield
         self.start_service('rabbitmq')
         bus = self.make_bus()
-        until.true(bus.is_up, timeout=5, message='rabbitmq did not come back up')
+        until.true(
+            bus.is_up, timeout=START_TIMEOUT, message='rabbitmq did not come back up'
+        )
