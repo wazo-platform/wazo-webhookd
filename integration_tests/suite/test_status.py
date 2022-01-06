@@ -1,14 +1,19 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that
 from hamcrest import equal_to
 from hamcrest import has_entries
 from wazo_test_helpers import until
+from wazo_test_helpers.auth import MockCredentials
 
 from .helpers.base import BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN
-from .helpers.wait_strategy import NoWaitStrategy
+from .helpers.wait_strategy import (
+    EverythingOkWaitStrategy,
+    NoWaitStrategy,
+    WebhookdStartedWaitStrategy,
+)
 
 
 class TestStatusRabbitMQStops(BaseIntegrationTest):
@@ -54,13 +59,21 @@ class TestStatusAllOK(BaseIntegrationTest):
         until.assert_(all_connections_ok, timeout=20)
 
 
-class TestStatusNoMasterTenant(BaseException):
-    def test_before_master_tenant_initialization(self):
-        self.stop_service('webhookd')
-        self.stop_service('auth')
-        self.start_service('webhookd')
+class TestStatusNoMasterTenant(BaseIntegrationTest):
 
+    asset = 'base'
+    wait_strategy = EverythingOkWaitStrategy()
+
+    def test_before_master_tenant_initialization(self):
+        auth = self.make_auth()
+        auth.set_invalid_credentials(
+            MockCredentials('webhookd-service', 'webhookd-password')
+        )
+
+        # clear existing master tenant token
+        self.restart_service('webhookd')
         webhookd = self.make_webhookd(MASTER_TOKEN)
+        WebhookdStartedWaitStrategy().wait(webhookd)
 
         def master_tenant_is_not_set():
             result = webhookd.status.get()
@@ -73,7 +86,11 @@ class TestStatusNoMasterTenant(BaseException):
 
         until.assert_(master_tenant_is_not_set, timeout=10)
 
-        self.start_service('auth')
+        # restore wazo-webhookd credentials
+        self.restart_service('auth')
+        auth = self.make_auth()
+        until.true(auth.is_up)
+        self.configured_wazo_auth()
 
         def master_tenant_ok():
             result = webhookd.status.get()

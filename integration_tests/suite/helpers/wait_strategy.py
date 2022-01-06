@@ -1,7 +1,7 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from hamcrest import assert_that, has_entries
+from hamcrest import assert_that, empty, has_entries, not_
 from requests import RequestException
 from wazo_test_helpers import until
 
@@ -33,6 +33,19 @@ class EverythingOkWaitStrategy(WaitStrategy):
             )
 
         until.assert_(is_ready, tries=60)
+
+
+class WebhookdStartedWaitStrategy(WaitStrategy):
+    def wait(self, webhookd):
+        def is_ready():
+            try:
+                status = webhookd.status.get()
+            except RequestException:
+                status = {}
+
+            assert_that(status, not_(empty()))
+
+        until.assert_(is_ready, tries=30)
 
 
 class ConnectedWaitStrategy(WaitStrategy):
