@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from requests import RequestException
@@ -9,7 +9,7 @@ from wazo_test_helpers.hamcrest.raises import raises
 from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.base import MASTER_TOKEN, USER_1_TOKEN
+from .helpers.base import MASTER_TOKEN, USER_1_TOKEN, START_TIMEOUT
 from .helpers.wait_strategy import EverythingOkWaitStrategy
 
 
@@ -86,6 +86,8 @@ class TestConfig(BaseIntegrationTest):
         until.assert_(_returns_503, tries=10)
 
         self.start_service('auth')
+        auth = self.make_auth()
+        until.true(auth.is_up, timeout=START_TIMEOUT)
         self.configured_wazo_auth()
 
         def _not_return_503():
