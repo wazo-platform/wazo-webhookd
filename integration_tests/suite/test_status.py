@@ -8,7 +8,7 @@ from wazo_test_helpers import until
 from wazo_test_helpers.auth import MockCredentials
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.base import MASTER_TOKEN
+from .helpers.base import MASTER_TOKEN, START_TIMEOUT
 from .helpers.wait_strategy import (
     EverythingOkWaitStrategy,
     NoWaitStrategy,
@@ -89,7 +89,7 @@ class TestStatusNoMasterTenant(BaseIntegrationTest):
         # restore wazo-webhookd credentials
         self.restart_service('auth')
         auth = self.make_auth()
-        until.true(auth.is_up)
+        until.true(auth.is_up, timeout=START_TIMEOUT)
         self.configured_wazo_auth()
 
         def master_tenant_ok():
