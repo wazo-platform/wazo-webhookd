@@ -1,4 +1,4 @@
-# Copyright 2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import datetime
 import logging
@@ -82,7 +82,7 @@ def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
         if task.request.retries + 1 >= config["hook_max_attempts"]:
             return
 
-        retry_backoff = int(2 ** task.request.retries)
+        retry_backoff = int(2**task.request.retries)
         task.retry(countdown=retry_backoff)
     except Exception as e:
         if isinstance(e, HookExpectedError):
