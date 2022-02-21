@@ -7,19 +7,19 @@ cheroot==6.5.4
 flask-cors==3.0.7
 flask-restful==0.3.7
 flask==1.0.2
+httpx==0.7.2
 itsdangerous==0.24  # from flask
 jinja2==2.10
 jsonpatch==1.21
 kombu==4.6.11
-setproctitle==1.1.10
 marshmallow==3.0.0b14
 netifaces==0.10.4
 psycopg2==2.7.7
+pyfcm==1.4.7
 python-consul==0.7.1
 pyyaml==3.13
+setproctitle==1.1.10
 sqlalchemy==1.2.18
 sqlalchemy_utils==0.32.21
 stevedore==1.29.0
-pyfcm==1.4.7
-httpx==0.7.2
 werkzeug==0.14.1
