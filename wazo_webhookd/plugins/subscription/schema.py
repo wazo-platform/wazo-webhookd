@@ -23,7 +23,7 @@ class HTTPSubscriptionConfigSchema(Schema):
     content_type = fields.String(validate=Length(max=256))
 
     @pre_load
-    def remove_none_values(self, config):
+    def remove_none_values(self, config, **kwargs):
         optional_keys = (
             name for name, field in self.fields.items() if not field.required
         )
@@ -33,7 +33,7 @@ class HTTPSubscriptionConfigSchema(Schema):
         return config
 
     @post_load
-    def lowercase_method(self, data):
+    def lowercase_method(self, data, **kwargs):
         data['method'] = data['method'].lower()
         return data
 
@@ -123,7 +123,7 @@ class SubscriptionListParamsSchema(Schema):
     recurse = fields.Boolean(missing=False)
 
     @pre_load
-    def aggregate_search_metadata(self, data):
+    def aggregate_search_metadata(self, data, **kwargs):
         metadata = {}
         for search in data.getlist('search_metadata'):
             try:
