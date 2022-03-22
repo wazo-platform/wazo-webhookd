@@ -315,13 +315,16 @@ class PushNotification:
                 'aps': {'alert': data, 'badge': 1},
                 **data,
             }
-            # TODO(pc-m): The apns_voip_token was added in 20.05
-            # the `or self.external_tokens["apns_token"]` should be removed when we stop
-            # supporting wazo 20.XX
-            token = (
-                self.external_tokens.get("apns_voip_token")
-                or self.external_tokens["apns_token"]
-            )
+        elif channel_id == 'wazo-notification-cancel-call':
+            headers = {
+                'apns-topic': 'io.wazo.songbird',
+                'apns-push-type': 'alert',
+                'apns-priority': '5',
+            }
+            payload = {
+                'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                **data,
+            }
         else:
             headers = {
                 'apns-topic': 'io.wazo.songbird',
@@ -329,10 +332,7 @@ class PushNotification:
                 'apns-priority': '5',
             }
             payload = {
-                'aps': {
-                    'badge': 1,
-                    'sound': "default",
-                },
+                'aps': {'badge': 1, 'sound': "default"},
                 **data,
             }
 
@@ -344,6 +344,15 @@ class PushNotification:
                     alert['body'] = message_body
                 payload['aps']['alert'] = alert
 
+        if channel_id == 'wazo-notification-call':
+            # TODO(pc-m): The apns_voip_token was added in 20.05
+            # the `or self.external_tokens["apns_token"]` should be removed when we stop
+            # supporting wazo 20.XX
+            token = (
+                self.external_tokens.get("apns_voip_token")
+                or self.external_tokens["apns_token"]
+            )
+        else:
             try:
                 token = self.external_tokens['apns_notification_token']
             except KeyError:
@@ -351,6 +360,7 @@ class PushNotification:
                     'message': 'Mobile application did not upload external auth token `apns_notification_token`',
                 }
                 raise NotificationError(details)
+
         return headers, payload, token
 
     @staticmethod
