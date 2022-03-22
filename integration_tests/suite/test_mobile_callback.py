@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
@@ -108,6 +108,29 @@ class TestMobileCallback(BaseIntegrationTest):
                 },
             }
         )
+        third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'items': {'peer_caller_id_number': 'caller-id'},
+                                'notification_type': 'cancelIncomingCall',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps(
+                        {'message_id': 'message-id-cancel-incoming-call'}
+                    ),
+                },
+            }
+        )
 
         auth = self.make_auth()
         auth.reset_external_auth()
@@ -136,6 +159,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
+                    'call_cancel_push_notification',
                     'user_voicemail_message_created',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
@@ -172,6 +196,38 @@ class TestMobileCallback(BaseIntegrationTest):
             has_entries(
                 status="success",
                 detail=has_entry('topic_message_id', 'message-id-incoming-call'),
+                attempts=1,
+            ),
+        )
+
+        # Canceling the push notification
+        self.bus.publish(
+            {
+                'name': 'call_cancel_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_1_UUID): True,
+                'data': {'peer_caller_id_number': 'caller-id'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_push_notification',
+                'user_uuid:{}'.format(USER_1_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            number=2,
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(2))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entries(topic_message_id='message-id-cancel-incoming-call'),
+                event=has_entries(name='call_cancel_push_notification'),
                 attempts=1,
             ),
         )
@@ -218,6 +274,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
+                    'call_cancel_push_notification',
                     'user_voicemail_message_created',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
@@ -255,6 +312,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 status="success",
                 detail=has_entry('response_body', has_entry('tracker', 'tracker')),
                 attempts=1,
+                event=has_entries(name='call_push_notification'),
             ),
         )
 
@@ -347,6 +405,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
+                    'call_cancel_push_notification',
                     'user_voicemail_message_created',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
@@ -382,12 +441,56 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entry('response_body', has_entry('tracker', 'tracker-voip')),
+                detail=has_entries(
+                    response_body=has_entries(tracker='tracker-voip'),
+                ),
+                event=has_entries(name='call_push_notification'),
+                attempts=1,
+            ),
+        )
+
+        # Canceling the push notification
+        self.bus.publish(
+            {
+                'name': 'call_cancel_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+                'data': {'peer_caller_id_number': 'caller-id'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_push_notification',
+                'user_uuid:{}'.format(USER_2_UUID): True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            number=2,
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(2))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entries(
+                    response_body=has_entries(tracker='tracker-notification'),
+                ),
+                event=has_entries(name='call_cancel_push_notification'),
                 attempts=1,
             ),
         )
 
         # Send chat message push notification
+        apns_third_party.reset()
+        apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': 'tracker-notification'},
+            statusCode=200,
+        )
+
         self.bus.publish(
             {
                 'name': 'chatd_user_room_message_created',
@@ -403,11 +506,11 @@ class TestMobileCallback(BaseIntegrationTest):
 
         self._wait_items(
             functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
-            number=2,
+            number=3,
         )
 
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        assert_that(logs['total'], equal_to(2))
+        assert_that(logs['total'], equal_to(3))
         assert_that(
             logs['items'][0],
             has_entries(
