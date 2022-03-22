@@ -315,6 +315,9 @@ class PushNotification:
                 'aps': {'alert': data, 'badge': 1},
                 **data,
             }
+            # TODO(pc-m): The apns_voip_token was added in 20.05
+            # the `or self.external_tokens["apns_token"]` should be removed when we stop
+            # supporting wazo 20.XX
             token = (
                 self.external_tokens.get("apns_voip_token")
                 or self.external_tokens["apns_token"]
