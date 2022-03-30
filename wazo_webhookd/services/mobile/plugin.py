@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 import httpx
@@ -27,6 +27,7 @@ REQUESTS_TIMEOUT = (10, 15, 15)  # seconds
 MAP_NAME_TO_NOTIFICATION_TYPE = {
     'user_voicemail_message_created': 'voicemailReceived',
     'call_push_notification': 'incomingCall',
+    'call_cancel_push_notification': 'cancelIncomingCall',
     'chatd_user_room_message_created': 'messageReceived',
 }
 
@@ -69,6 +70,7 @@ class Service:
                     'events': [
                         'chatd_user_room_message_created',
                         'call_push_notification',
+                        'call_cancel_push_notification',
                         'user_voicemail_message_created',
                     ],
                     'events_user_uuid': user_uuid,
@@ -155,6 +157,15 @@ class PushNotification:
         self.external_config = external_config
         self.jwt = jwt
 
+    def cancelIncomingCall(self, data):
+        return self._send_notification(
+            'cancelIncomingCall',
+            None,  # Message title
+            None,  # Message body
+            'wazo-notification-cancel-call',
+            data,
+        )
+
     def incomingCall(self, data):
         return self._send_notification(
             'incomingCall',
@@ -213,22 +224,23 @@ class PushNotification:
 
         push_service = FCMNotification(api_key=self.external_config['fcm_api_key'])
 
+        notify_kwargs = {
+            'registration_id': self.external_tokens['token'],
+            'data_message': data,
+        }
         if channel_id == 'wazo-notification-call':
-            notification = push_service.notify_single_device(
-                registration_id=self.external_tokens['token'],
-                data_message=data,
-                extra_notification_kwargs=dict(priority='high'),
-            )
+            notify_kwargs['extra_notification_kwargs'] = {'priority': 'high'}
         else:
-            notification = push_service.notify_single_device(
-                registration_id=self.external_tokens['token'],
-                message_title=message_title,
-                message_body=message_body,
-                badge=1,
-                extra_notification_kwargs=dict(android_channel_id=channel_id),
-                data_message=data,
-            )
+            notify_kwargs['badge'] = 1
+            notify_kwargs['extra_notification_kwargs'] = {
+                'android_channel_id': channel_id
+            }
+            if message_title:
+                notify_kwargs['message_title'] = message_title
+            if message_body:
+                notify_kwargs['message_body'] = message_body
 
+        notification = push_service.notify_single_device(**notify_kwargs)
         if notification.get('failure') != 0:
             logger.error('Error to send push notification: %s', notification)
         return notification
@@ -303,10 +315,16 @@ class PushNotification:
                 'aps': {'alert': data, 'badge': 1},
                 **data,
             }
-            token = (
-                self.external_tokens.get("apns_voip_token")
-                or self.external_tokens["apns_token"]
-            )
+        elif channel_id == 'wazo-notification-cancel-call':
+            headers = {
+                'apns-topic': 'io.wazo.songbird',
+                'apns-push-type': 'alert',
+                'apns-priority': '5',
+            }
+            payload = {
+                'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                **data,
+            }
         else:
             headers = {
                 'apns-topic': 'io.wazo.songbird',
@@ -314,13 +332,27 @@ class PushNotification:
                 'apns-priority': '5',
             }
             payload = {
-                'aps': {
-                    'alert': {'title': message_title, 'body': message_body},
-                    'badge': 1,
-                    'sound': "default",
-                },
+                'aps': {'badge': 1, 'sound': "default"},
                 **data,
             }
+
+            if message_title or message_body:
+                alert = {}
+                if message_title:
+                    alert['title'] = message_title
+                if message_body:
+                    alert['body'] = message_body
+                payload['aps']['alert'] = alert
+
+        if channel_id == 'wazo-notification-call':
+            # TODO(pc-m): The apns_voip_token was added in 20.05
+            # the `or self.external_tokens["apns_token"]` should be removed when we stop
+            # supporting wazo 20.XX
+            token = (
+                self.external_tokens.get("apns_voip_token")
+                or self.external_tokens["apns_token"]
+            )
+        else:
             try:
                 token = self.external_tokens['apns_notification_token']
             except KeyError:
@@ -328,6 +360,7 @@ class PushNotification:
                     'message': 'Mobile application did not upload external auth token `apns_notification_token`',
                 }
                 raise NotificationError(details)
+
         return headers, payload, token
 
     @staticmethod
