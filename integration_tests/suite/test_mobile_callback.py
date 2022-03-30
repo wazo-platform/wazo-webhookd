@@ -354,6 +354,9 @@ class TestMobileCallback(BaseIntegrationTest):
         webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_workflow_apns_with_app_using_two_tokens(self):
+        import time
+
+        time.sleep(3600)
         auth = self.make_auth()
         auth.reset_external_auth()
         # Newer iOS apps use two APNs token
