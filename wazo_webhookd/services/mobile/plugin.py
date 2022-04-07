@@ -307,7 +307,6 @@ class PushNotification:
     def _create_apn_message(self, message_title, message_body, channel_id, data):
         if channel_id == 'wazo-notification-call':
             headers = {
-                'apns-topic': 'io.wazo.songbird.voip',
                 'apns-push-type': 'voip',
                 'apns-priority': '10',
             }
@@ -317,7 +316,6 @@ class PushNotification:
             }
         elif channel_id == 'wazo-notification-cancel-call':
             headers = {
-                'apns-topic': 'io.wazo.songbird',
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
@@ -327,7 +325,6 @@ class PushNotification:
             }
         else:
             headers = {
-                'apns-topic': 'io.wazo.songbird',
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }

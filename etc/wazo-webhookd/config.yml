@@ -99,5 +99,7 @@ enabled_services:
   http: True
   mobile: True
 
+mobile_apns_call_topic: "org.wazo-platform.voip"
+mobile_apns_default_topic:  "org.wazo-platform"
 mobile_apns_host: api.push.apple.com
 mobile_apns_port: 443
