@@ -82,7 +82,7 @@ class TestAPN(TestCase):
             headers,
             equal_to(
                 {
-                    'apns-topic': 'org.wazo-platform.voip',
+                    'apns-topic': 'org.wazo-platform',
                     'apns-push-type': 'alert',
                     'apns-priority': '5',
                 }

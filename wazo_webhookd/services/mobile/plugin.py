@@ -307,6 +307,7 @@ class PushNotification:
     def _create_apn_message(self, message_title, message_body, channel_id, data):
 
         apns_topic_value = self.config['mobile_apns_call_topic']
+        apns_default_topic_value = self.config['mobile_apns_default_topic']
 
         if channel_id == 'wazo-notification-call':
             headers = {
@@ -320,7 +321,7 @@ class PushNotification:
             }
         elif channel_id == 'wazo-notification-cancel-call':
             headers = {
-                'apns-topic': apns_topic_value,
+                'apns-topic': apns_default_topic_value,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
@@ -330,7 +331,7 @@ class PushNotification:
             }
         else:
             headers = {
-                'apns-topic': apns_topic_value,
+                'apns-topic': apns_default_topic_value,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
