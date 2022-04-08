@@ -74,6 +74,8 @@ _DEFAULT_CONFIG = {
     'hook_max_attempts': 10,
     'mobile_apns_host': 'api.push.apple.com',
     'mobile_apns_port': 443,
+    'mobile_apns_call_topic': 'org.wazo-platform.voip',
+    'mobile_apns_default_topic': 'org.wazo-platform',
 }
 
 
