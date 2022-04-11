@@ -305,9 +305,13 @@ class PushNotification:
         return requests_automatic_detail(response)
 
     def _create_apn_message(self, message_title, message_body, channel_id, data):
+
+        apns_call_topic = self.config['mobile_apns_call_topic']
+        apns_default_topic = self.config['mobile_apns_default_topic']
+
         if channel_id == 'wazo-notification-call':
             headers = {
-                'apns-topic': 'io.wazo.songbird.voip',
+                'apns-topic': apns_call_topic,
                 'apns-push-type': 'voip',
                 'apns-priority': '10',
             }
@@ -317,7 +321,7 @@ class PushNotification:
             }
         elif channel_id == 'wazo-notification-cancel-call':
             headers = {
-                'apns-topic': 'io.wazo.songbird',
+                'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
@@ -327,7 +331,7 @@ class PushNotification:
             }
         else:
             headers = {
-                'apns-topic': 'io.wazo.songbird',
+                'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
