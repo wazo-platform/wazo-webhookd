@@ -223,28 +223,33 @@ class PushNotification:
         )
 
         push_service = FCMNotification(api_key=self.external_config['fcm_api_key'])
-
         notify_kwargs = {
             'registration_id': self.external_tokens['token'],
             'data_message': data,
         }
+
         if channel_id == 'wazo-notification-call':
-            notify_kwargs['extra_notification_kwargs'] = {'priority': 'high'}
+            notification = push_service.notify_single_device(
+                extra_notification_kwargs={'priority': 'high'},
+                **notify_kwargs,
+            )
+        elif channel_id == 'wazo-notification-cancel-call':
+            notification = push_service.single_device_data_message(
+                extra_notification_kwargs={'android_channel_id': channel_id},
+                **notify_kwargs,
+            )
         else:
-            if channel_id != 'wazo-notification-cancel-call':
-                notify_kwargs['badge'] = 1
-            notify_kwargs['extra_notification_kwargs'] = {
-                'android_channel_id': channel_id
-            }
             if message_title:
                 notify_kwargs['message_title'] = message_title
             if message_body:
                 notify_kwargs['message_body'] = message_body
 
-        if channel_id != 'wazo-notification-cancel-call':
-            notification = push_service.notify_single_device(**notify_kwargs)
-        else:
-            notification = push_service.single_device_data_message(**notify_kwargs)
+            notification = push_service.notify_single_device(
+                extra_notification_kwargs={'android_channel_id': channel_id},
+                badge=1,
+                **notify_kwargs,
+            )
+
         if notification.get('failure') != 0:
             logger.error('Error to send push notification: %s', notification)
         return notification
