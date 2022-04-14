@@ -231,7 +231,8 @@ class PushNotification:
         if channel_id == 'wazo-notification-call':
             notify_kwargs['extra_notification_kwargs'] = {'priority': 'high'}
         else:
-            notify_kwargs['badge'] = 1
+            if channel_id != 'wazo-notification-cancel-call':
+                notify_kwargs['badge'] = 1
             notify_kwargs['extra_notification_kwargs'] = {
                 'android_channel_id': channel_id
             }
@@ -240,7 +241,10 @@ class PushNotification:
             if message_body:
                 notify_kwargs['message_body'] = message_body
 
-        notification = push_service.notify_single_device(**notify_kwargs)
+        if channel_id != 'wazo-notification-cancel-call':
+            notification = push_service.notify_single_device(**notify_kwargs)
+        else:
+            notification = push_service.single_device_data_message(**notify_kwargs)
         if notification.get('failure') != 0:
             logger.error('Error to send push notification: %s', notification)
         return notification
