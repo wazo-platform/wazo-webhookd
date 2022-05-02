@@ -2,7 +2,7 @@
 
 [![Build Status](https://jenkins.wazo.community/buildStatus/icon?job=wazo-webhookd)](https://jenkins.wazo.community/job/wazo-webhookd)
 
-A micro service to manage and trigger webhooks in the [Wazo PBX](http://wazo.community).
+A micro service to manage and trigger webhooks in the [Wazo PBX](https://wazo-platform.org).
 
 
 wazo-webhookd allow the administrator to manage webhooks (incoming or outgoing)

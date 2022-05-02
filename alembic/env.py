@@ -1,6 +1,9 @@
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
-from logging.config import fileConfig
 from alembic import context
+from logging.config import fileConfig
 from sqlalchemy import create_engine
 
 # this is the Alembic Config object, which provides
