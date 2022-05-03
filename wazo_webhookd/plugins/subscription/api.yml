@@ -211,7 +211,7 @@ definitions:
           type: string
       events_user_uuid:
         type: string
-        description: "Only trigger webhook when an event occurs related to this user. Not compatible with all events. For more details, see: http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/api.html."
+        description: "Only trigger webhook when an event occurs related to this user. Not compatible with all events. For more details, see: https://wazo-platform.org/uc-doc/api_sdk/rest_api/webhookd/user_filter."
       events_wazo_uuid:
         type: string
         description: "Only trigger webhook when an event occurs on this Wazo."
@@ -262,7 +262,7 @@ definitions:
           type: string
       events_user_uuid:
         type: string
-        description: "Only trigger webhook when an event occurs related to this user. Not compatible with all events. For more details, see: http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/api.html"
+        description: "Only trigger webhook when an event occurs related to this user. Not compatible with all events. For more details, see: https://wazo-platform.org/uc-doc/api_sdk/rest_api/webhookd/user_filter"
       owner_user_uuid:
         type: string
         readOnly: true
@@ -281,7 +281,7 @@ definitions:
     properties:
       url:
         type: string
-        description: Jinja2 template, where variables come from the event triggering the webhook. For more details, see http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/templates.html
+        description: Jinja2 template, where variables come from the event triggering the webhook. For more details, see https://wazo-platform.org/uc-doc/api_sdk/rest_api/webhookd/templates
       method:
         type: string
         enum:
@@ -292,7 +292,7 @@ definitions:
           - delete
       body:
         type: string
-        description: Jinja2 template, where variables come from the event triggering the webhook. For more details, see http://documentation.wazo.community/en/latest/api_sdk/rest_api/webhookd/templates.html. **Default:** the complete event data, JSON-encoded.
+        description: Jinja2 template, where variables come from the event triggering the webhook. For more details, see https://wazo-platform.org/uc-doc/api_sdk/rest_api/webhookd/templates. **Default:** the complete event data, JSON-encoded.
       verify_certificate:
         description: May be `true`, `false` or a path to the certificate bundle
         type: string
