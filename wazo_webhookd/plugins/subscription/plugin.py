@@ -1,6 +1,7 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from wazo_webhookd.auth import deferred_loader
 from .bus import SubscriptionBusEventHandler
 from .http import (
     SubscriptionResource,
@@ -45,6 +46,8 @@ class Plugin:
             resource_class_args=[service],
         )
 
-        SubscriptionBusEventHandler(
+        bus_handler = SubscriptionBusEventHandler(
             bus_consumer, config, service_manager, service
-        ).subscribe(bus_consumer)
+        )
+
+        deferred_loader.execute_after_master_tenant(bus_handler.subscribe)
