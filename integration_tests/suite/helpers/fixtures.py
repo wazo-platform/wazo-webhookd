@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import copy
@@ -25,7 +25,7 @@ def subscription(
                 sub['config']['url'] += sep + "test_case=" + decorated.__name__
 
             new_subscription = webhookd.subscriptions.create(sub)
-            self.ensure_webhookd_consume_uuid(new_subscription['uuid'])
+            self.ensure_webhookd_consume_subscription(new_subscription)
 
             args = list(args) + [new_subscription]
             try:
@@ -40,7 +40,7 @@ def subscription(
                     if e.status_code != 404:
                         raise
 
-                self.ensure_webhookd_not_consume_uuid(new_subscription['uuid'])
+                self.ensure_webhookd_not_consume_subscription(new_subscription)
 
         return wrapper
 
