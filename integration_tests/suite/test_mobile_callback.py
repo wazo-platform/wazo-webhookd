@@ -143,7 +143,10 @@ class TestMobileCallback(BaseIntegrationTest):
                 'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
             },
             routing_key=SOME_ROUTING_KEY,
-            headers={'name': 'auth_user_external_auth_added'},
+            headers={
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+            },
         )
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
@@ -181,6 +184,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_1_UUID): True,
             },
         )
@@ -211,6 +216,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_1_UUID): True,
             },
         )
@@ -296,6 +303,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_2_UUID): True,
             },
         )
@@ -326,6 +335,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'chatd_user_room_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_2_UUID): True,
             },
         )
@@ -427,6 +438,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_2_UUID): True,
             },
         )
@@ -460,6 +473,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_2_UUID): True,
             },
         )
@@ -500,6 +515,8 @@ class TestMobileCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': 'chatd_user_room_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{}'.format(USER_2_UUID): True,
             },
         )

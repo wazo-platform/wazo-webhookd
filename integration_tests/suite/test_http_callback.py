@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
 import time
@@ -325,7 +325,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         subscription['events'] = [ANOTHER_TRIGGER_EVENT_NAME]
         webhookd.subscriptions.update(subscription['uuid'], subscription)
-        self.ensure_webhookd_consume_uuid(subscription['uuid'])
+        self.ensure_webhookd_consume_subscription(subscription)
 
         self.bus.publish(
             event(name=old_trigger_name),
@@ -355,7 +355,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         subscription['config']['url'] = 'http://third-party-http:1080/new-url'
         webhookd.subscriptions.update(subscription['uuid'], subscription)
-        self.ensure_webhookd_consume_uuid(subscription['uuid'])
+        self.ensure_webhookd_consume_subscription(subscription)
 
         self.bus.publish(
             trigger_event(),
@@ -386,7 +386,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         webhookd.subscriptions.delete(subscription_to_remove['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_to_remove['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_to_remove)
         self.bus.publish(
             trigger_event(),
             routing_key=SOME_ROUTING_KEY,
@@ -408,7 +408,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         self.restart_service('webhookd')
         ConnectedWaitStrategy().wait(self.make_webhookd(MASTER_TOKEN))
-        self.ensure_webhookd_consume_uuid(subscription['uuid'])
+        self.ensure_webhookd_consume_subscription(subscription)
 
         self.bus.publish(
             trigger_event(),
