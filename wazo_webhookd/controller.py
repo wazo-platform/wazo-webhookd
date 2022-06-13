@@ -1,18 +1,17 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
 import signal
 
 from functools import partial
-from threading import Thread
 from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
 from xivo.token_renewer import TokenRenewer
 from wazo_auth_client import Client as AuthClient
 
 from . import auth
-from .bus import CoreBusConsumer
+from .bus import BusConsumer
 from .rest_api import api, CoreRestApi
 from wazo_webhookd import celery
 
@@ -45,7 +44,7 @@ class Controller:
         self._token_renewer.subscribe_to_next_token_details_change(
             lambda t: self._token_renewer.emit_stop()
         )
-        self._bus_consumer = CoreBusConsumer(config)
+        self._bus_consumer = BusConsumer(name='wazo_webhookd', **config['bus'])
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
             namespace='wazo_webhookd.services',
@@ -71,21 +70,14 @@ class Controller:
     def run(self):
         logger.info('wazo-webhookd starting...')
         signal.signal(signal.SIGTERM, partial(_sigterm_handler, self))
-        bus_consumer_thread = Thread(
-            target=self._bus_consumer.run, name='bus_consumer_thread'
-        )
-        bus_consumer_thread.start()
         try:
             with ServiceCatalogRegistration(*self._service_discovery_args):
-                with self._token_renewer:
+                with self._bus_consumer, self._token_renewer:
                     self.rest_api.run()
         finally:
             logger.info('wazo-webhookd stopping...')
-            self._bus_consumer.should_stop = True
             self._celery_process.terminate()
-
             logger.debug('waiting for remaining threads/subprocesses...')
-            bus_consumer_thread.join()
             self._celery_process.join()
             logger.debug('all threads and subprocesses stopped.')
 
