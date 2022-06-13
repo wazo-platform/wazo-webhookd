@@ -41,7 +41,9 @@ class SubscriptionBusEventHandler:
 
     @staticmethod
     def _build_headers(subscription):
-        headers = {}
+        headers = {
+            'x-subscription': subscription.uuid,
+        }
         user_uuid = subscription.events_user_uuid
         wazo_uuid = subscription.events_wazo_uuid
         tenant_uuid = subscription.owner_tenant_uuid
