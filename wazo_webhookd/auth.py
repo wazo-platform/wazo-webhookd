@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -13,6 +13,43 @@ from .rest_api import app
 from .exceptions import TokenWithUserUUIDRequiredError
 
 logger = logging.getLogger(__name__)
+
+
+
+
+class _DeferredLoader:
+    def __init__(self):
+        self._post_hooks = []
+
+    @property
+    def _has_master_tenant(self):
+        try:
+            get_master_tenant_uuid()
+        except MasterTenantNotInitializedException:
+            return False
+        else:
+            return True
+
+    def execute_after_master_tenant(self, func, *args, **kwargs):
+        callback = (func, args, kwargs,)
+        if self._has_master_tenant:
+            self._execute_callback(callback)
+        self._post_hooks.append(callback)
+
+    def run_post_hooks(self):
+        for callback in self._post_hooks:
+            self._execute_callback(callback)
+
+    def _execute_callback(self, callback):
+        callback, args, kwargs = callback
+        try:
+            callback(*args, **kwargs)
+        except Exception:
+            logger.error('error during callback execution')
+            raise
+
+
+deferred_loader = _DeferredLoader()
 
 
 def get_token_user_uuid_from_request(auth_client):
@@ -41,6 +78,7 @@ def required_master_tenant():
 def init_master_tenant(token):
     tenant_uuid = token['metadata']['tenant_uuid']
     app.config['auth']['master_tenant_uuid'] = tenant_uuid
+    deferred_loader.run_post_hooks()
 
 
 def get_master_tenant_uuid():
