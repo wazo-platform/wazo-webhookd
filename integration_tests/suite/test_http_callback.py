@@ -3,11 +3,20 @@
 import operator
 import time
 
-from hamcrest import assert_that, contains, contains_string, equal_to, has_entries, is_
+from hamcrest import (
+    assert_that,
+    contains,
+    contains_string,
+    equal_to,
+    has_entries,
+    is_,
+    calling,
+    raises,
+)
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
-from .helpers.base import BaseIntegrationTest
+from .helpers.base import MASTER_TENANT, USERS_TENANT, OTHER_TENANT, BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN
 from .helpers.fixtures import subscription
 from .helpers.wait_strategy import ConnectedWaitStrategy
@@ -672,6 +681,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': ANOTHER_TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True,
             },
         )
@@ -895,4 +905,71 @@ class TestHTTPCallback(BaseIntegrationTest):
                 has_entries(status="failure"),
                 has_entries(status="failure"),
             ),
+        )
+
+    @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    def test_given_user_tenant_dont_trigger_on_other_tenant_event(self, subscription):
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': OTHER_TENANT,
+            },
+        )
+
+        assert_that(
+            calling(until.assert_).with_args(
+                self.make_third_party_verify_callback(
+                    request={'method': 'GET', 'path': '/test'}, count=1, exact=True
+                ),
+                timeout=10,
+                interval=0.5,
+            ),
+            raises(AssertionError),
+        )
+
+    @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    def test_given_user_tenant_dont_trigger_on_master_tenant_event(self, subscription):
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+            },
+        )
+
+        assert_that(
+            calling(until.assert_).with_args(
+                self.make_third_party_verify_callback(
+                    request={'method': 'GET', 'path': '/test'}, count=1, exact=True
+                ),
+                timeout=10,
+                interval=0.5,
+            ),
+            raises(AssertionError),
+        )
+
+    @subscription(TEST_SUBSCRIPTION, tenant=MASTER_TENANT)
+    def test_given_master_tenant_trigger_on_all_tenants_event(self, subscription):
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
+            },
+        )
+
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': OTHER_TENANT,
+            },
+        )
+
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=2, exact=True
+            ),
+            timeout=10,
+            interval=0.5,
         )
