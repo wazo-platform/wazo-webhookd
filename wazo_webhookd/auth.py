@@ -15,6 +15,33 @@ from .exceptions import TokenWithUserUUIDRequiredError
 logger = logging.getLogger(__name__)
 
 
+class MasterTenantNotInitializedException(APIException):
+    def __init__(self):
+        msg = 'wazo-webhookd master tenant is not initialized'
+        super().__init__(503, msg, 'master-tenant-not-initialized')
+
+
+class Token:
+    def __init__(self, auth_client, token_id):
+        try:
+            self._token_infos = auth_client.token.get(token_id)
+        except HTTPError as e:
+            logger.warning('HTTP error from wazo-auth while getting token: %s', e)
+            raise AuthServerUnreachable(auth_client.host, auth_client.port, e)
+
+    def user_uuid(self):
+        user_uuid = self._token_infos['metadata']['uuid']
+        if not user_uuid:
+            raise TokenWithUserUUIDRequiredError()
+        return user_uuid
+
+    def wazo_uuid(self):
+        return self._token_infos['xivo_uuid']
+
+    @classmethod
+    def from_request(cls, auth_client):
+        token_id = request.headers.get('X-Auth-Token') or request.args.get('token')
+        return cls(auth_client, token_id)
 
 
 class _DeferredLoader:
@@ -31,7 +58,7 @@ class _DeferredLoader:
             return True
 
     def execute_after_master_tenant(self, func, *args, **kwargs):
-        callback = (func, args, kwargs,)
+        callback = (func, args, kwargs)
         if self._has_master_tenant:
             self._execute_callback(callback)
         self._post_hooks.append(callback)
@@ -65,12 +92,6 @@ def get_token_user_uuid_from_request(auth_client):
     return user_uuid
 
 
-class MasterTenantNotInitializedException(APIException):
-    def __init__(self):
-        msg = 'wazo-webhookd master tenant is not initialized'
-        super().__init__(503, msg, 'master-tenant-not-initialized')
-
-
 def required_master_tenant():
     return required_tenant(master_tenant_uuid)
 
@@ -92,26 +113,3 @@ def get_master_tenant_uuid():
 
 
 master_tenant_uuid = Proxy(get_master_tenant_uuid)
-
-
-class Token:
-    def __init__(self, auth_client, token_id):
-        try:
-            self._token_infos = auth_client.token.get(token_id)
-        except HTTPError as e:
-            logger.warning('HTTP error from wazo-auth while getting token: %s', e)
-            raise AuthServerUnreachable(auth_client.host, auth_client.port, e)
-
-    def user_uuid(self):
-        user_uuid = self._token_infos['metadata']['uuid']
-        if not user_uuid:
-            raise TokenWithUserUUIDRequiredError()
-        return user_uuid
-
-    def wazo_uuid(self):
-        return self._token_infos['xivo_uuid']
-
-    @classmethod
-    def from_request(cls, auth_client):
-        token_id = request.headers.get('X-Auth-Token') or request.args.get('token')
-        return cls(auth_client, token_id)
