@@ -33,8 +33,7 @@ class SubscriptionBusEventHandler:
         self._register(subscription)
 
     def on_subscription_updated(self, subscription):
-        self._unregister(subscription)
-        self._register(subscription)
+        self._update(subscription)
 
     def on_subscription_deleted(self, subscription):
         self._unregister(subscription)
@@ -59,11 +58,11 @@ class SubscriptionBusEventHandler:
     def _register(self, subscription):
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
-        extra_headers = self._build_headers(subscription)
 
-        fn, events = self._subscription_callbacks[uuid] = (
+        fn, events, extra_headers = self._subscription_callbacks[uuid] = (
             partial(self._callback, data),
             subscription.events,
+            self._build_headers(subscription),
         )
 
         for event in events:
@@ -71,10 +70,33 @@ class SubscriptionBusEventHandler:
 
     def _unregister(self, subscription):
         uuid = subscription.uuid
-        fn, events = self._subscription_callbacks.pop(uuid, (None, []))
+        fn, events, _ = self._subscription_callbacks.pop(uuid, (None, []))
 
         for event in events:
             self._bus_consumer.unsubscribe(event, fn)
+
+    def _update(self, subscription):
+        uuid = subscription.uuid
+        data = subscription_schema.dump(subscription)
+        headers = self._build_headers(subscription)
+
+        prev_fn, prev_events, prev_headers = self._subscription_callbacks.pop(uuid)
+        fn = partial(self._callback, data)
+
+        all_events = set(subscription.events) | set(prev_events)
+
+        for event in all_events:
+            if event not in subscription.events:  # removed events
+                self._bus_consumer.unsubscribe(event, prev_fn)
+            elif event not in prev_events:  # newly added event
+                self._bus_consumer.subscribe(event, fn, headers=headers)
+            elif headers != prev_headers:  # headers changed
+                self._bus_consumer.subscribe(event, fn, headers=headers)
+                self._bus_consumer.unsubscribe(event, prev_fn)
+            else:  # only update callback
+                self._bus_consumer.unsubscribe(event, prev_fn)
+                self._bus_consumer.subscribe(event, fn, headers=headers)
+        self._subscription_callbacks[uuid] = (fn, subscription.events, headers)
 
     def _callback(self, subscription, payload):
         try:
