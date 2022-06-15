@@ -64,6 +64,7 @@ class Controller:
                 'bus_consumer': self._bus_consumer,
                 'config': config,
                 'service_manager': self._service_manager,
+                'next_token_change_subscribe': self._token_renewer.subscribe_to_next_token_change,
             },
         )
 

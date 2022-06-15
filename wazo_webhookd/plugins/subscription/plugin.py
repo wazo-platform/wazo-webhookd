@@ -1,7 +1,7 @@
 # Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from wazo_webhookd.auth import deferred_loader
+from xivo.pubsub import CallbackCollector
 from .bus import SubscriptionBusEventHandler
 from .http import (
     SubscriptionResource,
@@ -19,6 +19,10 @@ class Plugin:
         bus_consumer = dependencies['bus_consumer']
         config = dependencies['config']
         service_manager = dependencies['service_manager']
+        subscribe_to_next_token_change = dependencies['next_token_change_subscribe']
+
+        master_tenant_callback_collector = CallbackCollector()
+        subscribe_to_next_token_change(master_tenant_callback_collector.new_source())
 
         service = SubscriptionService(config)
 
@@ -49,5 +53,4 @@ class Plugin:
         bus_handler = SubscriptionBusEventHandler(
             bus_consumer, config, service_manager, service
         )
-
-        deferred_loader.execute_after_master_tenant(bus_handler.subscribe)
+        master_tenant_callback_collector.subscribe(bus_handler.subscribe)
