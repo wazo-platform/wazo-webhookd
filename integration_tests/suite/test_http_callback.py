@@ -3,16 +3,7 @@
 import operator
 import time
 
-from hamcrest import (
-    assert_that,
-    contains,
-    contains_string,
-    equal_to,
-    has_entries,
-    is_,
-    calling,
-    raises,
-)
+from hamcrest import assert_that, contains, contains_string, equal_to, has_entries, is_
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
@@ -909,6 +900,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_given_user_tenant_dont_trigger_on_other_tenant_event(self, subscription):
+        # Other tenant, should not trigger webhook
         self.bus.publish(
             trigger_event(),
             headers={
@@ -917,39 +909,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             },
         )
 
-        assert_that(
-            calling(until.assert_).with_args(
-                self.make_third_party_verify_callback(
-                    request={'method': 'GET', 'path': '/test'}, count=1, exact=True
-                ),
-                timeout=10,
-                interval=0.5,
-            ),
-            raises(AssertionError),
-        )
-
-    @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_user_tenant_dont_trigger_on_master_tenant_event(self, subscription):
-        self.bus.publish(
-            trigger_event(),
-            headers={
-                'name': TRIGGER_EVENT_NAME,
-            },
-        )
-
-        assert_that(
-            calling(until.assert_).with_args(
-                self.make_third_party_verify_callback(
-                    request={'method': 'GET', 'path': '/test'}, count=1, exact=True
-                ),
-                timeout=10,
-                interval=0.5,
-            ),
-            raises(AssertionError),
-        )
-
-    @subscription(TEST_SUBSCRIPTION, tenant=MASTER_TENANT)
-    def test_given_master_tenant_trigger_on_all_tenants_event(self, subscription):
+        # trigger control webhook
         self.bus.publish(
             trigger_event(),
             headers={
@@ -958,6 +918,64 @@ class TestHTTPCallback(BaseIntegrationTest):
             },
         )
 
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=1, exact=True
+            ),
+            timeout=10,
+            interval=0.5,
+        )
+
+    @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    def test_given_user_tenant_dont_trigger_on_master_tenant_event(self, subscription):
+        # master tenant, should not trigger webhook
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+            },
+        )
+
+        # trigger control webhook
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
+            },
+        )
+
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=1, exact=True
+            ),
+            timeout=10,
+            interval=0.5,
+        )
+
+    @subscription(TEST_SUBSCRIPTION, tenant=MASTER_TENANT)
+    def test_given_master_tenant_trigger_on_all_tenants_event(self, subscription):
+        self.third_party.reset()
+        self.third_party.mock_simple_response(
+            path='/test', responseBody="working service", statusCode=200
+        )
+        self.third_party.mock_simple_response(
+            path='/test', responseBody="working service", statusCode=200
+        )
+        self.third_party.mock_simple_response(
+            path='/test', responseBody="working service", statusCode=200
+        )
+
+        # Tenant 1, should trigger webhook
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
+            },
+        )
+
+        # Tenant 2, should trigger webhook
         self.bus.publish(
             trigger_event(),
             headers={
@@ -966,9 +984,17 @@ class TestHTTPCallback(BaseIntegrationTest):
             },
         )
 
+        # Master tenant, should trigger webhook
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+            },
+        )
+
         until.assert_(
             self.make_third_party_verify_callback(
-                request={'method': 'GET', 'path': '/test'}, count=2, exact=True
+                request={'method': 'GET', 'path': '/test'}, count=3, exact=True
             ),
             timeout=10,
             interval=0.5,
