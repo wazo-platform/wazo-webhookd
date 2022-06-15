@@ -174,7 +174,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             try:
                 bindings = sentinel.bindings()
             except requests.exceptions.ConnectionError:
-                raise AssertionError()
+                return False
 
             return self._has_subscription_bindings(subscription, bindings)
 
@@ -187,11 +187,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             try:
                 bindings = sentinel.bindings()
             except requests.exceptions.ConnectionError:
-                raise AssertionError()
+                return False
 
-            return self._has_subscription_bindings(subscription, bindings)
+            return not self._has_subscription_bindings(subscription, bindings)
 
-        until.false(subscribed, timeout=10, interval=0.5)
+        until.true(subscribed, timeout=10, interval=0.5)
 
     @contextmanager
     def auth_stopped(self):
