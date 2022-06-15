@@ -7,7 +7,7 @@ import uuid
 
 from collections import defaultdict
 from functools import partial
-from wazo_webhookd.auth import get_master_tenant_uuid
+from wazo_webhookd.auth import master_tenant_uuid
 from .celery_tasks import hook_runner_task
 from .schema import subscription_schema
 
@@ -42,18 +42,18 @@ class SubscriptionBusEventHandler:
     @staticmethod
     def _build_headers(subscription):
         headers = {
-            'x-subscription': subscription.uuid,
+            'x-subscription': str(subscription.uuid),
         }
         user_uuid = subscription.events_user_uuid
         wazo_uuid = subscription.events_wazo_uuid
         tenant_uuid = subscription.owner_tenant_uuid
 
-        if tenant_uuid != get_master_tenant_uuid():
-            headers.update(tenant_uuid=tenant_uuid)
+        if tenant_uuid != master_tenant_uuid:
+            headers.update(tenant_uuid=str(tenant_uuid))
         if user_uuid:
             headers.update({f'user_uuid:{user_uuid}': True})
         if wazo_uuid:
-            headers.update(origin_uuid=wazo_uuid)
+            headers.update(origin_uuid=str(wazo_uuid))
         return headers
 
     def _register(self, subscription):
