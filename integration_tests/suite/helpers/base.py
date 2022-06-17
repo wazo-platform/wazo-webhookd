@@ -183,7 +183,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     def ensure_webhookd_not_consume_subscription(self, subscription):
         sentinel = self.make_sentinel()
 
-        def subscribed():
+        def unsubscribed():
             try:
                 bindings = sentinel.bindings()
             except requests.exceptions.ConnectionError:
@@ -191,7 +191,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
 
             return not self._has_subscription_bindings(subscription, bindings)
 
-        until.true(subscribed, timeout=10, interval=0.5)
+        until.true(unsubscribed, timeout=10, interval=0.5)
 
     @contextmanager
     def auth_stopped(self):
