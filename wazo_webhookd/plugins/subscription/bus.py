@@ -5,6 +5,7 @@ import logging
 import kombu.exceptions
 import uuid
 
+from threading import Lock
 from collections import defaultdict
 from functools import partial
 from wazo_webhookd.auth import master_tenant_uuid
@@ -18,6 +19,7 @@ class SubscriptionBusEventHandler:
     def __init__(self, bus_consumer, config, service_manager, subscription_service):
         self._bus_consumer = bus_consumer
         self._subscription_callbacks = defaultdict(list)
+        self._lock = Lock()
         self._config = config
         self._service = subscription_service
         self._service.pubsub.subscribe('created', self.on_subscription_created)
@@ -59,18 +61,20 @@ class SubscriptionBusEventHandler:
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
 
-        fn, events, extra_headers = self._subscription_callbacks[uuid] = (
-            partial(self._callback, data),
-            subscription.events,
-            self._build_headers(subscription),
-        )
+        with self._lock:
+            fn, events, extra_headers = self._subscription_callbacks[uuid] = (
+                partial(self._callback, data),
+                subscription.events,
+                self._build_headers(subscription),
+            )
 
         for event in events:
             self._bus_consumer.subscribe(event, fn, headers=extra_headers)
 
     def _unregister(self, subscription):
         uuid = subscription.uuid
-        fn, events, _ = self._subscription_callbacks.pop(uuid, (None, []))
+        with self._lock:
+            fn, events, _ = self._subscription_callbacks.pop(uuid, (None, [], {}))
 
         for event in events:
             self._bus_consumer.unsubscribe(event, fn)
@@ -79,9 +83,10 @@ class SubscriptionBusEventHandler:
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
         headers = self._build_headers(subscription)
-
-        prev_fn, prev_events, prev_headers = self._subscription_callbacks.pop(uuid)
         fn = partial(self._callback, data)
+
+        with self._lock:
+            prev_fn, prev_events, prev_headers = self._subscription_callbacks.pop(uuid)
 
         all_events = set(subscription.events) | set(prev_events)
 
@@ -96,7 +101,9 @@ class SubscriptionBusEventHandler:
             else:  # only update callback
                 self._bus_consumer.unsubscribe(event, prev_fn)
                 self._bus_consumer.subscribe(event, fn, headers=headers)
-        self._subscription_callbacks[uuid] = (fn, subscription.events, headers)
+
+        with self._lock:
+            self._subscription_callbacks[uuid] = (fn, subscription.events, headers)
 
     def _callback(self, subscription, payload):
         try:
