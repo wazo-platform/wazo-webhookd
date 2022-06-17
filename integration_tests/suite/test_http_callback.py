@@ -93,6 +93,12 @@ TEST_SUBSCRIPTION_FILTER_USER_ALICE = {
     'events': ['trigger'],
     'events_user_uuid': ALICE_USER_UUID,
 }
+TEST_SUBSCRIPTION_SENTINEL = {
+    'name': 'localhost',
+    'service': 'http',
+    'config': {'url': 'http://localhost:9300/1.0/sentinel', 'method': 'post'},
+    'events': ['trigger'],
+}
 TEST_SUBSCRIPTION_LOCALHOST_SENTINEL = {
     'name': 'localhost',
     'service': 'http',
@@ -899,17 +905,11 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_user_tenant_dont_trigger_on_other_tenant_event(self, subscription):
-        # Other tenant, should not trigger webhook
-        self.bus.publish(
-            trigger_event(),
-            headers={
-                'name': TRIGGER_EVENT_NAME,
-                'tenant_uuid': OTHER_TENANT,
-            },
-        )
-
-        # trigger control webhook
+    @subscription(TEST_SUBSCRIPTION_SENTINEL, tenant=OTHER_TENANT)
+    def test_given_user_tenant_dont_trigger_on_other_tenant_event(
+        self, control_subscription, sentinel_subscription
+    ):
+        # should not trigger sentinel
         self.bus.publish(
             trigger_event(),
             headers={
@@ -925,66 +925,13 @@ class TestHTTPCallback(BaseIntegrationTest):
             timeout=10,
             interval=0.5,
         )
-
-    @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
-    def test_given_user_tenant_dont_trigger_on_master_tenant_event(self, subscription):
-        # master tenant, should not trigger webhook
-        self.bus.publish(
-            trigger_event(),
-            headers={
-                'name': TRIGGER_EVENT_NAME,
-            },
-        )
-
-        # trigger control webhook
-        self.bus.publish(
-            trigger_event(),
-            headers={
-                'name': TRIGGER_EVENT_NAME,
-                'tenant_uuid': USERS_TENANT,
-            },
-        )
-
-        until.assert_(
-            self.make_third_party_verify_callback(
-                request={'method': 'GET', 'path': '/test'}, count=1, exact=True
-            ),
-            timeout=10,
-            interval=0.5,
-        )
+        assert_that(self.sentinel.called(), is_(False))
 
     @subscription(TEST_SUBSCRIPTION, tenant=MASTER_TENANT)
-    def test_given_master_tenant_trigger_on_all_tenants_event(self, subscription):
-        self.third_party.reset()
-        self.third_party.mock_simple_response(
-            path='/test', responseBody="working service", statusCode=200
-        )
-        self.third_party.mock_simple_response(
-            path='/test', responseBody="working service", statusCode=200
-        )
-        self.third_party.mock_simple_response(
-            path='/test', responseBody="working service", statusCode=200
-        )
-
-        # Tenant 1, should trigger webhook
-        self.bus.publish(
-            trigger_event(),
-            headers={
-                'name': TRIGGER_EVENT_NAME,
-                'tenant_uuid': USERS_TENANT,
-            },
-        )
-
-        # Tenant 2, should trigger webhook
-        self.bus.publish(
-            trigger_event(),
-            headers={
-                'name': TRIGGER_EVENT_NAME,
-                'tenant_uuid': OTHER_TENANT,
-            },
-        )
-
-        # Master tenant, should trigger webhook
+    @subscription(TEST_SUBSCRIPTION_SENTINEL, tenant=USERS_TENANT)
+    def test_given_user_tenant_dont_trigger_on_master_tenant_event(
+        self, control_subscription, sentinel_subscription
+    ):
         self.bus.publish(
             trigger_event(),
             headers={
@@ -994,8 +941,44 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         until.assert_(
             self.make_third_party_verify_callback(
-                request={'method': 'GET', 'path': '/test'}, count=3, exact=True
+                request={'method': 'GET', 'path': '/test'}, count=1, exact=True
             ),
             timeout=10,
             interval=0.5,
         )
+        assert_that(self.sentinel.called(), is_(False))
+
+    @subscription(TEST_SUBSCRIPTION_SENTINEL, tenant=MASTER_TENANT)
+    def test_given_master_tenant_trigger_on_all_tenants_event(self, subscription):
+        # Tenant 1
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
+            },
+        )
+
+        until.true(self.sentinel.called, timeout=10, interval=0.5)
+        self.sentinel.reset()
+
+        # Tenant 2
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': OTHER_TENANT,
+            },
+        )
+
+        until.true(self.sentinel.called, timeout=10, interval=0.5)
+        self.sentinel.reset()
+
+        # Master tenant
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+            },
+        )
+        until.true(self.sentinel.called, timeout=10, interval=0.5)
