@@ -4,7 +4,6 @@
 import logging
 
 from threading import Lock
-from six import iteritems
 
 from xivo_bus.base import Base
 from xivo_bus.mixins import ThreadableMixin, ConsumerMixin
@@ -26,14 +25,12 @@ class _ConsumerMixin(ConsumerMixin):
         if self.__exchange.type != 'headers':
             return True
         compare = all if binding.arguments.get('x-match', 'all') == 'all' else any
-        headers = {k: v for k, v in iteritems(headers) if not k.startswith('x-')}
+        headers = {k: v for k, v in headers.items() if not k.startswith('x-')}
         arguments = {
-            k: v for k, v in iteritems(binding.arguments) if not k.startswith('x-')
+            k: v for k, v in binding.arguments.items() if not k.startswith('x-')
         }
 
-        return compare(
-            [k in headers and headers[k] == v for k, v in iteritems(arguments)]
-        )
+        return compare([k in headers and headers[k] == v for k, v in arguments.items()])
 
     def __dispatch(self, event_name, payload, headers=None):
         with self.__lock:
