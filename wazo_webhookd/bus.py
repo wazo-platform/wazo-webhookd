@@ -43,7 +43,7 @@ class _ConsumerMixin(ConsumerMixin):
             except Exception:
                 self.log.exception(
                     'Handler \'%s\' for event \'%s\' failed',
-                    handler.__name__,
+                    getattr(handler, '__name__', handler),
                     event_name,
                 )
             continue
