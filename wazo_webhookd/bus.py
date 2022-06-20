@@ -3,7 +3,6 @@
 
 import logging
 
-from functools import partial
 from threading import Lock
 from six import iteritems
 
@@ -59,10 +58,6 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
         self.__handlers_lock = Lock()
         self.__handlers = {}
 
-    @staticmethod
-    def __compatibility_handler(callback, payload):
-        callback(payload, None)
-
     # Deprecated, wrapper for plugin compatibility
     # please use method `subscribe`
     def subscribe_to_event_names(
@@ -74,7 +69,12 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             logger.warning('subscription `%s` doesn\'t have event_names set', uuid)
             return
 
-        callback = partial(self.__compatibility_handler, callback)
+        # arg1 = payload
+        # arg2 = message object from libamqp
+        two_arg_callback = callback
+
+        def one_arg_callback(payload):
+            return two_arg_callback(payload, None)
 
         headers = {
             'x-internal': True,
@@ -85,7 +85,9 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             headers['origin_uuid'] = str(wazo_uuid)
 
         for event in event_names:
-            self.subscribe(event, callback, headers=headers, headers_match_all=True)
+            self.subscribe(
+                event, one_arg_callback, headers=headers, headers_match_all=True
+            )
 
         with self.__handlers_lock:
             self.__handlers[uuid] = (callback, event_names, headers)
