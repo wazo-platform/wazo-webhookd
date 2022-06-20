@@ -20,7 +20,7 @@ class _ConsumerMixin(ConsumerMixin):
     This is a performance optimization to avoid having many queues in RabbitMQ
     for wazo-webhookd.'''
 
-    def __check_headers_match(self, headers, binding):
+    def _check_headers_match(self, headers, binding):
         # only perform check if exchange type is headers
         if self.__exchange.type != 'headers':
             return True
@@ -36,7 +36,7 @@ class _ConsumerMixin(ConsumerMixin):
         with self.__lock:
             subscriptions = self.__subscriptions[event_name].copy()
         for (handler, binding) in subscriptions:
-            if not self.__check_headers_match(headers, binding):
+            if not self._check_headers_match(headers, binding):
                 continue
             try:
                 handler(payload)
@@ -52,8 +52,8 @@ class _ConsumerMixin(ConsumerMixin):
 class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.__handlers_lock = Lock()
-        self.__handlers = {}
+        self._handlers_lock = Lock()
+        self._handlers = {}
 
     # Deprecated, wrapper for plugin compatibility
     # please use method `subscribe`
@@ -86,13 +86,13 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
                 event, one_arg_callback, headers=headers, headers_match_all=True
             )
 
-        with self.__handlers_lock:
-            self.__handlers[uuid] = (callback, event_names, headers)
+        with self._handlers_lock:
+            self._handlers[uuid] = (callback, event_names, headers)
 
     # Deprecated, wrapper for plugin compability
     # Please use method `unsubscribe`
     def unsubscribe_from_event_names(self, uuid):
-        with self.__handlers_lock:
-            callback, events, _ = self.__handlers.pop(uuid)
+        with self._handlers_lock:
+            callback, events, _ = self._handlers.pop(uuid)
         for event in events:
             self.unsubscribe(event, callback)
