@@ -3,7 +3,10 @@
 
 import logging
 
+from functools import partial
+from threading import Lock
 from six import iteritems
+
 from xivo_bus.base import Base
 from xivo_bus.mixins import ThreadableMixin, ConsumerMixin
 
@@ -46,4 +49,46 @@ class _ConsumerMixin(ConsumerMixin):
 
 
 class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__handlers_lock = Lock()
+        self.__handlers = {}
+
+    @staticmethod
+    def __compatibility_handler(callback, payload):
+        callback(payload, None)
+
+    # Deprecated, wrapper for plugin compatibility
+    # please use method `subscribe`
+    def subscribe_to_event_names(
+        self, uuid, event_names, user_uuid, wazo_uuid, callback
+    ):
+        if uuid is None:
+            raise RuntimeError('uuid must be set')
+        if not event_names:
+            logger.warning('subscription `%s` doesn\'t have event_names set', uuid)
+            return
+
+        callback = partial(self.__compatibility_handler, callback)
+
+        headers = {
+            'x-internal': True,
+        }
+        if user_uuid:
+            headers['user_uuid:{}'.format(user_uuid)] = True
+        if wazo_uuid:
+            headers['origin_uuid'] = str(wazo_uuid)
+
+        for event in event_names:
+            self.subscribe(event, callback, headers=headers, headers_match_all=True)
+
+        with self.__handlers_lock:
+            self.__handlers[uuid] = (callback, event_names, headers)
+
+    # Deprecated, wrapper for plugin compability
+    # Please use method `unsubscribe`
+    def unsubscribe_from_event_names(self, uuid):
+        with self.__handlers_lock:
+            callback, events, _ = self.__handlers.pop(uuid)
+        for event in events:
+            self.unsubscribe(event, callback)
