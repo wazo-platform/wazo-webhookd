@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 # !!DO NOT RENAME!!
 # Must be the same name to allow remapping of private (mangled) methods
 class _ConsumerMixin(ConsumerMixin):
+    '''This wrapper allows routing events from the same queue to different
+    callbacks, based on the AMQP headers of the message.
+    This is a performance optimization to avoid having many queues in RabbitMQ
+    for wazo-webhookd.'''
+
     def __check_headers_match(self, headers, binding):
         # only perform check if exchange type is headers
         if self.__exchange.type != 'headers':
