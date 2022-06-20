@@ -1,4 +1,4 @@
-# Copyright 2020-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2020-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that, equal_to
@@ -34,6 +34,18 @@ class TestBusConsumer(BaseIntegrationTest):
         self.bus.publish(ping_event, headers={'name': 'webhookd_ping'})
 
         until.assert_(self._ping_bus_event_received, 'test-crash-ping', tries=5)
+
+    def test_message_is_received_using_deprecated_bus_api(self):
+        ping_event = {
+            'name': 'webhookd_deprecated_ping',
+            'data': {
+                'payload': 'test-ping',
+            },
+        }
+
+        self.bus.publish(ping_event, headers={'name': 'webhookd_deprecated_ping'})
+
+        until.assert_(self._ping_bus_event_received, 'test-ping', tries=5)
 
     def _ping_bus_event_received(self, expected_payload):
         webhookd = self.make_webhookd(token=None)
