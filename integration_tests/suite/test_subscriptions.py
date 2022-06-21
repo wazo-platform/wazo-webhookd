@@ -29,7 +29,7 @@ from .helpers.base import (
     OTHER_USER_TOKEN,
 )
 from .helpers.fixtures import subscription
-from .helpers.wait_strategy import NoWaitStrategy
+from .helpers.wait_strategy import EverythingOkWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
 
@@ -86,7 +86,7 @@ INVALID_SUBSCRIPTION = {}
 class TestListSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_given_wrong_auth_when_list_then_401(self):
         webhookd = self.make_webhookd('invalid-token')
@@ -134,7 +134,7 @@ class TestListSubscriptions(BaseIntegrationTest):
 class TestListUserSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
@@ -156,7 +156,7 @@ class TestListUserSubscriptions(BaseIntegrationTest):
 class TestGetSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_given_no_auth_server_when_get_subscription_then_503(self):
         more_than_auth_timeout = 12
@@ -198,7 +198,7 @@ class TestGetSubscriptions(BaseIntegrationTest):
 class TestGetSubscriptionLogs(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_given_no_auth_server_when_get_subscription_then_503(self):
         more_than_auth_timeout = 12
@@ -242,7 +242,7 @@ class TestGetSubscriptionLogs(BaseIntegrationTest):
 class TestGetUserSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_given_non_user_subscription_when_user_get_http_subscription_then_404(
@@ -271,7 +271,7 @@ class TestGetUserSubscriptions(BaseIntegrationTest):
 class TestCreateSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_given_no_auth_server_when_create_subscription_then_503(self):
         more_than_auth_timeout = 12
@@ -335,7 +335,7 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 class TestCreateUserSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_when_create_http_user_subscription_then_subscription_no_error(self):
         webhookd = self.make_webhookd(USER_1_TOKEN)
@@ -397,7 +397,7 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
 class TestEditSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_given_no_auth_server_when_edit_subscription_then_503(self):
         more_than_auth_timeout = 12
@@ -481,7 +481,7 @@ class TestEditSubscriptions(BaseIntegrationTest):
 class TestEditUserSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_given_non_user_subscription_when_user_edit_http_subscription_then_404(
@@ -529,7 +529,7 @@ class TestEditUserSubscriptions(BaseIntegrationTest):
 class TestDeleteSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     def test_given_no_auth_server_when_delete_subscription_then_503(self):
         more_than_auth_timeout = 12
@@ -579,7 +579,7 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
 class TestDeleteUserSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     @subscription(UNOWNED_USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_given_non_user_subscription_when_user_delete_http_subscription_then_404(
@@ -614,7 +614,7 @@ class TestDeleteUserSubscriptions(BaseIntegrationTest):
 class TestMultiTenantSubscriptions(BaseIntegrationTest):
 
     asset = 'base'
-    wait_strategy = NoWaitStrategy()
+    wait_strategy = EverythingOkWaitStrategy()
 
     @subscription(USER_SUBTENANT_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_subscriptions_manipulate_with_user1(self, subscription_):
