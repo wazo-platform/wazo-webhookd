@@ -22,7 +22,7 @@ class StatusResource(AuthResource):
 
         result = {
             'bus_consumer': {
-                'status': 'ok' if self._bus_consumer.is_running() else 'fail'
+                'status': 'ok' if self._bus_consumer.is_running else 'fail'
             },
             'master_tenant': {'status': master_tenant_status},
         }

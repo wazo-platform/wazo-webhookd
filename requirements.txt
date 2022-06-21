@@ -1,6 +1,7 @@
 https://github.com/wazo-platform/wazo-lib-rest-client/archive/master.zip
 https://github.com/wazo-platform/wazo-auth-client/archive/master.zip
 https://github.com/wazo-platform/xivo-lib-python/archive/master.zip
+https://github.com/wazo-platform/xivo-bus/archive/master.zip
 alembic==1.0.0
 celery==4.4.6
 cheroot==6.5.4
@@ -11,7 +12,7 @@ httpx==0.7.2
 itsdangerous==0.24  # from flask
 jinja2==2.10
 jsonpatch==1.21
-kombu==4.6.11
+kombu==4.6.11  # from xivo-bus
 markupsafe==1.1.0  # from flask
 marshmallow==3.10.0
 netifaces==0.10.4

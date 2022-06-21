@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-
 import requests
-
-from hamcrest import assert_that, is_in, not_
 
 from contextlib import contextmanager
 from wazo_webhookd_client import Client as WebhookdClient
@@ -62,7 +59,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                     MASTER_TOKEN, tenant=sub["owner_tenant_uuid"]
                 )
                 webhookd.subscriptions.delete(sub["uuid"])
-                self.ensure_webhookd_not_consume_uuid(sub['uuid'])
+                self.ensure_webhookd_not_consume_subscription(sub)
 
     @classmethod
     def make_webhookd(cls, token, tenant=None, **kwargs):
@@ -145,10 +142,10 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             def __init__(self, url):
                 self._url = url
 
-            def consumers(self):
+            def bindings(self):
                 response = requests.get(self._url, verify=False)
                 response.raise_for_status()
-                return response.json()['consumers']
+                return response.json()['bindings']
 
             def called(self):
                 response = requests.get(self._url, verify=False)
@@ -163,27 +160,38 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         )
         return Sentinel(url)
 
-    def ensure_webhookd_consume_uuid(self, uuid):
+    def _has_subscription_bindings(self, subscription, bindings):
+        events_count = len(subscription['events'])
+        bindings_count = len(
+            [binding for binding in bindings if binding['uuid'] == subscription['uuid']]
+        )
+        return bindings_count == events_count
+
+    def ensure_webhookd_consume_subscription(self, subscription):
         sentinel = self.make_sentinel()
 
         def subscribed():
             try:
-                assert_that(uuid, is_in(sentinel.consumers()))
+                bindings = sentinel.bindings()
             except requests.exceptions.ConnectionError:
-                raise AssertionError()
+                return False
 
-        until.assert_(subscribed, timeout=10, interval=0.5)
+            return self._has_subscription_bindings(subscription, bindings)
 
-    def ensure_webhookd_not_consume_uuid(self, uuid):
+        until.true(subscribed, timeout=10, interval=0.5)
+
+    def ensure_webhookd_not_consume_subscription(self, subscription):
         sentinel = self.make_sentinel()
 
-        def subscribed():
+        def unsubscribed():
             try:
-                assert_that(uuid, not_(is_in(sentinel.consumers())))
+                bindings = sentinel.bindings()
             except requests.exceptions.ConnectionError:
-                raise AssertionError()
+                return False
 
-        until.assert_(subscribed, timeout=10, interval=0.5)
+            return not self._has_subscription_bindings(subscription, bindings)
+
+        until.true(unsubscribed, timeout=10, interval=0.5)
 
     @contextmanager
     def auth_stopped(self):

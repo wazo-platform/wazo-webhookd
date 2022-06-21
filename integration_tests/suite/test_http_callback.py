@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
 import time
@@ -7,7 +7,7 @@ from hamcrest import assert_that, contains, contains_string, equal_to, has_entri
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
-from .helpers.base import BaseIntegrationTest
+from .helpers.base import MASTER_TENANT, USERS_TENANT, OTHER_TENANT, BaseIntegrationTest
 from .helpers.base import MASTER_TOKEN
 from .helpers.fixtures import subscription
 from .helpers.wait_strategy import ConnectedWaitStrategy
@@ -92,6 +92,12 @@ TEST_SUBSCRIPTION_FILTER_USER_ALICE = {
     'config': {'url': 'http://third-party-http:1080/test', 'method': 'get'},
     'events': ['trigger'],
     'events_user_uuid': ALICE_USER_UUID,
+}
+TEST_SUBSCRIPTION_SENTINEL = {
+    'name': 'localhost',
+    'service': 'http',
+    'config': {'url': 'http://localhost:9300/1.0/sentinel', 'method': 'post'},
+    'events': ['trigger'],
 }
 TEST_SUBSCRIPTION_LOCALHOST_SENTINEL = {
     'name': 'localhost',
@@ -325,7 +331,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         subscription['events'] = [ANOTHER_TRIGGER_EVENT_NAME]
         webhookd.subscriptions.update(subscription['uuid'], subscription)
-        self.ensure_webhookd_consume_uuid(subscription['uuid'])
+        self.ensure_webhookd_consume_subscription(subscription)
 
         self.bus.publish(
             event(name=old_trigger_name),
@@ -355,7 +361,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         subscription['config']['url'] = 'http://third-party-http:1080/new-url'
         webhookd.subscriptions.update(subscription['uuid'], subscription)
-        self.ensure_webhookd_consume_uuid(subscription['uuid'])
+        self.ensure_webhookd_consume_subscription(subscription)
 
         self.bus.publish(
             trigger_event(),
@@ -386,7 +392,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
         webhookd.subscriptions.delete(subscription_to_remove['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_to_remove['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_to_remove)
         self.bus.publish(
             trigger_event(),
             routing_key=SOME_ROUTING_KEY,
@@ -408,7 +414,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         self.restart_service('webhookd')
         ConnectedWaitStrategy().wait(self.make_webhookd(MASTER_TOKEN))
-        self.ensure_webhookd_consume_uuid(subscription['uuid'])
+        self.ensure_webhookd_consume_subscription(subscription)
 
         self.bus.publish(
             trigger_event(),
@@ -672,6 +678,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': ANOTHER_TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
                 'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True,
             },
         )
@@ -896,3 +903,82 @@ class TestHTTPCallback(BaseIntegrationTest):
                 has_entries(status="failure"),
             ),
         )
+
+    @subscription(TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    @subscription(TEST_SUBSCRIPTION_SENTINEL, tenant=OTHER_TENANT)
+    def test_given_user_tenant_dont_trigger_on_other_tenant_event(
+        self, control_subscription, sentinel_subscription
+    ):
+        # should not trigger sentinel
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
+            },
+        )
+
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=1, exact=True
+            ),
+            timeout=10,
+            interval=0.5,
+        )
+        assert_that(self.sentinel.called(), is_(False))
+
+    @subscription(TEST_SUBSCRIPTION, tenant=MASTER_TENANT)
+    @subscription(TEST_SUBSCRIPTION_SENTINEL, tenant=USERS_TENANT)
+    def test_given_user_tenant_dont_trigger_on_master_tenant_event(
+        self, control_subscription, sentinel_subscription
+    ):
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+            },
+        )
+
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={'method': 'GET', 'path': '/test'}, count=1, exact=True
+            ),
+            timeout=10,
+            interval=0.5,
+        )
+        assert_that(self.sentinel.called(), is_(False))
+
+    @subscription(TEST_SUBSCRIPTION_SENTINEL, tenant=MASTER_TENANT)
+    def test_given_master_tenant_trigger_on_all_tenants_event(self, subscription):
+        # Tenant 1
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': USERS_TENANT,
+            },
+        )
+
+        until.true(self.sentinel.called, timeout=10, interval=0.5)
+        self.sentinel.reset()
+
+        # Tenant 2
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+                'tenant_uuid': OTHER_TENANT,
+            },
+        )
+
+        until.true(self.sentinel.called, timeout=10, interval=0.5)
+        self.sentinel.reset()
+
+        # Master tenant
+        self.bus.publish(
+            trigger_event(),
+            headers={
+                'name': TRIGGER_EVENT_NAME,
+            },
+        )
+        until.true(self.sentinel.called, timeout=10, interval=0.5)

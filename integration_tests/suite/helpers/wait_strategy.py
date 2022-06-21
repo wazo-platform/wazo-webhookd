@@ -55,6 +55,12 @@ class ConnectedWaitStrategy(WaitStrategy):
                 status = webhookd.status.get()
             except RequestException:
                 raise AssertionError('wazo-webhookd is not up yet')
-            assert_that(status['bus_consumer'], has_entries({'status': 'ok'}))
+            assert_that(
+                status,
+                has_entries(
+                    bus_consumer=has_entries(status='ok'),
+                    master_tenant=has_entries(status='ok'),
+                ),
+            )
 
         until.assert_(webhookd_is_connected, timeout=30, interval=1)

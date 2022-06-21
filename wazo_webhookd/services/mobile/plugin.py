@@ -4,7 +4,6 @@
 import httpx
 import logging
 import tempfile
-import uuid
 
 from contextlib import contextmanager
 from pyfcm import FCMNotification
@@ -37,25 +36,23 @@ class Service:
         bus_consumer = dependencies['bus_consumer']
         self._config = dependencies['config']
         self.subscription_service = SubscriptionService(self._config)
-        bus_consumer.subscribe_to_event_names(
-            uuid=str(uuid.uuid4()),
-            event_names=['auth_user_external_auth_added'],
-            # tenant_uuid=None,
-            user_uuid=None,
-            wazo_uuid=None,
-            callback=self.on_external_auth_added,
+        bus_consumer.subscribe(
+            'auth_user_external_auth_added',
+            self.on_external_auth_added,
+            headers={
+                'x-internal': True,
+            },
         )
-        bus_consumer.subscribe_to_event_names(
-            uuid=str(uuid.uuid4()),
-            event_names=['auth_user_external_auth_deleted'],
-            # tenant_uuid=None,
-            user_uuid=None,
-            wazo_uuid=None,
-            callback=self.on_external_auth_deleted,
+        bus_consumer.subscribe(
+            'auth_user_external_auth_deleted',
+            self.on_external_auth_deleted,
+            headers={
+                'x-internal': True,
+            },
         )
         logger.info('Mobile push notification plugin is started')
 
-    def on_external_auth_added(self, body, event):
+    def on_external_auth_added(self, body):
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
             # TODO(sileht): Should come with the event
@@ -83,7 +80,7 @@ class Service:
             )
             logger.info('User registered: %s/%s', tenant_uuid, user_uuid)
 
-    def on_external_auth_deleted(self, body, event):
+    def on_external_auth_deleted(self, body):
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
             # TODO(sileht): Should come with the event

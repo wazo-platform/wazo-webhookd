@@ -1,6 +1,7 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from xivo.pubsub import CallbackCollector
 from .bus import SubscriptionBusEventHandler
 from .http import (
     SubscriptionResource,
@@ -18,6 +19,10 @@ class Plugin:
         bus_consumer = dependencies['bus_consumer']
         config = dependencies['config']
         service_manager = dependencies['service_manager']
+        subscribe_to_next_token_change = dependencies['next_token_change_subscribe']
+
+        master_tenant_callback_collector = CallbackCollector()
+        subscribe_to_next_token_change(master_tenant_callback_collector.new_source())
 
         service = SubscriptionService(config)
 
@@ -45,6 +50,7 @@ class Plugin:
             resource_class_args=[service],
         )
 
-        SubscriptionBusEventHandler(
+        bus_handler = SubscriptionBusEventHandler(
             bus_consumer, config, service_manager, service
-        ).subscribe(bus_consumer)
+        )
+        master_tenant_callback_collector.subscribe(bus_handler.subscribe)

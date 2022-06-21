@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import (
@@ -634,7 +634,7 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('name', subscription_['name']))
 
         webhookd.subscriptions.delete(subscription_['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_)
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', equal_to([])))
 
@@ -654,7 +654,7 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('name', subscription_['name']))
 
         webhookd.subscriptions.delete_as_user(subscription_['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_)
 
     @subscription(USER_SUBTENANT_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
     def test_subscriptions_manipulate_with_user2(self, subscription_):
@@ -679,7 +679,7 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('name', updated_name))
 
         webhookd.subscriptions.delete(subscription_['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_)
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', equal_to([])))
 
@@ -781,7 +781,7 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('name', subscription_['name']))
 
         webhookd.subscriptions.delete(subscription_['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_)
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', equal_to([])))
 
@@ -814,6 +814,6 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         assert_that(response, has_entry('owner_tenant_uuid', USERS_TENANT))
 
         webhookd.subscriptions.delete(subscription_['uuid'])
-        self.ensure_webhookd_not_consume_uuid(subscription_['uuid'])
+        self.ensure_webhookd_not_consume_subscription(subscription_)
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', equal_to([])))
