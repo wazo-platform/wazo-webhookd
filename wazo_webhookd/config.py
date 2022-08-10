@@ -1,8 +1,10 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
 import os
+
+from pyfcm import FCMNotification
 
 from xivo.chain_map import ChainMap
 from xivo.config_helper import parse_config_file, read_config_file_hierarchy
@@ -76,6 +78,8 @@ _DEFAULT_CONFIG = {
     'mobile_apns_port': 443,
     'mobile_apns_call_topic': 'org.wazo-platform.voip',
     'mobile_apns_default_topic': 'org.wazo-platform',
+    'mobile_fcm_notification_send_jwt_token': False,
+    'mobile_fcm_notification_end_point': FCMNotification.FCM_END_POINT,
 }
 
 
