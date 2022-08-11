@@ -64,7 +64,6 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
         auth.set_external_config(
             {
                 'mobile': {
-                    'fcm_api_key': 'FCM_API_KEY',
                     'ios_apn_certificate': ios_apn_certificate,
                     'ios_apn_private': ios_apn_key,
                     'is_sandbox': False,
@@ -240,6 +239,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
         )
 
         webhookd.subscriptions.delete(subscription["uuid"])
+
 
 class TestMobileCallback(BaseIntegrationTest):
 

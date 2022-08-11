@@ -223,7 +223,10 @@ class PushNotification:
             if self.jwt:
                 fcm_api_key = self.jwt
             else:
-                logger.warning('fcm is configured to use the JWT token but no token available')
+                logger.warning(
+                    'fcm is configured to use the JWT token but no token available'
+                )
+                raise Exception('No configured JWT token')
         else:
             fcm_api_key = self.external_config.get('fcm_api_key')
 
