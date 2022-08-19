@@ -19,7 +19,13 @@ from mockserver import MockServerClient
 from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.base import MASTER_TOKEN, USER_1_UUID, USER_2_UUID, USERS_TENANT
+from .helpers.base import (
+    JWT_TENANT_0,
+    MASTER_TOKEN,
+    USER_1_UUID,
+    USER_2_UUID,
+    USERS_TENANT,
+)
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
 SOME_ROUTING_KEY = 'routing-key'
@@ -183,6 +189,15 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
 
         self._wait_items(
             functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        third_party.verify(
+            request={
+                'path': '/fcm/send',
+                'headers': [
+                    {'name': 'authorization', 'values': [f'key={JWT_TENANT_0}']},
+                ],
+            },
         )
 
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
