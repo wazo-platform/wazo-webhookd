@@ -55,17 +55,9 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             headers={'Wazo-Tenant': USERS_TENANT},
         )
 
-        with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
-            ios_apn_certificate = f.read()
-
-        with open(self.assets_root + "/fake-apple-ca/certs/client.key") as f:
-            ios_apn_key = f.read()
-
         auth.set_external_config(
             {
                 'mobile': {
-                    'ios_apn_certificate': ios_apn_certificate,
-                    'ios_apn_private': ios_apn_key,
                     'is_sandbox': False,
                 }
             }
