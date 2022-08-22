@@ -103,7 +103,3 @@ mobile_apns_call_topic: org.wazo-platform.voip
 mobile_apns_default_topic:  org.wazo-platform
 mobile_apns_host: api.push.apple.com
 mobile_apns_port: 443
-
-# FCM proxy options
-mobile_fcm_notification_send_jwt_token: false  # Sends the Wazo JWT token instead of the fcm API key (should be true when using a FCM proxy)
-# mobile_fcm_notification_end_point: <URL of the FCM proxy>  # Defaults to the real fcm server
