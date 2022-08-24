@@ -32,6 +32,13 @@ services:
     ports:
       - "443"
 
+  fcm.proxy.example.com:
+    image: jamesdbloom/mockserver:mockserver-5.7.0
+    command: ["-logLevel", "DEBUG", "-serverPort", "443", "-proxyPort", "1090", "-genericJVMOptions", "-Dmockserver.sslCertificateDomainName='fcm.proxy.example.com'"]
+    user: root
+    ports:
+      - "443"
+
   postgres:
     image: wazoplatform/wazo-webhookd-db:local
     ports:
@@ -48,7 +55,7 @@ services:
       XIVO_UUID: "cd030e68-ace9-4ad4-bc4e-13c8dec67898"
     volumes:
       - "../..:/usr/src/wazo-webhookd"
-      - "./etc/wazo-webhookd/conf.d/50-default-config.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"
+      # - "./etc/wazo-webhookd/conf.d/50-default-config.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"
       # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/opt/venv/lib/python3.7/site-packages/xivo"
     ports:
       - "9300"

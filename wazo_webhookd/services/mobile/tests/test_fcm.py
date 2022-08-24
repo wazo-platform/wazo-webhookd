@@ -10,7 +10,10 @@ from ..plugin import PushNotification
 class TestSendViaFcm(TestCase):
     def setUp(self):
         task = Mock()
-        config = Mock()
+        config = {
+            'mobile_fcm_notification_send_jwt_token': False,
+            'mobile_fcm_notification_end_point': 'the url',
+        }
         external_tokens = {'token': s.token}
         external_config = {'fcm_api_key': s.fcm_api_key}
         jwt = Mock()

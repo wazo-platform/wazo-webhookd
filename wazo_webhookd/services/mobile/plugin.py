@@ -219,7 +219,19 @@ class PushNotification:
             % (message_title, message_body)
         )
 
-        push_service = FCMNotification(api_key=self.external_config['fcm_api_key'])
+        if self.config['mobile_fcm_notification_send_jwt_token']:
+            if self.jwt:
+                fcm_api_key = self.jwt
+            else:
+                logger.warning(
+                    'fcm is configured to use the JWT token but no token available'
+                )
+                raise Exception('No configured JWT token')
+        else:
+            fcm_api_key = self.external_config.get('fcm_api_key')
+
+        push_service = FCMNotification(api_key=fcm_api_key)
+        push_service.FCM_END_POINT = self.config['mobile_fcm_notification_end_point']
         notify_kwargs = {
             'registration_id': self.external_tokens['token'],
             'data_message': data,

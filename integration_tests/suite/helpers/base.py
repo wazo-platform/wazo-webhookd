@@ -30,6 +30,10 @@ OTHER_TENANT = '00000000-0000-4000-8000-000000000204'
 OTHER_USER_UUID = '00000000-0000-4000-8000-000000000304'
 OTHER_USER_TOKEN = '00000000-0000-4000-8000-000000000204'
 
+JWT_TENANT_0 = 'master-tenant-jwt-token'
+JWT_TENANT_1 = 'first-tenant-jwt-token'
+JWT_TENANT_2 = 'second-tenant-jwt-token'
+
 START_TIMEOUT = int(os.environ.get('INTEGRATION_TEST_TIMEOUT', '30'))
 
 
@@ -45,7 +49,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     def setUpClass(cls):
         super().setUpClass()
         webhookd = cls.make_webhookd(MASTER_TOKEN)
-        if cls.asset == "base":
+        if cls.asset in ("proxy", "base"):
             cls.configured_wazo_auth()
             cls.docker_exec(['wazo-webhookd-init-amqp', '--host', 'rabbitmq'])
         cls.wait_strategy.wait(webhookd)
@@ -87,7 +91,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                 MASTER_TOKEN,
                 MASTER_USER_UUID,
                 WAZO_UUID,
-                {"tenant_uuid": MASTER_TENANT, "uuid": MASTER_USER_UUID},
+                {
+                    "tenant_uuid": MASTER_TENANT,
+                    "uuid": MASTER_USER_UUID,
+                    'jwt': JWT_TENANT_0,
+                },
             )
         )
         auth.set_token(
@@ -95,7 +103,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                 USER_1_TOKEN,
                 USER_1_UUID,
                 WAZO_UUID,
-                {"tenant_uuid": USERS_TENANT, "uuid": USER_1_UUID},
+                {
+                    "tenant_uuid": USERS_TENANT,
+                    "uuid": USER_1_UUID,
+                    'jwt': JWT_TENANT_1,
+                },
             )
         )
         auth.set_token(
@@ -103,7 +115,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                 USER_2_TOKEN,
                 USER_2_UUID,
                 WAZO_UUID,
-                {"tenant_uuid": USERS_TENANT, "uuid": USER_2_UUID},
+                {
+                    "tenant_uuid": USERS_TENANT,
+                    "uuid": USER_2_UUID,
+                    'jwt': JWT_TENANT_1,
+                },
             )
         )
         auth.set_token(
@@ -111,7 +127,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                 OTHER_USER_TOKEN,
                 OTHER_USER_UUID,
                 WAZO_UUID,
-                {"tenant_uuid": OTHER_TENANT, "uuid": OTHER_USER_UUID},
+                {
+                    "tenant_uuid": OTHER_TENANT,
+                    "uuid": OTHER_USER_UUID,
+                    'jwt': JWT_TENANT_2,
+                },
             )
         )
         auth.set_tenants(
