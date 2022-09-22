@@ -17,7 +17,12 @@ class TestBusConsumer(BaseIntegrationTest):
     def setUp(self):
         super().setUp()
         bus_port = self.service_port(5672, 'rabbitmq')
-        self.bus = BusClient.from_connection_fields(host='127.0.0.1', port=bus_port)
+        self.bus = BusClient.from_connection_fields(
+            host='127.0.0.1',
+            port=bus_port,
+            exchange_name='wazo-headers',
+            exchange_type='headers',
+        )
 
     def test_message_is_received(self):
         ping_event = {'name': 'webhookd_ping', 'data': {'payload': 'test-ping'}}

@@ -153,8 +153,12 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         )
 
     def make_bus(self):
+        port = self.service_port(5672, 'rabbitmq')
         return BusClient.from_connection_fields(
-            host='127.0.0.1', port=self.service_port(5672, 'rabbitmq')
+            host='127.0.0.1',
+            port=port,
+            exchange_name='wazo-headers',
+            exchange_type='headers',
         )
 
     def make_sentinel(self):
