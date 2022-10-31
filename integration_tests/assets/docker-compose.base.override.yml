@@ -11,7 +11,3 @@ services:
       - api.push.apple.com
     environment:
         TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497 fcm.googleapis.com:443 api.push.apple.com:443"
-
-  webhookd:
-    volumes:
-      - "./etc/wazo-webhookd/conf.d/50-default-config.base.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"

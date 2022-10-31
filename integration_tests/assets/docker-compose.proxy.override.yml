@@ -14,4 +14,4 @@ services:
 
   webhookd:
     volumes:
-      - "./etc/wazo-webhookd/conf.d/50-default-config.proxy.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"
+      - "./etc/wazo-webhookd/conf.d/20-proxy.yml:/etc/wazo-webhookd/conf.d/20-proxy.yml"
