@@ -6,7 +6,3 @@ services:
       - webhookd
     environment:
       TARGETS: "postgres:5432 webhookd:9300"
-
-  webhookd:
-    volumes:
-      - "./etc/wazo-webhookd/conf.d/50-default-config.base.yml:/etc/wazo-webhookd/conf.d/50-default-config.yml"

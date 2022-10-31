@@ -84,11 +84,10 @@ _DEFAULT_CONFIG = {
 
 
 def _load_key_file(config):
-    filename = config.get('auth', {}).get('key_file')
-    if not filename:
+    if config['auth'].get('username') and config['auth'].get('password'):
         return {}
 
-    key_file = parse_config_file(filename)
+    key_file = parse_config_file(config['auth']['key_file'])
     if not key_file:
         return {}
 
