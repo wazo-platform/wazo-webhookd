@@ -20,6 +20,8 @@ services:
     volumes:
         - ./fake-apple-ca/nginx.conf:/etc/nginx/nginx.conf:ro
         - ./fake-apple-ca/certs:/etc/nginx/certs:ro
+    depends_on:
+      - third-party-http
     user: root
     ports:
       - "443"
