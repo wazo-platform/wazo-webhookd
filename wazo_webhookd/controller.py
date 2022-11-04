@@ -11,6 +11,7 @@ from xivo.token_renewer import TokenRenewer
 from wazo_auth_client import Client as AuthClient
 
 from . import auth
+from .asyncio_ import CoreAsyncio
 from .bus import BusConsumer
 from .rest_api import api, CoreRestApi
 from wazo_webhookd import celery
@@ -45,6 +46,7 @@ class Controller:
             lambda t: self._token_renewer.emit_stop()
         )
         self._bus_consumer = BusConsumer(name='wazo_webhookd', **config['bus'])
+        self._core_asyncio = CoreAsyncio()
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
             namespace='wazo_webhookd.services',
@@ -54,6 +56,8 @@ class Controller:
                 'bus_consumer': self._bus_consumer,
                 'config': config,
                 'auth_client': self._auth_client,
+                'core_asyncio': self._core_asyncio,
+                'token_change_subscribe': self._token_renewer.subscribe_to_token_change,
             },
         )
         plugin_helpers.load(
@@ -73,7 +77,7 @@ class Controller:
         signal.signal(signal.SIGTERM, partial(_sigterm_handler, self))
         try:
             with ServiceCatalogRegistration(*self._service_discovery_args):
-                with self._bus_consumer, self._token_renewer:
+                with self._bus_consumer, self._token_renewer, self._core_asyncio:
                     self.rest_api.run()
         finally:
             logger.info('wazo-webhookd stopping...')
