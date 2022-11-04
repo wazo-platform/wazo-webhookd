@@ -31,6 +31,7 @@ setup(
         'wazo_webhookd.services': [
             'http = wazo_webhookd.services.http.plugin:Service',
             'mobile = wazo_webhookd.services.mobile.plugin:Service',
+            'teams = wazo_webhookd.services.teams.plugin:Service'
         ],
         'wazo_purge_db.purgers': [
             'webhookd-logs = wazo_webhookd.database.purger:SubscriptionLogsPurger'

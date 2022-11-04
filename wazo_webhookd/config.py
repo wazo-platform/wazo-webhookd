@@ -43,6 +43,12 @@ _DEFAULT_CONFIG = {
         'worker_min': 3,
         'worker_max': 5,
     },
+    'confd': {
+        'host': 'localhost',
+        'port': 9486,
+        'prefix': None,
+        'https': False,
+    },
     'consul': {'scheme': 'http', 'host': 'localhost', 'port': 8500},
     'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk?application_name=wazo-webhookd',
     'rest_api': {
@@ -72,8 +78,15 @@ _DEFAULT_CONFIG = {
         'status': True,
         'subscriptions': True,
     },
-    'enabled_services': {'http': True, 'mobile': True},
+    'enabled_services': {
+        'http': True,
+        'mobile': True,
+        'teams': True,
+    },
     'hook_max_attempts': 10,
+    'microsoft': {
+        'appId': 'd45d5c75-7987-4cef-a73b-fdc982972025',
+    },
     'mobile_apns_host': 'api.push.apple.com',
     'mobile_apns_port': 443,
     'mobile_apns_call_topic': 'org.wazo-platform.voip',
