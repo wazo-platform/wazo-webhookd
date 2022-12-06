@@ -43,7 +43,6 @@ _DEFAULT_CONFIG = {
         'worker_min': 3,
         'worker_max': 5,
     },
-    'consul': {'scheme': 'http', 'host': 'localhost', 'port': 8500},
     'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk?application_name=wazo-webhookd',
     'rest_api': {
         'listen': '127.0.0.1',
@@ -55,11 +54,15 @@ _DEFAULT_CONFIG = {
             'allow_headers': ['Content-Type', 'X-Auth-Token', 'Wazo-Tenant'],
         },
     },
+    'consul': {
+        'scheme': 'http',
+        'port': 8500,
+    },
     'service_discovery': {
+        'enabled': False,
         'advertise_address': 'auto',
         'advertise_address_interface': 'eth0',
         'advertise_port': _DEFAULT_HTTP_PORT,
-        'enabled': True,
         'ttl_interval': 30,
         'refresh_interval': 27,
         'retry_interval': 2,
