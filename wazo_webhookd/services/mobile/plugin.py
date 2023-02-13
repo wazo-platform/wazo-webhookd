@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 import httpx
@@ -323,7 +323,6 @@ class PushNotification:
         return requests_automatic_detail(response)
 
     def _create_apn_message(self, message_title, message_body, channel_id, data):
-
         apns_call_topic = self.config['mobile_apns_call_topic']
         apns_default_topic = self.config['mobile_apns_default_topic']
 

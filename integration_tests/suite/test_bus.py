@@ -1,4 +1,4 @@
-# Copyright 2020-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2020-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that, equal_to
@@ -10,7 +10,6 @@ from .helpers.wait_strategy import ConnectedWaitStrategy
 
 
 class TestBusConsumer(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 

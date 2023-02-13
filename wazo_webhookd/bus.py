@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -35,7 +35,7 @@ class _ConsumerMixin(ConsumerMixin):
     def __dispatch(self, event_name, payload, headers=None):
         with self.__lock:
             subscriptions = self.__subscriptions[event_name].copy()
-        for (handler, binding) in subscriptions:
+        for handler, binding in subscriptions:
             if not self._check_headers_match(headers, binding):
                 continue
             try:

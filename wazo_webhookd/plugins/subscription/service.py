@@ -1,4 +1,4 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from contextlib import contextmanager
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionService:
-
     # NOTE(sileht): We share the pubsub object, so plugin that instanciate
     # another service (like push mobile) will continue work.
 

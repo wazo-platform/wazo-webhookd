@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
 import time
@@ -140,7 +140,6 @@ def event(**kwargs):
 
 
 class TestHTTPCallback(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 
@@ -176,7 +175,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback(
         self, subscription
     ):
-
         self.bus.publish(
             trigger_event(),
             routing_key=SOME_ROUTING_KEY,
@@ -411,7 +409,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_when_restart_webhookd_then_callback_still_triggered(
         self, subscription
     ):
-
         self.restart_service('webhookd')
         ConnectedWaitStrategy().wait(self.make_webhookd(MASTER_TOKEN))
         self.ensure_webhookd_consume_subscription(subscription)
@@ -434,7 +431,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_when_restart_rabbitmq_then_callback_still_triggered(
         self, subscription
     ):
-
         self.restart_service('rabbitmq')
         ConnectedWaitStrategy().wait(self.make_webhookd(MASTER_TOKEN))
 
@@ -491,7 +487,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_with_no_body_when_bus_event_then_http_callback_with_default_body(
         self, subscription
     ):
-
         self.bus.publish(
             trigger_event(data={'keý': 'vàlue'}),
             routing_key=SOME_ROUTING_KEY,
@@ -520,7 +515,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_one_http_subscription_with_body_when_bus_event_then_http_callback_with_body(
         self, subscription
     ):
-
         self.bus.publish(
             trigger_event(),
             routing_key=SOME_ROUTING_KEY,
@@ -543,7 +537,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(
         self, subscription
     ):
-
         self.bus.publish(
             trigger_event(data={'variable': 'value'}),
             routing_key=SOME_ROUTING_KEY,
@@ -576,7 +569,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_subscription_with_verify_cert_when_bus_event_then_http_callback_with_verify(
         self, subscription
     ):
-
         self.bus.publish(
             trigger_event(),
             routing_key=SOME_ROUTING_KEY,
@@ -595,7 +587,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(
         self, subscription
     ):
-
         self.bus.publish(
             trigger_event(),
             routing_key=SOME_ROUTING_KEY,
@@ -621,7 +612,6 @@ class TestHTTPCallback(BaseIntegrationTest):
     def test_given_http_subscription_with_user_uuid_when_bus_events_then_only_callback_when_user_uuid_match(
         self, subscription
     ):
-
         # Non-matching events
         self.bus.publish(trigger_event(), routing_key=SOME_ROUTING_KEY)
         self.bus.publish(

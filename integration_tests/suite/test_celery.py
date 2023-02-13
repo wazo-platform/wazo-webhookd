@@ -1,4 +1,4 @@
-# Copyright 2019-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
@@ -12,7 +12,6 @@ from .helpers.wait_strategy import NoWaitStrategy
 
 
 class TestCeleryWorks(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = NoWaitStrategy()
 
