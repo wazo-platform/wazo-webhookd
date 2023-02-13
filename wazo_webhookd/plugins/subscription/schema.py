@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from marshmallow import EXCLUDE
@@ -58,7 +58,6 @@ class HTTPSubscriptionConfigSchema(Schema):
 
 
 class ConfigField(fields.Field):
-
     _default_options = fields.Dict(
         validate=validate_string_dict, allow_none=False, required=True
     )

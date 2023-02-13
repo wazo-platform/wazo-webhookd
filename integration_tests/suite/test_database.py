@@ -1,4 +1,4 @@
-# Copyright 2017-2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
@@ -31,7 +31,6 @@ DB_URI = os.getenv('DB_URI', 'postgresql://wazo-webhookd:Secr7t@127.0.0.1:{port}
 
 
 class TestDatabase(AssetLaunchingTestCase):
-
     asset = 'database'
     assets_root = os.path.join(os.path.dirname(__file__), '..', 'assets')
     service = 'postgresql'

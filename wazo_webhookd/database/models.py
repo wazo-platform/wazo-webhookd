@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import itertools
@@ -26,7 +26,6 @@ _NOTSET = object()
 
 
 class SubscriptionEvent(Base):
-
     __tablename__ = 'webhookd_subscription_event'
     __table_args__ = (UniqueConstraint('subscription_uuid', 'event_name'),)
 
@@ -42,7 +41,6 @@ class SubscriptionEvent(Base):
 
 
 class SubscriptionOption(Base):
-
     __tablename__ = 'webhookd_subscription_option'
     __table_args__ = (UniqueConstraint('subscription_uuid', 'name'),)
 
@@ -59,7 +57,6 @@ class SubscriptionOption(Base):
 
 
 class SubscriptionMetadatum(Base):
-
     __tablename__ = 'webhookd_subscription_metadatum'
 
     uuid = Column(
@@ -75,7 +72,6 @@ class SubscriptionMetadatum(Base):
 
 
 class SubscriptionLog(Base):
-
     __tablename__ = 'webhookd_subscription_log'
 
     uuid = Column(String(36), primary_key=True)
@@ -153,7 +149,6 @@ class Subscription(Base):
         owner_user_uuid=_NOTSET,
         owner_tenant_uuid=_NOTSET,
     ):
-
         self.name = name
         self.service = service
 

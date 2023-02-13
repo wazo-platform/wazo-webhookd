@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import (
@@ -84,7 +84,6 @@ INVALID_SUBSCRIPTION = {}
 
 
 class TestListSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -132,7 +131,6 @@ class TestListSubscriptions(BaseIntegrationTest):
 
 
 class TestListUserSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -154,7 +152,6 @@ class TestListUserSubscriptions(BaseIntegrationTest):
 
 
 class TestGetSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -196,7 +193,6 @@ class TestGetSubscriptions(BaseIntegrationTest):
 
 
 class TestGetSubscriptionLogs(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -240,7 +236,6 @@ class TestGetSubscriptionLogs(BaseIntegrationTest):
 
 
 class TestGetUserSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -269,7 +264,6 @@ class TestGetUserSubscriptions(BaseIntegrationTest):
 
 
 class TestCreateSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -333,7 +327,6 @@ class TestCreateSubscriptions(BaseIntegrationTest):
 
 
 class TestCreateUserSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -395,7 +388,6 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
 
 
 class TestEditSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -479,7 +471,6 @@ class TestEditSubscriptions(BaseIntegrationTest):
 
 
 class TestEditUserSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -527,7 +518,6 @@ class TestEditUserSubscriptions(BaseIntegrationTest):
 
 
 class TestDeleteSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -577,7 +567,6 @@ class TestDeleteSubscriptions(BaseIntegrationTest):
 
 
 class TestDeleteUserSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -612,7 +601,6 @@ class TestDeleteUserSubscriptions(BaseIntegrationTest):
 
 
 class TestMultiTenantSubscriptions(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
@@ -789,7 +777,6 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
     def test_subscriptions_manipulate_with_parent_token_and_users_tenant(
         self, subscription_
     ):
-
         webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
         response = webhookd.subscriptions.list()
         assert_that(

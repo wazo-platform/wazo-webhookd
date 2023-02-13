@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
@@ -38,7 +38,6 @@ START_TIMEOUT = int(os.environ.get('INTEGRATION_TEST_TIMEOUT', '30'))
 
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
-
     assets_root = os.path.abspath(
         os.path.join(os.path.dirname(__file__), '..', '..', 'assets')
     )

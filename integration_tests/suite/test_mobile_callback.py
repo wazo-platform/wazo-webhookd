@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
@@ -32,7 +32,6 @@ SOME_ROUTING_KEY = 'routing-key'
 
 
 class TestFCMNotificationProxy(BaseIntegrationTest):
-
     asset = 'proxy'
     wait_strategy = ConnectedWaitStrategy()
 
@@ -249,7 +248,6 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
 
 
 class TestMobileCallback(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 

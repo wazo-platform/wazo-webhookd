@@ -1,4 +1,4 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from requests import RequestException
@@ -14,7 +14,6 @@ from .helpers.wait_strategy import EverythingOkWaitStrategy
 
 
 class TestConfig(BaseIntegrationTest):
-
     asset = 'base'
     wait_strategy = EverythingOkWaitStrategy()
 
