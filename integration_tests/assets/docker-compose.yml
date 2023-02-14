@@ -58,6 +58,6 @@ services:
     volumes:
       - "../..:/usr/src/wazo-webhookd"
       - "./etc/wazo-webhookd/conf.d/50-default.yml:/etc/wazo-webhookd/conf.d/50-default.yml"
-      # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/opt/venv/lib/python3.7/site-packages/xivo"
+      # - "${LOCAL_GIT_REPOS}/xivo-lib-python/xivo:/opt/venv/lib/python3.9/site-packages/xivo"
     ports:
       - "9300"

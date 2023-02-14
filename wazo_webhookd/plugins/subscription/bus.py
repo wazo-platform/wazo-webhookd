@@ -1,22 +1,42 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
+
 import kombu.exceptions
 import uuid
 
 from threading import Lock
 from collections import defaultdict
 from functools import partial
+
 from wazo_webhookd.auth import master_tenant_uuid
 from .celery_tasks import hook_runner_task
 from .schema import subscription_schema
+
+if TYPE_CHECKING:
+    from configparser import RawConfigParser
+    from importlib.metadata import EntryPoint
+    from stevedore.extension import Extension
+    from stevedore.named import NamedExtensionManager
+    from wazo_webhookd.bus import BusConsumer
+    from wazo_webhookd.database.models import Subscription
+    from .service import SubscriptionService
+
 
 logger = logging.getLogger(__name__)
 
 
 class SubscriptionBusEventHandler:
-    def __init__(self, bus_consumer, config, service_manager, subscription_service):
+    def __init__(
+        self,
+        bus_consumer: BusConsumer,
+        config: RawConfigParser,
+        service_manager: NamedExtensionManager,
+        subscription_service: SubscriptionService,
+    ):
         self._bus_consumer = bus_consumer
         self._subscription_callbacks = defaultdict(list)
         self._lock = Lock()
@@ -27,21 +47,21 @@ class SubscriptionBusEventHandler:
         self._service.pubsub.subscribe('deleted', self.on_subscription_deleted)
         self._service_manager = service_manager
 
-    def subscribe(self):
+    def subscribe(self) -> None:
         for subscription in self._service.list():
             self._register(subscription)
 
-    def on_subscription_created(self, subscription):
+    def on_subscription_created(self, subscription: Subscription):
         self._register(subscription)
 
-    def on_subscription_updated(self, subscription):
+    def on_subscription_updated(self, subscription: Subscription):
         self._update(subscription)
 
-    def on_subscription_deleted(self, subscription):
+    def on_subscription_deleted(self, subscription: Subscription):
         self._unregister(subscription)
 
     @staticmethod
-    def _build_headers(subscription):
+    def _build_headers(subscription: Subscription):
         headers = {
             'x-subscription': str(subscription.uuid),
         }
@@ -57,7 +77,7 @@ class SubscriptionBusEventHandler:
             headers.update(origin_uuid=str(wazo_uuid))
         return headers
 
-    def _register(self, subscription):
+    def _register(self, subscription: Subscription):
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
 
@@ -79,7 +99,7 @@ class SubscriptionBusEventHandler:
         for event in events:
             self._bus_consumer.unsubscribe(event, fn)
 
-    def _update(self, subscription):
+    def _update(self, subscription: Subscription):
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
         headers = self._build_headers(subscription)
@@ -105,9 +125,9 @@ class SubscriptionBusEventHandler:
         with self._lock:
             self._subscription_callbacks[uuid] = (fn, subscription.events, headers)
 
-    def _callback(self, subscription, payload):
+    def _callback(self, subscription: Subscription, payload: dict[str, Any]) -> None:
         try:
-            service = self._service_manager[subscription['service']]
+            service: Extension = self._service_manager[subscription['service']]
         except KeyError:
             logger.error(
                 '%s: no such service plugin. Subscription "%s" disabled',
@@ -118,9 +138,19 @@ class SubscriptionBusEventHandler:
 
         try:
             hook_uuid = str(uuid.uuid4())
+
+            # Stevedore now uses importlib.metadata.Entrypoint, which does not have a
+            # __str__ method for formatting, so we must build the name manually.
+            entry_point: EntryPoint = service.entry_point
+            entry_point_name = (
+                f'{entry_point.name} = {entry_point.module}:{entry_point.attr}'
+            )
+            if extras := entry_point.extras:
+                entry_point_name += f' [{",".join(extras)}]'
+
             hook_runner_task.s(
                 hook_uuid,
-                str(service.entry_point),
+                entry_point_name,
                 self._config.data,
                 subscription,
                 payload,
@@ -128,11 +158,11 @@ class SubscriptionBusEventHandler:
         except kombu.exceptions.OperationalError:
             # NOTE(sileht): That's not perfect in real life, because if celery
             # lose the connection, we have a good chance that our bus lose it
-            # too. Anyways we can requeue it, in case of our bus is faster to
-            # reconnect, we are fine. Otherise we have an exception because of
+            # too. Anyway, we can requeue it, in case of our bus is faster to
+            # reconnect, we are fine. Otherwise, we have an exception because of
             # disconnection and our bus will get this message again on
             # reconnection.
             raise
         except Exception:
-            # NOTE(sileht): We have a programming issue, we don't retry forever
+            # NOTE(sileht): If we have a programming error, don't retry forever
             raise
