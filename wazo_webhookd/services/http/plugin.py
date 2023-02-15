@@ -1,9 +1,12 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import cgi
 import json
 import logging
+from typing import NamedTuple
+
 import requests
 import socket
 import urllib.parse
@@ -17,7 +20,15 @@ from wazo_webhookd.services.helpers import (
 
 logger = logging.getLogger(__name__)
 
-REQUESTS_TIMEOUT = (5, 15)  # seconds
+
+class RequestTimeouts(NamedTuple):
+    """Timeouts for requests in seconds."""
+
+    connect: int
+    read: int
+
+
+REQUEST_TIMEOUTS = RequestTimeouts(connect=5, read=15)
 
 
 class Service:
@@ -78,7 +89,7 @@ class Service:
                 data=data,
                 verify=verify,
                 headers=headers,
-                timeout=REQUESTS_TIMEOUT,
+                timeout=REQUEST_TIMEOUTS,
             ) as r:
                 r.raise_for_status()
                 return requests_automatic_detail(r)
