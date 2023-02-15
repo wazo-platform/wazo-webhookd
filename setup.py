@@ -19,7 +19,7 @@ setup(
         'console_scripts': [
             f'{NAME} = wazo_webhookd.bin.daemon:main',
             f'{NAME}-init-db = wazo_webhookd.bin.init_db:main',
-            f'{NAME}-init-amqp=wazo_webhookd.bin.init_amqp:main',
+            f'{NAME}-init-amqp = wazo_webhookd.bin.init_amqp:main',
         ],
         'wazo_webhookd.plugins': [
             'api = wazo_webhookd.plugins.api.plugin:Plugin',
