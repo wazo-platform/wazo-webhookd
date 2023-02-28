@@ -2,9 +2,9 @@ Source: wazo-webhookd
 Section: python
 Priority: optional
 Maintainer: Wazo Maintainers <dev+pkg@wazo.community>
-Build-Depends: debhelper (>= 9), dh-python, dh-systemd (>= 1.5), python3-all, python3-setuptools
+Build-Depends: debhelper (>= 12), dh-python, python3-all, python3-setuptools
 Standards-Version: 3.9.6
-X-Python3-Version: >= 3.4
+X-Python3-Version: >= 3.9
 
 Package: wazo-webhookd
 Architecture: all
@@ -12,8 +12,8 @@ Depends:
  ${python3:Depends},
  ${misc:Depends},
  adduser,
- alembic (>= 0.8.8),
- python3-alembic (>= 0.8.8),
+ alembic,
+ python3-alembic,
  python3-celery,
  python3-cheroot,
  python3-consul,
@@ -21,6 +21,7 @@ Depends:
  python3-flask-cors,
  python3-flask-restful,
  python3-httpx,
+ python3-h2,
  python3-jsonpatch,
  python3-marshmallow,
  python3-psycopg2,

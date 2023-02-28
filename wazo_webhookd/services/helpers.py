@@ -1,5 +1,6 @@
-# Copyright 2017-2020 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import contextlib
 import json
@@ -40,7 +41,7 @@ def _decode(data):
 def requests_automatic_hook_retry(task):
     try:
         yield
-    except (requests.exceptions.HTTPError, httpx.exceptions.HTTPError) as exc:
+    except (requests.exceptions.HTTPError, httpx.HTTPError) as exc:
         if isinstance(exc.request, requests.PreparedRequest):
             req_data = exc.request.body
         else:
@@ -91,8 +92,8 @@ def requests_automatic_hook_retry(task):
             )
 
     except (
-        httpx.exceptions.Timeout,
-        httpx.exceptions.TooManyRedirects,
+        httpx.TimeoutException,
+        httpx.TooManyRedirects,
         requests.exceptions.ConnectionError,
         requests.exceptions.Timeout,
         requests.exceptions.TooManyRedirects,
@@ -123,11 +124,11 @@ def requests_automatic_hook_retry(task):
         )
 
 
-def requests_automatic_detail(response):
+def requests_automatic_detail(response: httpx.Response | requests.PreparedRequest):
     if isinstance(response.request, requests.PreparedRequest):
         req_data = response.request.body
     else:
-        req_data = response.request.content
+        req_data = response.request.read()
     return {
         "request_method": response.request.method,
         "request_url": str(response.request.url),

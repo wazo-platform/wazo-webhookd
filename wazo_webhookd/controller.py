@@ -1,8 +1,9 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
 import signal
+import threading
 
 from functools import partial
 from xivo import plugin_helpers
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Controller:
     def __init__(self, config):
+        self._stopping_thread = None
         # NOTE(sileht): Celery must be spawned before anything else, to ensure
         # we don't fork the process after some database/rabbitmq connection
         # have been established
@@ -70,7 +72,8 @@ class Controller:
 
     def run(self):
         logger.info('wazo-webhookd starting...')
-        signal.signal(signal.SIGTERM, partial(_sigterm_handler, self))
+        signal.signal(signal.SIGTERM, partial(_signal_handler, self))
+        signal.signal(signal.SIGINT, partial(_signal_handler, self))
         try:
             with ServiceCatalogRegistration(*self._service_discovery_args):
                 with self._bus_consumer, self._token_renewer:
@@ -80,12 +83,15 @@ class Controller:
             self._celery_process.terminate()
             logger.debug('waiting for remaining threads/subprocesses...')
             self._celery_process.join()
+            if self._stopping_thread:
+                self._stopping_thread.join()
             logger.debug('all threads and subprocesses stopped.')
 
     def stop(self, reason):
         logger.warning('Stopping wazo-webhookd: %s', reason)
-        self.rest_api.stop()
+        self._stopping_thread = threading.Thread(target=self.rest_api.stop, name=reason)
+        self._stopping_thread.start()
 
 
-def _sigterm_handler(controller, signum, frame):
-    controller.stop(reason='SIGTERM')
+def _signal_handler(controller, signum, frame):
+    controller.stop(reason=signal.Signals(signum).name)
