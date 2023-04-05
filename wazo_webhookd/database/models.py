@@ -15,9 +15,10 @@ from sqlalchemy import (
     UniqueConstraint,
     orm,
 )
-from sqlalchemy_utils import JSONType
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.schema import Index
+from sqlalchemy_utils import JSONType
 
 
 Base = declarative_base()
@@ -27,7 +28,12 @@ _NOTSET = object()
 
 class SubscriptionEvent(Base):
     __tablename__ = 'webhookd_subscription_event'
-    __table_args__ = (UniqueConstraint('subscription_uuid', 'event_name'),)
+    __table_args__ = (
+        UniqueConstraint('subscription_uuid', 'event_name'),
+        Index(
+            'webhookd_subscription_event__idx__subscription_uuid', 'subscription_uuid'
+        ),
+    )
 
     uuid = Column(
         String(38), server_default=text('uuid_generate_v4()'), primary_key=True
@@ -42,7 +48,12 @@ class SubscriptionEvent(Base):
 
 class SubscriptionOption(Base):
     __tablename__ = 'webhookd_subscription_option'
-    __table_args__ = (UniqueConstraint('subscription_uuid', 'name'),)
+    __table_args__ = (
+        UniqueConstraint('subscription_uuid', 'name'),
+        Index(
+            'webhookd_subscription_option__idx__subscription_uuid', 'subscription_uuid'
+        ),
+    )
 
     uuid = Column(
         String(38), server_default=text('uuid_generate_v4()'), primary_key=True
@@ -58,6 +69,12 @@ class SubscriptionOption(Base):
 
 class SubscriptionMetadatum(Base):
     __tablename__ = 'webhookd_subscription_metadatum'
+    __table_args__ = (
+        Index(
+            'webhookd_subscription_metadatum__idx__subscription_uuid',
+            'subscription_uuid',
+        ),
+    )
 
     uuid = Column(
         String(38), server_default=text('uuid_generate_v4()'), primary_key=True
@@ -73,6 +90,9 @@ class SubscriptionMetadatum(Base):
 
 class SubscriptionLog(Base):
     __tablename__ = 'webhookd_subscription_log'
+    __table_args__ = (
+        Index('webhookd_subscription_log__idx__subscription_uuid', 'subscription_uuid'),
+    )
 
     uuid = Column(String(36), primary_key=True)
     subscription_uuid = Column(
@@ -92,6 +112,7 @@ class SubscriptionLog(Base):
 
 class Subscription(Base):
     __tablename__ = 'webhookd_subscription'
+
     uuid = Column(
         String(38), server_default=text('uuid_generate_v4()'), primary_key=True
     )
@@ -131,7 +152,7 @@ class Subscription(Base):
         return [event.event_name for event in self.events_rel]
 
     def clear_relations(self):
-        # FIXME(sileht): We should delete all orm objects explictly instead of
+        # FIXME(sileht): We should delete all orm objects explicitly instead of
         # relying on delete-orphan magic
         self.options_rel.clear()
         self.events_rel.clear()
