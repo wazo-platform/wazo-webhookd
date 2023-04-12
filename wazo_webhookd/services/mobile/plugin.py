@@ -1,5 +1,8 @@
 # Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
+from __future__ import annotations
+
+from typing import Generator
 
 import httpx
 import logging
@@ -21,7 +24,8 @@ from .exceptions import NotificationError
 
 logger = logging.getLogger(__name__)
 
-REQUESTS_TIMEOUT = (10, 15, 15)  # seconds
+
+REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
 
 MAP_NAME_TO_NOTIFICATION_TYPE = {
     'user_voicemail_message_created': 'voicemailReceived',
@@ -263,19 +267,22 @@ class PushNotification:
             logger.error('Error to send push notification: %s', notification)
         return notification
 
-    @property
-    def _apn_push_client(self):
+    @contextmanager
+    def _apn_push_client(
+        self, cert: str | None = None
+    ) -> Generator[httpx.Client, None, None]:
         headers = {
             'apns-expiration': "0",
             'User-Agent': 'wazo-webhookd',
         }
 
-        return httpx.Client(
-            http_versions=['HTTP/2', 'HTTP/1.1'],
+        yield httpx.Client(
+            http2=True,
             headers=headers,
             verify=True,
+            cert=cert,
             trust_env=False,
-            timeout=REQUESTS_TIMEOUT,
+            timeout=REQUEST_TIMEOUTS,
         )
 
     def _send_via_apn(self, message_title, message_body, channel_id, data):
@@ -298,9 +305,7 @@ class PushNotification:
         if use_sandbox and host == 'api.push.apple.com':
             host = 'api.sandbox.push.apple.com'
 
-        url = "https://{}:{}/3/device/{}".format(
-            host, self.config['mobile_apns_port'], token
-        )
+        url = f"https://{host}:{self.config['mobile_apns_port']}/3/device/{token}"
 
         with self._certificate_filename(
             apn_certificate, apn_private
@@ -313,12 +318,12 @@ class PushNotification:
                 apn_cert_filename,
                 payload,
             )
-            response = self._apn_push_client.post(
-                url,
-                cert=apn_cert_filename,
-                headers=headers,
-                json=payload,
-            )
+            with self._apn_push_client(cert=apn_cert_filename) as client:
+                response = client.post(
+                    url,
+                    headers=headers,
+                    json=payload,
+                )
         response.raise_for_status()
         return requests_automatic_detail(response)
 
