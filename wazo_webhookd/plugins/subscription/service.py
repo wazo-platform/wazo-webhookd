@@ -26,7 +26,11 @@ class SubscriptionService:
     pubsub = Pubsub()
 
     def __init__(self, config):
-        self._engine = create_engine(config['db_uri'])
+        self._engine = create_engine(
+            config['db_uri'],
+            pool_size=config['rest_api']['max_threads'],
+            pool_pre_ping=True,
+        )
         self._Session = scoped_session(sessionmaker())
         self._Session.configure(bind=self._engine)
 

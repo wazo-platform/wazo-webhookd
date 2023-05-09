@@ -42,6 +42,14 @@ class TestDatabase(AssetLaunchingTestCase):
         engine = create_engine(self.db_uri)
         self._Session.configure(bind=engine)
 
+    def _some_config(self, **args):
+        return {
+            'db_uri': self.db_uri,
+            'rest_api': {
+                'max_threads': 10,
+            },
+        }
+
     @contextmanager
     def new_session(self):
         session = self._Session()
@@ -118,8 +126,8 @@ class TestDatabase(AssetLaunchingTestCase):
 
         self._Session.remove()
 
-    def test_subscription_pubusb_create(self):
-        service = SubscriptionService({'db_uri': self.db_uri})
+    def test_subscription_pubsub_create(self):
+        service = SubscriptionService(self._some_config())
 
         tracker = {'uuid': None}
 
@@ -139,8 +147,8 @@ class TestDatabase(AssetLaunchingTestCase):
         assert_that(tracker, has_entries({'uuid': is_(not_none())}))
 
     def test_subscription_pubsub_two_services(self):
-        service1 = SubscriptionService({'db_uri': self.db_uri})
-        service2 = SubscriptionService({'db_uri': self.db_uri})
+        service1 = SubscriptionService(self._some_config())
+        service2 = SubscriptionService(self._some_config())
 
         tracker = {}
 
@@ -162,7 +170,7 @@ class TestDatabase(AssetLaunchingTestCase):
         assert_that(tracker, has_entries({'service1': True, 'service2': True}))
 
     def test_purger(self):
-        service = SubscriptionService({'db_uri': self.db_uri})
+        service = SubscriptionService(self._some_config())
         subscription_uuid = service.create(
             {
                 'name': 'test',
@@ -202,7 +210,7 @@ class TestDatabase(AssetLaunchingTestCase):
         assert_that(len(logs), equal_to(4))
 
     def test_subscription_log_on_subscription_deleted(self):
-        service = SubscriptionService({'db_uri': self.db_uri})
+        service = SubscriptionService(self._some_config())
         subscription_uuid_not_found = str(uuid.uuid4())
 
         service.create_hook_log(
