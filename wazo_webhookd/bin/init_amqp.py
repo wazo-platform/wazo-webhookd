@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
@@ -57,11 +57,8 @@ def _parse_cli_args(args):
 
 def main():
     config = _parse_cli_args(sys.argv[1:])
-    bus_url = 'amqp://{username}:{password}@{host}:{port}//'.format(
-        username=config.username,
-        password=config.password,
-        host=config.host,
-        port=config.port,
+    bus_url = (
+        f'amqp://{config.username}:{config.password}@{config.host}:{config.port}//'
     )
     upstream_exchange = kombu.Exchange(
         config.upstream_exchange_name,

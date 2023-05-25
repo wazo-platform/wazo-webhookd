@@ -78,9 +78,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
 
     def test_workflow_fcm(self):
         third_party = MockServerClient(
-            'http://127.0.0.1:{port}'.format(
-                port=self.service_port(443, 'fcm.proxy.example.com')
-            )
+            f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
         )
         third_party.reset()
         third_party.mock_any_response(
@@ -152,9 +150,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
         assert_that(
             subscriptions['items'][0],
             has_entries(
-                name="Push notification mobile for user {}/{}".format(
-                    USERS_TENANT, USER_1_UUID
-                ),
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_1_UUID}",
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
@@ -174,7 +170,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -182,7 +178,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
             },
         )
 
@@ -215,7 +211,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             {
                 'name': 'call_cancel_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -223,7 +219,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
             },
         )
 
@@ -303,9 +299,7 @@ class TestMobileCallback(BaseIntegrationTest):
 
     def test_workflow_fcm(self):
         third_party = MockServerClient(
-            'http://127.0.0.1:{port}'.format(
-                port=self.service_port(443, 'fcm.googleapis.com')
-            )
+            f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
         )
         third_party.reset()
         third_party.mock_any_response(
@@ -377,9 +371,7 @@ class TestMobileCallback(BaseIntegrationTest):
         assert_that(
             subscriptions['items'][0],
             has_entries(
-                name="Push notification mobile for user {}/{}".format(
-                    USERS_TENANT, USER_1_UUID
-                ),
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_1_UUID}",
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
@@ -399,7 +391,7 @@ class TestMobileCallback(BaseIntegrationTest):
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -407,7 +399,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
             },
         )
 
@@ -431,7 +423,7 @@ class TestMobileCallback(BaseIntegrationTest):
             {
                 'name': 'call_cancel_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -439,7 +431,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_1_UUID): True,
+                f'user_uuid:{USER_1_UUID}': True,
             },
         )
 
@@ -469,9 +461,7 @@ class TestMobileCallback(BaseIntegrationTest):
         auth.set_external_auth({'token': 'token-android', 'apns_token': 'token-ios'})
 
         apns_third_party = MockServerClient(
-            'http://127.0.0.1:{port}'.format(
-                port=self.service_port(1080, 'third-party-http')
-            )
+            f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
         )
         apns_third_party.reset()
         apns_third_party.mock_simple_response(
@@ -496,9 +486,7 @@ class TestMobileCallback(BaseIntegrationTest):
         assert_that(
             subscriptions['items'][0],
             has_entries(
-                name="Push notification mobile for user {}/{}".format(
-                    USERS_TENANT, USER_2_UUID
-                ),
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_2_UUID}",
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
@@ -518,7 +506,7 @@ class TestMobileCallback(BaseIntegrationTest):
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -526,7 +514,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
             },
         )
 
@@ -558,7 +546,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'chatd_user_room_message_created',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
             },
         )
 
@@ -599,9 +587,7 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         apns_third_party = MockServerClient(
-            'http://127.0.0.1:{port}'.format(
-                port=self.service_port(1080, 'third-party-http')
-            )
+            f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
         )
         apns_third_party.reset()
         apns_third_party.mock_simple_response(
@@ -631,9 +617,7 @@ class TestMobileCallback(BaseIntegrationTest):
         assert_that(
             subscriptions['items'][0],
             has_entries(
-                name="Push notification mobile for user {}/{}".format(
-                    USERS_TENANT, USER_2_UUID
-                ),
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_2_UUID}",
                 events=contains_inanyorder(
                     'chatd_user_room_message_created',
                     'call_push_notification',
@@ -653,7 +637,7 @@ class TestMobileCallback(BaseIntegrationTest):
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -661,7 +645,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
             },
         )
 
@@ -688,7 +672,7 @@ class TestMobileCallback(BaseIntegrationTest):
             {
                 'name': 'call_cancel_push_notification',
                 'origin_uuid': 'my-origin-uuid',
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
                 'data': {'peer_caller_id_number': 'caller-id'},
             },
             routing_key=SOME_ROUTING_KEY,
@@ -696,7 +680,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
             },
         )
 
@@ -738,7 +722,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 'name': 'chatd_user_room_message_created',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{}'.format(USER_2_UUID): True,
+                f'user_uuid:{USER_2_UUID}': True,
             },
         )
 

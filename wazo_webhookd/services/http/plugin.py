@@ -71,9 +71,8 @@ class Service:
 
         data = data.encode(ct_options['charset'])
 
-        headers['Content-Type'] = "{}; {}".format(
-            ct_mimetype, "; ".join(map("=".join, ct_options.items()))
-        )
+        content_type_options = "; ".join(map("=".join, ct_options.items()))
+        headers['Content-Type'] = f"{ct_mimetype}; {content_type_options}"
 
         verify = options.get('verify_certificate')
         if verify:
