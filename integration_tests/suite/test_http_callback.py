@@ -158,9 +158,7 @@ class TestHTTPCallback(BaseIntegrationTest):
     def setUp(self):
         super().setUp()
         self.third_party = MockServerClient(
-            'http://127.0.0.1:{port}'.format(
-                port=self.service_port(1080, 'third-party-http')
-            )
+            f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
         )
         self.third_party.reset()
         self.third_party.mock_simple_response(
@@ -619,7 +617,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': TRIGGER_EVENT_NAME,
-                'user_uuid:{uuid}'.format(uuid=BOB_USER_UUID): True,
+                f'user_uuid:{BOB_USER_UUID}': True,
             },
         )
         self.bus.publish(
@@ -627,7 +625,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': TRIGGER_EVENT_NAME,
-                'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID_EXTENDED): True,
+                f'user_uuid:{ALICE_USER_UUID_EXTENDED}': True,
             },
         )
         # Matching event
@@ -636,7 +634,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': TRIGGER_EVENT_NAME,
-                'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True,
+                f'user_uuid:{ALICE_USER_UUID}': True,
             },
         )
 
@@ -659,7 +657,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': TRIGGER_EVENT_NAME,
-                'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True,
+                f'user_uuid:{ALICE_USER_UUID}': True,
             },
         )
         # trigger control webhook
@@ -669,7 +667,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             headers={
                 'name': ANOTHER_TRIGGER_EVENT_NAME,
                 'tenant_uuid': USERS_TENANT,
-                'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True,
+                f'user_uuid:{ALICE_USER_UUID}': True,
             },
         )
 
@@ -691,7 +689,7 @@ class TestHTTPCallback(BaseIntegrationTest):
             routing_key=SOME_ROUTING_KEY,
             headers={
                 'name': TRIGGER_EVENT_NAME,
-                'user_uuid:{uuid}'.format(uuid=ALICE_USER_UUID): True,
+                f'user_uuid:{ALICE_USER_UUID}': True,
             },
         )
 

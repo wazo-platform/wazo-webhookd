@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 from __future__ import annotations
 
-from typing import Generator
+from collections.abc import Generator
 
 import httpx
 import logging
@@ -65,7 +65,7 @@ class Service:
                 {
                     'name': (
                         'Push notification mobile for user '
-                        '{}/{}'.format(tenant_uuid, user_uuid)
+                        f'{tenant_uuid}/{user_uuid}'
                     ),
                     'service': 'mobile',
                     'events': [
@@ -171,7 +171,7 @@ class PushNotification:
         return self._send_notification(
             'incomingCall',
             'Incoming Call',
-            'From: {}'.format(data['peer_caller_id_number']),
+            f'From: {data["peer_caller_id_number"]}',
             'wazo-notification-call',
             data,
         )
@@ -180,7 +180,7 @@ class PushNotification:
         return self._send_notification(
             'voicemailReceived',
             'New voicemail',
-            'From: {}'.format(data['message']['caller_id_num']),
+            f'From: {data["message"]["caller_id_num"]}',
             'wazo-notification-voicemail',
             data,
         )
@@ -219,8 +219,9 @@ class PushNotification:
 
     def _send_via_fcm(self, message_title, message_body, channel_id, data):
         logger.debug(
-            'Sending push notification to Android: %s, %s'
-            % (message_title, message_body)
+            'Sending push notification to Android: %s, %s',
+            message_title,
+            message_body,
         )
 
         if self.config['mobile_fcm_notification_send_jwt_token']:

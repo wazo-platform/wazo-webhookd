@@ -19,7 +19,7 @@ VERSION = 1.0
 
 logger = logging.getLogger(__name__)
 app = Flask('wazo-webhookd')
-api = Api(app, prefix='/{}'.format(VERSION))
+api = Api(app, prefix=f'/{VERSION}')
 auth_verifier = AuthVerifier()
 
 

@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that
@@ -13,13 +13,13 @@ class TestCeleryTasks(TestCase):
 
     def test_str_not_truncated(self):
         body = "123" * 250
-        assert_that(truncated(body), "{} ... [truncated]".format(body[:250]))
+        assert_that(truncated(body), f"{body[:250]} ... [truncated]")
 
     def test_dict_truncated(self):
         body = "123" * 250
         assert_that(
             truncated({"foo": body}),
-            "{{'foo': {}}} ... [truncated]".format(body[:250]),
+            f"{{'foo': {body[:250]}}} ... [truncated]",
         )
 
     def test_dict_not_truncated(self):

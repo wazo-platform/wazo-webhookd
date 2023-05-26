@@ -77,7 +77,7 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             'x-internal': True,
         }
         if user_uuid:
-            headers['user_uuid:{}'.format(user_uuid)] = True
+            headers[f'user_uuid:{user_uuid}'] = True
         if wazo_uuid:
             headers['origin_uuid'] = str(wazo_uuid)
 

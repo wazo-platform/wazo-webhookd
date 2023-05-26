@@ -73,7 +73,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             https=False,
             token=token,
             tenant=tenant,
-            **kwargs
+            **kwargs,
         )
 
     @classmethod
@@ -178,9 +178,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             def reset(self):
                 requests.delete(self._url, verify=False)
 
-        url = 'http://127.0.0.1:{port}/1.0/sentinel'.format(
-            port=self.service_port(9300, 'webhookd')
-        )
+        url = f'http://127.0.0.1:{self.service_port(9300, "webhookd")}/1.0/sentinel'
         return Sentinel(url)
 
     def _has_subscription_bindings(self, subscription, bindings):
