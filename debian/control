@@ -28,7 +28,7 @@ Depends:
  python3-pyfcm,
  python3-setproctitle,
  python3-sqlalchemy,
- python3-sqlalchemy-utils,
+ python3-sqlalchemy-utils (>= 0.36.8),
  python3-stevedore,
  python3-yaml,
  python3-werkzeug,
