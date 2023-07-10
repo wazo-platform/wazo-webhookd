@@ -2,11 +2,11 @@
     templates:
       - wazo-tox-py39
       - wazo-tox-linters-310
-    check:
+    wazo-check:
       jobs:
         - webhookd-tox-integration
         - webhookd-debian-packaging
-    gate:
+    wazo-gate:
       jobs:
         - webhookd-tox-integration
         - webhookd-debian-packaging
