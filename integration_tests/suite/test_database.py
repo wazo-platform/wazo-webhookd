@@ -33,7 +33,7 @@ DB_URI = os.getenv('DB_URI', 'postgresql://wazo-webhookd:Secr7t@127.0.0.1:{port}
 class TestDatabase(AssetLaunchingTestCase):
     asset = 'database'
     assets_root = os.path.join(os.path.dirname(__file__), '..', 'assets')
-    service = 'postgresql'
+    service = 'postgres'
 
     def setUp(self):
         super().setUp()
