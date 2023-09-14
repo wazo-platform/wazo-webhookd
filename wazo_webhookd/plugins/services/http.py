@@ -1,4 +1,4 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from wazo_webhookd.rest_api import AuthResource
@@ -11,5 +11,7 @@ class ServicesResource(AuthResource):
 
     @required_acl('webhookd.subscriptions.services.read')
     def get(self):
-        result = {'services': {name: {} for name in self._service_manager.names()}}
+        result: dict[str, dict[str, dict]] = {
+            'services': {name: {} for name in self._service_manager.names()}
+        }
         return result, 200

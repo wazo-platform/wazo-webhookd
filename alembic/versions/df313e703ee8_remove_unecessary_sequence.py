@@ -12,7 +12,7 @@ import sqlalchemy as sa
 revision = 'df313e703ee8'
 down_revision = 'cab8bbbdcfae'
 
-seq = sa.Sequence('webhookd_subscription_log_attempts_seq')
+seq = sa.Sequence('webhookd_subscription_log_attempts_seq')  # type: ignore
 
 
 def upgrade():

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 import kombu.exceptions
 import uuid
 
 from threading import Lock
-from collections import defaultdict
 from functools import partial
 
 from wazo_webhookd.auth import master_tenant_uuid
@@ -17,28 +16,38 @@ from .celery_tasks import hook_runner_task
 from .schema import subscription_schema
 
 if TYPE_CHECKING:
-    from configparser import RawConfigParser
     from importlib.metadata import EntryPoint
     from stevedore.extension import Extension
     from stevedore.named import NamedExtensionManager
-    from wazo_webhookd.bus import BusConsumer
-    from wazo_webhookd.database.models import Subscription
+
     from .service import SubscriptionService
+    from ...bus import BusConsumer
+    from ...database.models import Subscription
+    from ...types import WebhookdConfigDict
 
 
 logger = logging.getLogger(__name__)
+
+
+SubscriptionHeaders = dict[str, Any]
+SubscriptionCallback = Callable[[dict[str, Any]], None]
+SubscriptionCallbackRow = tuple[
+    Union[SubscriptionCallback, None], list[str], SubscriptionHeaders
+]
+
+EMPTY_SUBSCRIPTION_CALLBACK: SubscriptionCallbackRow = None, [], {}
 
 
 class SubscriptionBusEventHandler:
     def __init__(
         self,
         bus_consumer: BusConsumer,
-        config: RawConfigParser,
+        config: WebhookdConfigDict,
         service_manager: NamedExtensionManager,
         subscription_service: SubscriptionService,
-    ):
+    ) -> None:
         self._bus_consumer = bus_consumer
-        self._subscription_callbacks = defaultdict(list)
+        self._subscription_callbacks: dict[str, SubscriptionCallbackRow] = {}
         self._lock = Lock()
         self._config = config
         self._service = subscription_service
@@ -51,18 +60,18 @@ class SubscriptionBusEventHandler:
         for subscription in self._service.list():
             self._register(subscription)
 
-    def on_subscription_created(self, subscription: Subscription):
+    def on_subscription_created(self, subscription: Subscription) -> None:
         self._register(subscription)
 
-    def on_subscription_updated(self, subscription: Subscription):
+    def on_subscription_updated(self, subscription: Subscription) -> None:
         self._update(subscription)
 
-    def on_subscription_deleted(self, subscription: Subscription):
+    def on_subscription_deleted(self, subscription: Subscription) -> None:
         self._unregister(subscription)
 
     @staticmethod
-    def _build_headers(subscription: Subscription):
-        headers = {
+    def _build_headers(subscription: Subscription) -> SubscriptionHeaders:
+        headers: SubscriptionHeaders = {
             'x-subscription': str(subscription.uuid),
         }
         user_uuid = subscription.events_user_uuid
@@ -94,7 +103,9 @@ class SubscriptionBusEventHandler:
     def _unregister(self, subscription):
         uuid = subscription.uuid
         with self._lock:
-            fn, events, _ = self._subscription_callbacks.pop(uuid, (None, [], {}))
+            fn, events, _ = self._subscription_callbacks.pop(
+                uuid, EMPTY_SUBSCRIPTION_CALLBACK
+            )
 
         for event in events:
             self._bus_consumer.unsubscribe(event, fn)
@@ -151,7 +162,9 @@ class SubscriptionBusEventHandler:
             hook_runner_task.s(
                 hook_uuid,
                 entry_point_name,
-                self._config.data,
+                # self._config is a custom ChainMap and not a dict so it has this extra property,
+                # however that was not type-able
+                self._config.data,  # type: ignore
                 subscription,
                 payload,
             ).apply_async()

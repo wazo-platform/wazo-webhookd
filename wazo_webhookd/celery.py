@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
+from typing import TYPE_CHECKING
 
 from celery import Celery
 
-app = Celery()
+if TYPE_CHECKING:
+    from wazo_webhookd.types import WebhookdConfigDict
 
+
+app = Celery()
 logger = logging.getLogger(__name__)
 
 
-def configure(config):
+def configure(config: WebhookdConfigDict) -> None:
     app.conf.accept_content = ['json']
     app.conf.broker_url = config['celery']['broker']
     app.conf.task_default_exchange = config['celery']['exchange_name']
@@ -43,9 +47,10 @@ def start_celery(argv: tuple[str, ...]) -> int | None:
         return e.exit_code
     finally:
         celery.params[0].default = None
+    return None
 
 
-def spawn_workers(config):
+def spawn_workers(config: WebhookdConfigDict) -> multiprocessing.Process:
     logger.debug('Starting Celery workers...')
     argv = [
         'worker',

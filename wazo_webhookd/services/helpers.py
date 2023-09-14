@@ -124,7 +124,7 @@ def requests_automatic_hook_retry(task):
         )
 
 
-def requests_automatic_detail(response: httpx.Response | requests.PreparedRequest):
+def requests_automatic_detail(response: httpx.Response | requests.Response):
     if isinstance(response.request, requests.PreparedRequest):
         req_data = response.request.body
     else:

@@ -311,7 +311,8 @@ class TestHTTPCallback(BaseIntegrationTest):
                         request_method="GET",
                         request_url=(
                             'http://third-party-http:1080/test?'
-                            'test_case=test_given_one_http_subscription_when_bus_event_then_one_http_callback_that_return_500'
+                            'test_case=test_given_one_http_subscription_'
+                            'when_bus_event_then_one_http_callback_that_return_500'
                         ),
                     ),
                 ),
@@ -319,7 +320,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(
+    def test_given_one_http_subscription_when_update_events_then_callback_triggered_on_the_right_event(  # noqa: E501
         self, subscription
     ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
@@ -350,7 +351,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
     @subscription(TEST_SUBSCRIPTION)
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_two_http_subscriptions_when_update_config_then_callback_triggered_with_new_config(
+    def test_given_two_http_subscriptions_when_update_config_then_callback_triggered_with_new_config(  # noqa: E501
         self, subscription, _
     ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
@@ -451,7 +452,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION_URL_TEMPLATE)
-    def test_given_http_subscription_with_url_template_when_bus_event_then_callback_with_url_templated(
+    def test_given_http_subscription_with_url_template_when_bus_event_then_callback_with_url_templated(  # noqa: E501
         self, subscription
     ):
         self.third_party.reset()
@@ -482,7 +483,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION)
-    def test_given_one_http_subscription_with_no_body_when_bus_event_then_http_callback_with_default_body(
+    def test_given_one_http_subscription_with_no_body_when_bus_event_then_http_callback_with_default_body(  # noqa: E501
         self, subscription
     ):
         self.bus.publish(
@@ -532,7 +533,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION_BODY_TEMPLATE)
-    def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(
+    def test_given_http_subscription_with_body_template_when_bus_event_then_callback_with_body_templated(  # noqa: E501
         self, subscription
     ):
         self.bus.publish(
@@ -582,7 +583,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION_CONTENT_TYPE)
-    def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(
+    def test_given_http_subscription_with_content_type_when_bus_event_then_http_callback_with_content_type(  # noqa: E501
         self, subscription
     ):
         self.bus.publish(
@@ -607,7 +608,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         )
 
     @subscription(TEST_SUBSCRIPTION_FILTER_USER_ALICE)
-    def test_given_http_subscription_with_user_uuid_when_bus_events_then_only_callback_when_user_uuid_match(
+    def test_given_subscription_with_user_uuid_when_bus_events_only_callback_when_user_uuid_match(
         self, subscription
     ):
         # Non-matching events
@@ -696,7 +697,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         until.true(self.sentinel.called, timeout=10, interval=0.5)
 
     @subscription(TEST_SUBSCRIPTION_FILTER_WAZO_UUID)
-    def test_given_http_subscription_with_wazo_uuid_when_bus_events_then_only_callback_when_wazo_uuid_match(
+    def test_given_http_subscription_with_wazo_uuid_when_bus_events_only_callback_when_wazo_uuid_match(  # noqa: E501
         self, subscription
     ):
         # Non-matching events

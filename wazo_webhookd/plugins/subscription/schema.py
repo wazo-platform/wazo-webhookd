@@ -151,7 +151,7 @@ class SubscriptionLogSchema(Schema):
 class SubscriptionLogRequestSchema(ListSchema):
     default_sort_column = 'started_at'
     sort_columns = ['started_at', 'ended_at', 'status', 'attempts', 'max_attempts']
-    searchable_columns = []
+    searchable_columns: list[str] = []
     default_direction = 'desc'
     from_date = fields.DateTime()
 

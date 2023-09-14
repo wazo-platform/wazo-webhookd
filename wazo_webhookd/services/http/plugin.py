@@ -90,7 +90,7 @@ class Service:
                 headers=headers,
                 timeout=REQUEST_TIMEOUTS,
             ) as r:
-                r.raise_for_status()
+                r.raise_for_status()  # type: ignore
                 return requests_automatic_detail(r)
 
     @staticmethod

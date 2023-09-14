@@ -1,12 +1,13 @@
 # Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import logging
 import os
 
 from cheroot import wsgi
 from datetime import timedelta
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_restful import Api
 from flask_restful import Resource
 from flask_cors import CORS
@@ -14,6 +15,8 @@ from xivo.auth_verifier import AuthVerifier
 from xivo import http_helpers
 from xivo import mallow_helpers
 from xivo import rest_api_helpers
+
+from wazo_webhookd.types import WebhookdConfigDict
 
 VERSION = 1.0
 
@@ -23,7 +26,7 @@ api = Api(app, prefix=f'/{VERSION}')
 auth_verifier = AuthVerifier()
 
 
-def log_request_params(response):
+def log_request_params(response: Response) -> Response:
     http_helpers.log_request_hide_token(response)
     logger.debug('request data: %s', request.data or '""')
     logger.debug('response body: %s', response.data.strip() if response.data else '""')
@@ -31,7 +34,7 @@ def log_request_params(response):
 
 
 class CoreRestApi:
-    def __init__(self, global_config):
+    def __init__(self, global_config: WebhookdConfigDict) -> None:
         self.config = global_config['rest_api']
         http_helpers.add_logger(app, logger)
         app.after_request(log_request_params)
@@ -40,15 +43,15 @@ class CoreRestApi:
         app.config['auth'] = global_config['auth']
         auth_verifier.set_config(global_config['auth'])
         self._load_cors()
-        self.server = None
+        self.server: wsgi.WSGIServer = None  # type: ignore[assignment]
 
-    def _load_cors(self):
+    def _load_cors(self) -> None:
         cors_config = dict(self.config.get('cors', {}))
         enabled = cors_config.pop('enabled', False)
         if enabled:
             CORS(app, **cors_config)
 
-    def run(self):
+    def run(self) -> None:
         bind_addr = (self.config['listen'], self.config['port'])
 
         wsgi_app = wsgi.WSGIPathInfoDispatcher({'/': app})
@@ -61,7 +64,7 @@ class CoreRestApi:
             logger.warning(
                 'Using service SSL configuration is deprecated. Please use NGINX instead.'
             )
-            self.server.ssl_adapter = http_helpers.ssl_adapter(
+            self.server.ssl_adapter = http_helpers.ssl_adapter(  # type: ignore
                 self.config['certificate'], self.config['private_key']
             )
         logger.debug(
@@ -75,7 +78,7 @@ class CoreRestApi:
 
         self.server.start()
 
-    def stop(self):
+    def stop(self) -> None:
         if self.server:
             self.server.stop()
 

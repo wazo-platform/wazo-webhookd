@@ -1,6 +1,6 @@
-# Copyright 2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
-
+from typing import Any
 from unittest import TestCase
 from unittest.mock import Mock, sentinel as s
 from hamcrest import assert_that, equal_to
@@ -21,13 +21,13 @@ class TestAPN(TestCase):
             'apns_voip_token': s.apns_voip_token,
             'apns_notification_token': s.apns_notification_token,
         }
-        self.external_config = {}
-        self.jwt = {}
+        self.external_config: dict[str, Any] = {}
+        self.jwt = ''
         self._push = PushNotification(
             self.task,
-            self.config,
-            self.external_tokens,
-            self.external_config,
+            self.config,  # type: ignore
+            self.external_tokens,  # type: ignore
+            self.external_config,  # type: ignore
             self.jwt,
         )
 
