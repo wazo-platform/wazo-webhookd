@@ -5,7 +5,11 @@ from unittest import TestCase
 from unittest.mock import Mock, sentinel as s
 from hamcrest import assert_that, equal_to
 
-from wazo_webhookd.services.mobile.plugin import PushNotification
+from wazo_webhookd.services.mobile.plugin import (
+    PushNotification,
+    NotificationType,
+    NotificationPayload,
+)
 
 
 class TestAPN(TestCase):
@@ -34,13 +38,14 @@ class TestAPN(TestCase):
     def test_wazo_notification_call(self):
         message_title = None
         message_body = None
-        channel_id = 'wazo-notification-call'
-        data = {'my': 'event'}
+        data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
 
         headers, payload, token = self._push._create_apn_message(
             message_title,
             message_body,
-            channel_id,
             data,
         )
 
@@ -58,8 +63,9 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'my': 'event',
                     'aps': {'alert': data, 'badge': 1},
+                    'notification_type': NotificationType.INCOMING_CALL,
+                    'items': {},
                 }
             ),
         )
@@ -68,13 +74,14 @@ class TestAPN(TestCase):
     def test_wazo_cancel_notification(self):
         message_title = None
         message_body = None
-        channel_id = 'wazo-notification-cancel-call'
-        data = {'my': 'event'}
+        data: NotificationPayload = {
+            'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+            'items': {},
+        }
 
         headers, payload, token = self._push._create_apn_message(
             message_title,
             message_body,
-            channel_id,
             data,
         )
 
@@ -92,8 +99,9 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'my': 'event',
                     'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+                    'items': {},
                 }
             ),
         )
