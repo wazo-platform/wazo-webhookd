@@ -1,7 +1,10 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from typing import TYPE_CHECKING, TypeVar
 
 from flask import request
 from requests import HTTPError
@@ -11,6 +14,10 @@ from xivo.rest_api_helpers import APIException
 from werkzeug.local import LocalProxy as Proxy
 from .rest_api import app
 from .exceptions import TokenWithUserUUIDRequiredError
+
+if TYPE_CHECKING:
+    from wazo_auth_client.client import AuthClient
+    from wazo_auth_client.types import TokenDict
 
 logger = logging.getLogger(__name__)
 
@@ -22,58 +29,61 @@ class MasterTenantNotInitializedException(APIException):
 
 
 class Token:
-    def __init__(self, auth_client, token_id):
+    def __init__(self, auth_client: AuthClient, token_id: str) -> None:
         try:
-            self._token_infos = auth_client.token.get(token_id)
+            self._token_info: TokenDict = auth_client.token.get(token_id)
         except HTTPError as e:
             logger.warning('HTTP error from wazo-auth while getting token: %s', e)
             raise AuthServerUnreachable(auth_client.host, auth_client.port, e)
 
-    def user_uuid(self):
-        user_uuid = self._token_infos['metadata']['uuid']
-        if not user_uuid:
-            raise TokenWithUserUUIDRequiredError()
-        return user_uuid
+    @property
+    def user_uuid(self) -> str:
+        if user_uuid := self._token_info['metadata']['uuid']:
+            return user_uuid
+        raise TokenWithUserUUIDRequiredError()
 
-    def wazo_uuid(self):
-        return self._token_infos['xivo_uuid']
+    @property
+    def wazo_uuid(self) -> str:
+        return self._token_info['xivo_uuid']
 
     @classmethod
-    def from_request(cls, auth_client):
+    def from_request(cls, auth_client: AuthClient) -> Token:
         token_id = request.headers.get('X-Auth-Token') or request.args.get('token')
         return cls(auth_client, token_id)
 
 
-def get_token_user_uuid_from_request(auth_client):
+def get_token_user_uuid_from_request(auth_client: AuthClient) -> str:
     token = request.headers.get('X-Auth-Token') or request.args.get('token')
     try:
-        token_infos = auth_client.token.get(token)
+        token_info: TokenDict = auth_client.token.get(token)
     except HTTPError as e:
         logger.warning('HTTP error from wazo-auth while getting token: %s', e)
         raise TokenWithUserUUIDRequiredError()
-    user_uuid = token_infos['metadata']['uuid']
-    if not user_uuid:
-        raise TokenWithUserUUIDRequiredError()
-    return user_uuid
+
+    if user_uuid := token_info['metadata']['uuid']:
+        return user_uuid
+    raise TokenWithUserUUIDRequiredError()
 
 
-def required_master_tenant():
+F = TypeVar('F')
+
+
+def required_master_tenant() -> Callable[[F], F]:
     return required_tenant(master_tenant_uuid)
 
 
-def init_master_tenant(token):
+def init_master_tenant(token: TokenDict) -> None:
     tenant_uuid = token['metadata']['tenant_uuid']
     app.config['auth']['master_tenant_uuid'] = tenant_uuid
 
 
-def get_master_tenant_uuid():
+def get_master_tenant_uuid() -> str:
     if not app:
         raise Exception('Flask application not configured')
 
-    tenant_uuid = app.config['auth'].get('master_tenant_uuid')
-    if not tenant_uuid:
-        raise MasterTenantNotInitializedException()
-    return tenant_uuid
+    if tenant_uuid := app.config['auth'].get('master_tenant_uuid'):
+        return tenant_uuid
+    raise MasterTenantNotInitializedException()
 
 
 master_tenant_uuid = Proxy(get_master_tenant_uuid)

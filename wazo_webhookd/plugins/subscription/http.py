@@ -1,5 +1,6 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import logging
 
@@ -24,12 +25,11 @@ class SubscriptionsAuthResource(AuthResource):
         super().__init__()
         self._service = service
 
-    def visible_tenants(self, recurse=True):
+    def visible_tenants(self, recurse: bool = True) -> list[str]:
         tenant_uuid = Tenant.autodetect().uuid
         if recurse:
             return [tenant.uuid for tenant in token.visible_tenants(tenant_uuid)]
-        else:
-            return [tenant_uuid]
+        return [tenant_uuid]
 
 
 class SubscriptionsResource(SubscriptionsAuthResource):

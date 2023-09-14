@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+from typing import TypedDict, Any, Union
 
 # TODO(sileht): move the http plugin to httpx too.
 import requests
@@ -13,19 +14,36 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
+class RequestDetailsDict(TypedDict):
+    request_method: str
+    request_url: str
+    request_body: Union[dict[str, str], str, None]
+    request_headers: dict[str, str]
+    response_status_code: Union[int, None]
+    response_headers: dict[str, str]
+    response_body: Union[dict[str, str], str, None]
+
+
+class ErrorRequestDetailsDict(RequestDetailsDict):
+    error: str
+
+
 class HookExpectedError(Exception):
-    def __init__(self, detail):
+    def __init__(self, detail: ErrorRequestDetailsDict | str | dict[str, Any]) -> None:
         self.detail = detail
         super().__init__()
 
 
 class HookRetry(Exception):
-    def __init__(self, detail):
+    def __init__(self, detail: ErrorRequestDetailsDict | str | dict[str, Any]) -> None:
         self.detail = detail
         super().__init__()
 
 
-def _decode(data):
+def _decode(data: str | bytes | None) -> str | dict[str, Any] | None:
+    if data is None:
+        return None
+
     if isinstance(data, bytes):
         text = data.decode()
     else:
@@ -61,7 +79,7 @@ def requests_automatic_hook_retry(task):
             raise HookExpectedError(
                 {
                     "error": str(exc),
-                    "request_method": exc.request.method,
+                    "request_method": str(exc.request.method),
                     "request_url": str(exc.request.url),
                     "request_body": _decode(req_data),
                     "request_headers": dict(exc.request.headers),
@@ -83,7 +101,7 @@ def requests_automatic_hook_retry(task):
             raise HookRetry(
                 {
                     "error": str(exc),
-                    "request_method": exc.request.method,
+                    "request_method": str(exc.request.method),
                     "request_url": str(exc.request.url),
                     "request_body": _decode(req_data),
                     "request_headers": dict(exc.request.headers),
@@ -116,7 +134,7 @@ def requests_automatic_hook_retry(task):
         raise HookRetry(
             {
                 "error": str(exc),
-                "request_method": request.method,
+                "request_method": str(request.method),
                 "request_url": str(request.url),
                 "request_body": _decode(req_data),
                 "request_headers": dict(request.headers),
@@ -127,7 +145,9 @@ def requests_automatic_hook_retry(task):
         )
 
 
-def requests_automatic_detail(response: httpx.Response | requests.Response):
+def requests_automatic_detail(
+    response: httpx.Response | requests.Response,
+) -> RequestDetailsDict:
     if isinstance(response.request, requests.PreparedRequest):
         req_data = response.request.body
     else:

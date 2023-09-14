@@ -29,7 +29,7 @@ class _ConsumerMixin(ConsumerMixin):
     This is a performance optimization to avoid having many queues in RabbitMQ
     for wazo-webhookd."""
 
-    def _check_headers_match(self, headers: Headers | None, binding):
+    def _check_headers_match(self, headers: Headers | None, binding) -> bool:
         # only perform check if exchange type is headers
         if self.__exchange.type != 'headers':
             return True
@@ -43,7 +43,7 @@ class _ConsumerMixin(ConsumerMixin):
 
     def __dispatch(
         self, event_name: str, payload: Payload, headers: Headers | None = None
-    ):
+    ) -> None:
         with self.__lock:
             subscriptions = self.__subscriptions[event_name].copy()
         for handler, binding in subscriptions:

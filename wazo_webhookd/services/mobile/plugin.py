@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from enum import Enum
-from typing import TypedDict, Any, TYPE_CHECKING
+from typing import Any, cast, TypedDict, TYPE_CHECKING, Union
 
 import httpx
 import logging
@@ -24,6 +24,7 @@ from wazo_webhookd.services.helpers import (
     HookRetry,
     requests_automatic_hook_retry,
     requests_automatic_detail,
+    RequestDetailsDict,
 )
 from .exceptions import NotificationError
 from ...database.models import Subscription
@@ -54,6 +55,40 @@ class ExternalConfigDict(TypedDict):
 class NotificationPayload(TypedDict):
     notification_type: str
     items: dict[str, Any]
+
+
+ApsContentDict = TypedDict(
+    'ApsContentDict',
+    {
+        'badge': int,
+        'sound': str,
+        'content-available': str,
+        'alert': dict[str, str],
+    },
+)
+
+
+class ApnsPayload(NotificationPayload):
+    aps: ApsContentDict
+
+
+ApnsHeaders = TypedDict(
+    'ApnsHeaders',
+    {
+        'apns-topic': str,
+        'apns-push-type': str,
+        'apns-priority': int,
+    },
+)
+
+
+class FcmResponseDict(TypedDict):
+    multicast_ids: list
+    success: int
+    failure: int
+    canonical_ids: int
+    results: list
+    topic_message_id: Union[str, None]
 
 
 REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
@@ -134,7 +169,7 @@ class Service:
             )
             logger.info('User registered: %s/%s', tenant_uuid, user_uuid)
 
-    def on_external_auth_deleted(self, body):
+    def on_external_auth_deleted(self, body: dict[str, Any]) -> None:
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
             # TODO(sileht): Should come with the event
@@ -181,7 +216,7 @@ class Service:
     @classmethod
     def run(
         cls, task: Task, config: WebhookdConfigDict, subscription: Subscription, event
-    ):
+    ) -> FcmResponseDict | RequestDetailsDict | None:
         user_uuid = subscription['events_user_uuid']
         if not user_uuid:
             raise HookExpectedError("subscription doesn't have events_user_uuid set")
@@ -193,7 +228,7 @@ class Service:
             # and event['data']['tenant_uuid'] == tenant_uuid
             and event['name'] == 'chatd_user_room_message_created'
         ):
-            return
+            return None
 
         external_tokens, external_config, jwt = cls.get_external_data(config, user_uuid)
         push = PushNotification(task, config, external_tokens, external_config, jwt)
@@ -204,6 +239,7 @@ class Service:
         notification_type = MAP_NAME_TO_NOTIFICATION_TYPE.get(name)
         if notification_type:
             return getattr(push, notification_type)(data)
+        return None
 
 
 class PushNotification:
@@ -221,7 +257,9 @@ class PushNotification:
         self.external_config = external_config
         self.jwt = jwt
 
-    def cancelIncomingCall(self, data):
+    def cancelIncomingCall(
+        self, data: dict[str, Any]
+    ) -> FcmResponseDict | RequestDetailsDict:
         return self._send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
@@ -229,7 +267,9 @@ class PushNotification:
             data,
         )
 
-    def incomingCall(self, data):
+    def incomingCall(
+        self, data: dict[str, Any]
+    ) -> FcmResponseDict | RequestDetailsDict:
         return self._send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
@@ -237,7 +277,9 @@ class PushNotification:
             data,
         )
 
-    def voicemailReceived(self, data):
+    def voicemailReceived(
+        self, data: dict[str, Any]
+    ) -> FcmResponseDict | RequestDetailsDict:
         return self._send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
@@ -245,7 +287,9 @@ class PushNotification:
             data,
         )
 
-    def messageReceived(self, data):
+    def messageReceived(
+        self, data: dict[str, Any]
+    ) -> FcmResponseDict | RequestDetailsDict:
         return self._send_notification(
             NotificationType.MESSAGE_RECEIVED,
             data['alias'],
@@ -259,8 +303,11 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         items: dict[str, Any],
-    ):
-        data = {'notification_type': notification_type, 'items': items}
+    ) -> FcmResponseDict | RequestDetailsDict:
+        data: NotificationPayload = {
+            'notification_type': notification_type,
+            'items': items,
+        }
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
                 return self._send_via_apn(message_title, message_body, data)
@@ -271,7 +318,7 @@ class PushNotification:
                 raise HookRetry({"error": str(e)})
 
     @staticmethod
-    def _can_send_to_apn(external_tokens: ExternalMobileDict):
+    def _can_send_to_apn(external_tokens: ExternalMobileDict) -> bool:
         return bool(
             (
                 external_tokens.get('apns_voip_token')
@@ -375,7 +422,7 @@ class PushNotification:
             headers['X-Use-Sandbox'] = '1'
 
         if self.jwt:
-            headers['Authorization'] = 'Bearer ' + self.jwt
+            headers['Authorization'] = f'Bearer {self.jwt}'
 
         apn_certificate = self.external_config.get('ios_apn_certificate', None)
         apn_private = self.external_config.get('ios_apn_private', None)
@@ -423,30 +470,39 @@ class PushNotification:
                 'apns-push-type': 'voip',
                 'apns-priority': '10',
             }
-            payload = {
-                'aps': {'alert': data, 'badge': 1},
-                **data,
-            }
+            payload = cast(
+                ApnsPayload,
+                {
+                    'aps': {'alert': data, 'badge': 1},
+                    **data,
+                },
+            )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
             headers = {
                 'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
-            payload = {
-                'aps': {"badge": 1, "sound": "default", "content-available": 1},
-                **data,
-            }
+            payload = cast(
+                ApnsPayload,
+                {
+                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    **data,
+                },
+            )
         else:
             headers = {
                 'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
-            payload = {
-                'aps': {'badge': 1, 'sound': "default"},
-                **data,
-            }
+            payload = cast(
+                ApnsPayload,
+                {
+                    'aps': {'badge': 1, 'sound': "default"},
+                    **data,
+                },
+            )
 
             if message_title or message_body:
                 alert = {}
@@ -478,7 +534,9 @@ class PushNotification:
 
     @staticmethod
     @contextmanager
-    def _certificate_filename(certificate, private_key):
+    def _certificate_filename(
+        certificate: str | None, private_key: str | None
+    ) -> Generator[str | None, None, None]:
         if certificate and private_key:
             with tempfile.NamedTemporaryFile(mode="w+") as cert_file:
                 cert_file.write(certificate + "\r\n")

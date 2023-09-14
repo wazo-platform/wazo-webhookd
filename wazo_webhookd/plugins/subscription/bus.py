@@ -162,8 +162,8 @@ class SubscriptionBusEventHandler:
             hook_runner_task.s(
                 hook_uuid,
                 entry_point_name,
-                # self._config is a custom ChainMap and not a dict so it has this extra property,
-                # however that was not type-able
+                # self._config is a custom ChainMap and not a dict, so it has this extra property,
+                # however that was not type-able. Can't we just pass it through dict() ?
                 self._config.data,  # type: ignore
                 subscription,
                 payload,

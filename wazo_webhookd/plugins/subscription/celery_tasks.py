@@ -1,7 +1,11 @@
-# Copyright 2019-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
+
 import datetime
 import logging
+from typing import TYPE_CHECKING, Any
+
 from pkg_resources import EntryPoint
 
 import celery
@@ -11,31 +15,42 @@ from wazo_webhookd.services.helpers import HookRetry, HookExpectedError
 
 from .service import SubscriptionService
 
+if TYPE_CHECKING:
+    from ...types import WebhookdConfigDict
+    from ...database.models import Subscription
+
+
 logger = logging.getLogger(__name__)
 
 MAX_BODY_LOG_LENGTH = 250
 
 
-def truncated(detail):
+def truncated(detail: Any) -> str:
     detail = str(detail)
     if len(detail) >= MAX_BODY_LOG_LENGTH:
         return detail[:MAX_BODY_LOG_LENGTH] + "... [truncated]"
-    else:
-        return detail
+    return detail
 
 
 class ServiceTask(celery.Task):
-    _service = None
+    _service: SubscriptionService | None = None
 
     @classmethod
-    def get_service(cls, config):
+    def get_service(cls, config: WebhookdConfigDict) -> SubscriptionService:
         if cls._service is None:
             cls._service = SubscriptionService(config)
         return cls._service
 
 
 @app.task(base=ServiceTask, bind=True)
-def hook_runner_task(task, hook_uuid, ep_name, config, subscription, event):
+def hook_runner_task(
+    task: ServiceTask,
+    hook_uuid: str,
+    ep_name: str,
+    config: WebhookdConfigDict,
+    subscription: Subscription,
+    event: dict[str, Any],
+) -> None:
     service = task.get_service(config)
 
     hook = EntryPoint.parse(ep_name).resolve()
