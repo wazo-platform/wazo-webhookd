@@ -1,13 +1,19 @@
+# Copyright 2023 The Wazo Authors  (see the AUTHORS file)
+# SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 from collections.abc import Callable, Collection
-from typing import TypedDict, Union
+from typing import TypedDict, Union, Protocol, Any, TYPE_CHECKING
 
 from flask_restful import Api
 from wazo_auth_client.client import AuthClient
 from stevedore.named import NamedExtensionManager
 
 from .bus import BusConsumer
+
+if TYPE_CHECKING:
+    from .database.models import Subscription
+    from .plugins.subscription.celery_tasks import ServiceTask
 
 
 TokenRenewalCallback = Callable[[Collection[str]], None]
@@ -56,6 +62,7 @@ class RestApiConfigDict(TypedDict):
 class EnabledPluginConfigDict(TypedDict):
     api: bool
     config: bool
+    mobile: bool
     services: bool
     status: bool
     subscriptions: bool
@@ -120,3 +127,22 @@ class ServicePluginDependencyDict(BasePluginDependencyDict):
 class PluginDependencyDict(BasePluginDependencyDict):
     service_manager: NamedExtensionManager
     next_token_change_subscribe: Callable[[TokenRenewalCallback], None]
+
+
+class Plugin(Protocol):
+    def load(self, dependencies: PluginDependencyDict) -> None:
+        ...
+
+
+class ServicePlugin(Protocol):
+    def load(self, dependencies: ServicePluginDependencyDict) -> None:
+        ...
+
+    def run(
+        self,
+        task: ServiceTask,
+        config: WebhookdConfigDict,
+        subscription: Subscription,
+        event: dict[str, Any],
+    ) -> Any:
+        ...

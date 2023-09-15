@@ -159,7 +159,7 @@ class SubscriptionBusEventHandler:
             if extras := entry_point.extras:
                 entry_point_name += f' [{",".join(extras)}]'
 
-            hook_runner_task.s(
+            task_args = (
                 hook_uuid,
                 entry_point_name,
                 # self._config is a custom ChainMap and not a dict, so it has this extra property,
@@ -167,7 +167,9 @@ class SubscriptionBusEventHandler:
                 self._config.data,  # type: ignore
                 subscription,
                 payload,
-            ).apply_async()
+            )
+            # Can we not just use `.delay(*task_args)`?
+            hook_runner_task.signature(args=task_args).apply_async()
         except kombu.exceptions.OperationalError:
             # NOTE(sileht): That's not perfect in real life, because if celery
             # lose the connection, we have a good chance that our bus lose it

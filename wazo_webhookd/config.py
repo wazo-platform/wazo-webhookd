@@ -80,6 +80,7 @@ _DEFAULT_CONFIG: WebhookdConfigDict = {
     'enabled_plugins': {
         'api': True,
         'config': True,
+        'mobile': True,
         'services': True,
         'status': True,
         'subscriptions': True,

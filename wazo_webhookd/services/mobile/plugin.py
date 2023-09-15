@@ -217,8 +217,7 @@ class Service:
     def run(
         cls, task: Task, config: WebhookdConfigDict, subscription: Subscription, event
     ) -> FcmResponseDict | RequestDetailsDict | None:
-        user_uuid = subscription['events_user_uuid']
-        if not user_uuid:
+        if not (user_uuid := subscription['events_user_uuid']):
             raise HookExpectedError("subscription doesn't have events_user_uuid set")
 
         # TODO(sileht): We should also filter on tenant_uuid
@@ -236,8 +235,7 @@ class Service:
         data = event.get('data')
         name = event.get('name')
 
-        notification_type = MAP_NAME_TO_NOTIFICATION_TYPE.get(name)
-        if notification_type:
+        if notification_type := MAP_NAME_TO_NOTIFICATION_TYPE.get(name):
             return getattr(push, notification_type)(data)
         return None
 

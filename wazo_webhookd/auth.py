@@ -28,8 +28,12 @@ class MasterTenantNotInitializedException(APIException):
         super().__init__(503, msg, 'master-tenant-not-initialized')
 
 
+def get_auth_token_from_request() -> str | None:
+    return request.headers.get('X-Auth-Token') or request.args.get('token')
+
+
 class Token:
-    def __init__(self, auth_client: AuthClient, token_id: str) -> None:
+    def __init__(self, auth_client: AuthClient, token_id: str | None) -> None:
         try:
             self._token_info: TokenDict = auth_client.token.get(token_id)
         except HTTPError as e:
@@ -48,8 +52,7 @@ class Token:
 
     @classmethod
     def from_request(cls, auth_client: AuthClient) -> Token:
-        token_id = request.headers.get('X-Auth-Token') or request.args.get('token')
-        return cls(auth_client, token_id)
+        return cls(auth_client, get_auth_token_from_request())
 
 
 def get_token_user_uuid_from_request(auth_client: AuthClient) -> str:

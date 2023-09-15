@@ -1,0 +1,62 @@
+paths:
+  /mobile/notifications:
+    post:
+      summary: Send a push notification to a user
+      description: '**Required ACL:** `webhookd.mobile.notifications.send`
+      produces:
+        - application/json
+      operationId: postMobileNotification
+      parameters:
+        - $ref: '#/parameters/NotificationBody'
+      tags:
+        - notifications
+      responses:
+        '204':
+          description: And attempt to send the notification has been made
+        '400':
+          description: At least one field is invalid
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        '403':
+          description: Invalid or insufficient autorization
+          schema:
+            $ref: '#/definitions/Error'
+
+parameters:
+  NotificationBody:
+    name: body
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/Notification'
+
+definitions:
+  Notification:
+    type: object
+    properties:
+      notification_type:
+        type: string
+        pattern: '(?!^(messageReceived|voicemailReceived|incomingCall|cancelIncomingCall)$)(^[a-z0-9_]+$)'
+        minLength: 1
+        maxLength: 100
+      user_uuid:
+        type: string
+        minLength: 36
+        maxLength: 36
+      title:
+        type: string
+        maxLength: 128
+      body:
+        type: string
+        maxLength: 250
+      extra:
+        type: object
+    required:
+      - notification_type
+      - user_uuid
+      - title
+      - body
