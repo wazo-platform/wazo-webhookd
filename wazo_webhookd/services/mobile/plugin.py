@@ -297,7 +297,7 @@ class PushNotification:
 
     def _send_notification(
         self,
-        notification_type: NotificationType,
+        notification_type: NotificationType | str,
         message_title: str | None,
         message_body: str | None,
         items: dict[str, Any],

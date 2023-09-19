@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, overload
 
 import requests
 from celery import Task
@@ -19,14 +19,23 @@ if TYPE_CHECKING:
     )
     from ...types import WebhookdConfigDict
 
+
 MOBILE_SERVICE_ENTRYPOINT = 'mobile = wazo_webhookd.services.mobile.plugin'
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
 
-def get_service_class(
-    name: Literal['Service', 'PushNotification']
-) -> type[PushNotificationService | PushNotification]:
+    @overload
+    def get_service_class(name: Literal['Service']) -> type[PushNotificationService]:
+        ...
+
+    @overload
+    def get_service_class(name: Literal['PushNotification']) -> type[PushNotification]:
+        ...
+
+
+def get_service_class(name: str) -> type[PushNotificationService | PushNotification]:
     return EntryPoint.parse(f'{MOBILE_SERVICE_ENTRYPOINT}:{name}').resolve()
 
 
@@ -35,7 +44,7 @@ def send_notification(
     task: Task,
     config: WebhookdConfigDict,
     notification: NotificationDict,
-):
+) -> bool:
     service_class: type[PushNotificationService] = get_service_class('Service')
     notification_class: type[PushNotification] = get_service_class('PushNotification')
 
@@ -64,9 +73,13 @@ def send_notification(
         external_config,
         jwt,
     )
-    push_notification._send_notification(
+    response = push_notification._send_notification(
         notification['notification_type'],
         notification['title'],
         notification['body'],
         notification['extra'],
     )
+    logger.debug('Push response: %s', response)
+    if 'success' in response:
+        return response['success'] == 1  # type: ignore[typeddict-item]
+    return not response.get('error')

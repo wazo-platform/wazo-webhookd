@@ -38,7 +38,7 @@ class NotificationResource(AuthResource):
 
     def verify_user_uuid(self, user_uuid: str) -> None:
         auth_client = AuthClient(**self.config['auth'])
-        auth_client.set_tenant(Tenant.autodetect().uuid)
+        auth_client.tenant_uuid = Tenant.autodetect().uuid
         auth_client.set_token(get_auth_token_from_request())
         try:
             user: UserDict = auth_client.users.get(user_uuid)
