@@ -52,9 +52,12 @@ class ExternalConfigDict(TypedDict):
     use_sandbox: bool
 
 
-class NotificationPayload(TypedDict):
+class BaseNotificationPayload(TypedDict):
     notification_type: str
     items: dict[str, Any]
+
+
+NotificationPayload = Union[BaseNotificationPayload, dict[str, Any]]
 
 
 ApsContentDict = TypedDict(
@@ -68,7 +71,7 @@ ApsContentDict = TypedDict(
 )
 
 
-class ApnsPayload(NotificationPayload):
+class ApnsPayload(BaseNotificationPayload):
     aps: ApsContentDict
 
 
@@ -262,7 +265,7 @@ class PushNotification:
             NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
             None,  # Message body
-            data,
+            {'items': data},
         )
 
     def incomingCall(
@@ -272,7 +275,7 @@ class PushNotification:
             NotificationType.INCOMING_CALL,
             'Incoming Call',
             f'From: {data["peer_caller_id_number"]}',
-            data,
+            {'items': data},
         )
 
     def voicemailReceived(
@@ -282,7 +285,7 @@ class PushNotification:
             NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
             f'From: {data["message"]["caller_id_num"]}',
-            data,
+            {'items': data},
         )
 
     def messageReceived(
@@ -292,7 +295,7 @@ class PushNotification:
             NotificationType.MESSAGE_RECEIVED,
             data['alias'],
             data['content'],
-            data,
+            {'items': data},
         )
 
     def _send_notification(
@@ -300,12 +303,14 @@ class PushNotification:
         notification_type: NotificationType | str,
         message_title: str | None,
         message_body: str | None,
-        items: dict[str, Any],
+        extra: dict[str, Any],
     ) -> FcmResponseDict | RequestDetailsDict:
         data: NotificationPayload = {
             'notification_type': notification_type,
-            'items': items,
-        }
+            'items': extra.pop('items', {}),
+        } | extra
+        if extra:
+            data |= extra
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
                 return self._send_via_apn(message_title, message_body, data)
