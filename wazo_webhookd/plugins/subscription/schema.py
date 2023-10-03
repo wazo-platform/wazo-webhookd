@@ -1,5 +1,6 @@
 # Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from typing import TypedDict, Literal, Any
 
 from marshmallow import EXCLUDE
 from marshmallow import pre_load, post_load
@@ -11,8 +12,49 @@ from xivo.mallow import fields
 from xivo.mallow.validate import Length, OneOf, validate_string_dict
 from xivo.mallow_helpers import ListSchema
 
-
+Methods = Literal['head', 'get', 'post', 'put', 'delete']
 VALID_METHODS = ['head', 'get', 'post', 'put', 'delete']
+
+
+class HttpSubscriptionConfigDict(TypedDict):
+    body: str
+    method: Methods
+    url: str
+    verify_certificate: str
+    content_type: str
+
+
+class SubscriptionDict(TypedDict):
+    uuid: str
+    name: str
+    service: str
+    events: list[str]
+    events_user_uuid: str
+    events_wazo_uuid: str
+    config: dict[str, HttpSubscriptionConfigDict]
+    owner_user_uuid: str
+    owner_tenant_uuid: str
+    metadata: dict[str, Any]
+
+
+class SubscriptionLogDict(TypedDict):
+    uuid: str
+    status: str
+    started_at: str
+    ended_at: str
+    attempts: int
+    max_attempts: int
+    event: dict[str, Any]
+    detail: dict[str, Any]
+
+
+class UserSubscriptionDict(TypedDict):
+    uuid: str
+    name: str
+    service: str
+    events: list[str]
+    config: dict[str, HttpSubscriptionConfigDict]
+    metadata: dict[str, Any]
 
 
 class HTTPSubscriptionConfigSchema(Schema):
