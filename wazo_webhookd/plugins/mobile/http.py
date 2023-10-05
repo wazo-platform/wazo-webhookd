@@ -54,7 +54,7 @@ class NotificationResource(AuthResource):
     def post(self) -> tuple[str, int]:
         notification = notification_schema.load(request.json)
         self.verify_user_uuid(notification['user_uuid'])
-        resp = send_notification.apply_async(
+        result = send_notification.apply_async(
             args=(dict(self.config), notification),
             retry=True,
             retry_policy={
@@ -63,5 +63,5 @@ class NotificationResource(AuthResource):
                 # 'retry_errors': (requests.HTTPError,),
             },
         )
-        logging.debug('Notification: %s, was sent (%s)', notification, resp)
+        logging.debug('Notification: %s, was sent (%s)', notification, result)
         return '', 204

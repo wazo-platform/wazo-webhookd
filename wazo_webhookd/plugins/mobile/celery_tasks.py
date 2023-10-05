@@ -73,13 +73,11 @@ def send_notification(
         external_config,
         jwt,
     )
-    response = push_notification._send_notification(
+    response = push_notification.send_notification(
         notification['notification_type'],
         notification['title'],
         notification['body'],
         notification['extra'],
     )
     logger.debug('Push response: %s', response)
-    if 'success' in response:
-        return response['success'] == 1  # type: ignore[typeddict-item]
-    return not response.get('error')
+    return response['success']

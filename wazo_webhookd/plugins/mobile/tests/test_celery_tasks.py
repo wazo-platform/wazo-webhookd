@@ -22,7 +22,7 @@ def test_send_notification(mock_get_service_class: Mock) -> None:
         sentinel.jwt,
     )
     push_notification_mock = Mock()
-    push_notification_mock()._send_notification.return_value = {'success': 1}
+    push_notification_mock().send_notification.return_value = {'success': True}
     service_classes = {
         'Service': service_mock,
         'PushNotification': push_notification_mock,
@@ -42,7 +42,7 @@ def test_send_notification(mock_get_service_class: Mock) -> None:
     )
     mock_get_service_class.assert_has_calls([call('Service'), call('PushNotification')])
     push_notification_mock.assert_called()
-    push_notification_mock()._send_notification.assert_called_once_with(
+    push_notification_mock().send_notification.assert_called_once_with(
         sentinel.notification_type,
         sentinel.title,
         sentinel.body,

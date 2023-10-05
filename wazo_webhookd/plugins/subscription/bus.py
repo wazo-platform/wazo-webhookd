@@ -162,14 +162,11 @@ class SubscriptionBusEventHandler:
             task_args = (
                 hook_uuid,
                 entry_point_name,
-                # self._config is a custom ChainMap and not a dict, so it has this extra property,
-                # however that was not type-able. Can't we just pass it through dict() ?
-                self._config.data,  # type: ignore
+                dict(self._config),
                 subscription,
                 payload,
             )
-            # Can we not just use `.delay(*task_args)`?
-            hook_runner_task.signature(args=task_args).apply_async()
+            hook_runner_task.delay(*task_args)
         except kombu.exceptions.OperationalError:
             # NOTE(sileht): That's not perfect in real life, because if celery
             # lose the connection, we have a good chance that our bus lose it

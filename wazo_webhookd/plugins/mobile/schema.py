@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TypedDict, Any, cast
+from typing import TypedDict, Any
 
 from marshmallow import Schema, fields
 from marshmallow.validate import Length, NoneOf, Regexp
@@ -34,9 +34,6 @@ class NotificationSchema(Schema):
     title = fields.String(validate=Length(max=128), required=True)
     body = fields.String(validate=Length(max=250), required=True)
     extra = fields.Dict(missing=dict, default=dict)
-
-    def loads(self, json_data: str, **kwargs: Any) -> NotificationDict:
-        return cast(NotificationDict, super().loads(json_data, **kwargs))
 
 
 notification_schema = NotificationSchema()

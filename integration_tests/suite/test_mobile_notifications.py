@@ -1,7 +1,6 @@
 # Copyright 2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import json
-from collections.abc import Callable
 from functools import partial
 
 import pytest
@@ -13,18 +12,6 @@ from wazo_webhookd_client.exceptions import WebhookdError
 from .helpers.base import BaseIntegrationTest, USERS_TENANT
 from .helpers.base import MASTER_TOKEN, USER_1_UUID
 from .helpers.wait_strategy import ConnectedWaitStrategy
-
-
-def assert_not_raised(
-    func: Callable[..., None],
-    exceptions: tuple[type[BaseException], ...] = (Exception,),
-) -> None:
-    try:
-        func()
-    except exceptions as e:
-        raise AssertionError(
-            f'Method {func} should not raise an exception {type(e).__name__}'
-        )
 
 
 class TestNotifications(BaseIntegrationTest):
@@ -145,9 +132,7 @@ class TestNotifications(BaseIntegrationTest):
                 },
             },
         )
-        until.assert_(
-            lambda: assert_not_raised(verify_called), timeout=15, interval=0.5
-        )
+        until.return_(verify_called, timeout=15, interval=0.5)
 
     def test_can_send_notification_ios(self) -> None:
         with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
@@ -232,6 +217,4 @@ class TestNotifications(BaseIntegrationTest):
                 },
             },
         )
-        until.assert_(
-            lambda: assert_not_raised(verify_called), timeout=15, interval=0.5
-        )
+        until.return_(verify_called, timeout=15, interval=0.5)

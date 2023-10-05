@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from enum import Enum
-from typing import Any, cast, TypedDict, TYPE_CHECKING, Union
+from typing import Any, cast, TypedDict, TYPE_CHECKING, Union, Literal
 
 import httpx
 import logging
@@ -92,6 +92,12 @@ class FcmResponseDict(TypedDict):
     canonical_ids: int
     results: list
     topic_message_id: Union[str, None]
+
+
+class NotificationSentStatusDict(TypedDict):
+    success: bool
+    protocol_used: Literal['apns', 'fcm']
+    full_response: Union[FcmResponseDict, RequestDetailsDict]
 
 
 REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
@@ -258,65 +264,65 @@ class PushNotification:
         self.external_config = external_config
         self.jwt = jwt
 
-    def cancelIncomingCall(
-        self, data: dict[str, Any]
-    ) -> FcmResponseDict | RequestDetailsDict:
-        return self._send_notification(
+    def cancelIncomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
             None,  # Message body
             {'items': data},
         )
 
-    def incomingCall(
-        self, data: dict[str, Any]
-    ) -> FcmResponseDict | RequestDetailsDict:
-        return self._send_notification(
+    def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
             f'From: {data["peer_caller_id_number"]}',
             {'items': data},
         )
 
-    def voicemailReceived(
-        self, data: dict[str, Any]
-    ) -> FcmResponseDict | RequestDetailsDict:
-        return self._send_notification(
+    def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
             f'From: {data["message"]["caller_id_num"]}',
             {'items': data},
         )
 
-    def messageReceived(
-        self, data: dict[str, Any]
-    ) -> FcmResponseDict | RequestDetailsDict:
-        return self._send_notification(
+    def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
             data['alias'],
             data['content'],
             {'items': data},
         )
 
-    def _send_notification(
+    def send_notification(
         self,
         notification_type: NotificationType | str,
         message_title: str | None,
         message_body: str | None,
         extra: dict[str, Any],
-    ) -> FcmResponseDict | RequestDetailsDict:
+    ) -> NotificationSentStatusDict:
         data: NotificationPayload = {
             'notification_type': notification_type,
             'items': extra.pop('items', {}),
         } | extra
-        if extra:
-            data |= extra
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
-                return self._send_via_apn(message_title, message_body, data)
+                apn_response = self._send_via_apn(message_title, message_body, data)
+                return {
+                    'success': True,  # error would be raised on failure
+                    'protocol_used': 'apns',
+                    'full_response': apn_response,
+                }
         else:
             try:
-                return self._send_via_fcm(message_title, message_body, data)
+                fcm_response = self._send_via_fcm(message_title, message_body, data)
+                return {
+                    'success': fcm_response['success'] >= 1,
+                    'protocol_used': 'fcm',
+                    'full_response': fcm_response,
+                }
             except RetryAfterException as e:
                 raise HookRetry({"error": str(e)})
 

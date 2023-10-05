@@ -201,7 +201,10 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entry('topic_message_id', 'message-id-incoming-call'),
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-incoming-call'),
+                ),
                 attempts=1,
             ),
         )
@@ -234,7 +237,10 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entries(topic_message_id='message-id-cancel-incoming-call'),
+                detail=has_entry(
+                    'full_response',
+                    has_entries(topic_message_id='message-id-cancel-incoming-call'),
+                ),
                 event=has_entries(name='call_cancel_push_notification'),
                 attempts=1,
             ),
@@ -413,7 +419,10 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entry('topic_message_id', 'message-id-incoming-call'),
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-incoming-call'),
+                ),
                 attempts=1,
             ),
         )
@@ -446,7 +455,10 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entries(topic_message_id='message-id-cancel-incoming-call'),
+                detail=has_entry(
+                    'full_response',
+                    has_entries(topic_message_id='message-id-cancel-incoming-call'),
+                ),
                 event=has_entries(name='call_cancel_push_notification'),
                 attempts=1,
             ),
@@ -528,7 +540,10 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entry('response_body', has_entry('tracker', 'tracker')),
+                detail=has_entry(
+                    'full_response',
+                    has_entry('response_body', has_entry('tracker', 'tracker')),
+                ),
                 attempts=1,
                 event=has_entries(name='call_push_notification'),
             ),
@@ -659,8 +674,11 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entries(
-                    response_body=has_entries(tracker='tracker-voip'),
+                detail=has_entry(
+                    'full_response',
+                    has_entries(
+                        response_body=has_entries(tracker='tracker-voip'),
+                    ),
                 ),
                 event=has_entries(name='call_push_notification'),
                 attempts=1,
@@ -695,8 +713,11 @@ class TestMobileCallback(BaseIntegrationTest):
             logs['items'][0],
             has_entries(
                 status="success",
-                detail=has_entries(
-                    response_body=has_entries(tracker='tracker-notification'),
+                detail=has_entry(
+                    'full_response',
+                    has_entries(
+                        response_body=has_entries(tracker='tracker-notification'),
+                    ),
                 ),
                 event=has_entries(name='call_cancel_push_notification'),
                 attempts=1,
@@ -738,7 +759,10 @@ class TestMobileCallback(BaseIntegrationTest):
             has_entries(
                 status="success",
                 detail=has_entry(
-                    'response_body', has_entry('tracker', 'tracker-notification')
+                    'full_response',
+                    has_entry(
+                        'response_body', has_entry('tracker', 'tracker-notification')
+                    ),
                 ),
                 attempts=1,
             ),
