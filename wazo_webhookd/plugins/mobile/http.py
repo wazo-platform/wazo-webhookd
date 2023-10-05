@@ -43,7 +43,7 @@ class NotificationResource(AuthResource):
         try:
             user: UserDict = auth_client.users.get(user_uuid)
             if user['enabled'] is not True:
-                raise ValueError
+                raise ValueError(f'User {user_uuid} is disabled')
         except (requests.HTTPError, ValueError) as e:
             logger.debug('Error fetching user: %s', str(e))
             raise APIException(
