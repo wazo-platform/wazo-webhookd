@@ -2,7 +2,7 @@ paths:
   /mobile/notifications:
     post:
       summary: Send a push notification to a user
-      description: '**Required ACL:** `webhookd.mobile.notifications.send`
+      description: '**Required ACL:** `webhookd.mobile.notifications.send`'
       produces:
         - application/json
       operationId: postMobileNotification
@@ -12,7 +12,7 @@ paths:
         - notifications
       responses:
         '204':
-          description: And attempt to send the notification has been made
+          description: An attempt to send the notification has been made
         '400':
           description: At least one field is invalid
           schema:
