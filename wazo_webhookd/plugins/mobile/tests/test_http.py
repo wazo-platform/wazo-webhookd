@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import sentinel, patch, Mock
 
+import pytest
+import requests
 from flask_restful import Api
+from xivo.rest_api_helpers import APIException
 
 from ....rest_api import VERSION
 from ..http import NotificationResource
@@ -22,6 +25,26 @@ def test_verify_user_uuid(
 
     resource = NotificationResource({'auth': {}})  # type: ignore
     resource.verify_user_uuid(sentinel.user_uuid)
+
+    mock_auth_client().set_token.assert_called_once_with(sentinel.auth_token)
+    mock_auth_client().users.get.assert_called_once_with(sentinel.user_uuid)
+
+
+@patch('wazo_webhookd.plugins.mobile.http.AuthClient')
+@patch('wazo_webhookd.plugins.mobile.http.Tenant')
+@patch('wazo_webhookd.plugins.mobile.http.get_auth_token_from_request')
+def test_verify_user_uuid_invalid(
+    mock_auth_from_request: Mock, mock_tenant: Mock, mock_auth_client: Mock
+) -> None:
+    mock_auth_from_request.return_value = sentinel.auth_token
+    mock_tenant.autodetect.return_value = Mock(uuid=sentinel.tenant)
+    mock_auth_client().users.get.side_effect = requests.HTTPError(  # type: ignore
+        request=Mock(status_code=401)
+    )
+
+    resource = NotificationResource({'auth': {}})  # type: ignore
+    with pytest.raises(APIException):
+        resource.verify_user_uuid(sentinel.user_uuid)
 
     mock_auth_client().set_token.assert_called_once_with(sentinel.auth_token)
     mock_auth_client().users.get.assert_called_once_with(sentinel.user_uuid)

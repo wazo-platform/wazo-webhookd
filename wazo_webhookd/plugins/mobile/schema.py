@@ -31,6 +31,9 @@ class NotificationSchema(Schema):
         required=True,
     )
     user_uuid = fields.String(validate=Length(equal=36), required=True)
+    # There is no technical reason for this character limit,
+    # but anything approaching this limit will not be displayed.
+    # The only technical limit on the payload is a max total size of 2KB.
     title = fields.String(validate=Length(max=128), required=True)
     body = fields.String(validate=Length(max=250), required=True)
     extra = fields.Dict(missing=dict, default=dict)
