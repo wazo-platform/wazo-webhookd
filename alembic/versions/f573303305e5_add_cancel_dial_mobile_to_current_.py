@@ -40,11 +40,11 @@ def upgrade():
         subscription_uuids.discard(subscription_event.subscription_uuid)
 
     for subscription_uuid in subscription_uuids:
-        query = subscription_event_tbl.insert().values(
+        values_query = subscription_event_tbl.insert().values(
             subscription_uuid=subscription_uuid,
             event_name=NEW_EVENT_NAME,
         )
-        op.get_bind().execute(query)
+        op.get_bind().execute(values_query)
 
 
 def downgrade():

@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from typing import TypedDict, Any, TYPE_CHECKING
 
 import httpx
 import logging
 import tempfile
 
 from contextlib import contextmanager
+
+from celery import Task
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
 
 from wazo_auth_client import Client as AuthClient
+
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 from wazo_webhookd.services.helpers import (
     HookExpectedError,
@@ -21,8 +25,29 @@ from wazo_webhookd.services.helpers import (
     requests_automatic_detail,
 )
 from .exceptions import NotificationError
+from ...database.models import Subscription
+
+if TYPE_CHECKING:
+    from wazo_auth_client.types import TokenDict
+    from ...types import WebhookdConfigDict, ServicePluginDependencyDict
 
 logger = logging.getLogger(__name__)
+
+
+class ExternalMobileDict(TypedDict):
+    token: str
+    apns_token: str
+    apns_voip_token: str
+    apns_notification_token: str
+
+
+class ExternalConfigDict(TypedDict):
+    client_id: str
+    client_secret: str
+    fcm_api_key: str
+    ios_apn_certificate: str
+    ios_apn_private: bool
+    use_sandbox: bool
 
 
 REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
@@ -36,23 +61,22 @@ MAP_NAME_TO_NOTIFICATION_TYPE = {
 
 
 class Service:
-    def load(self, dependencies):
+    subscription_service: SubscriptionService
+    _config: WebhookdConfigDict
+
+    def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
         self._config = dependencies['config']
         self.subscription_service = SubscriptionService(self._config)
         bus_consumer.subscribe(
             'auth_user_external_auth_added',
             self.on_external_auth_added,
-            headers={
-                'x-internal': True,
-            },
+            headers={'x-internal': True},
         )
         bus_consumer.subscribe(
             'auth_user_external_auth_deleted',
             self.on_external_auth_deleted,
-            headers={
-                'x-internal': True,
-            },
+            headers={'x-internal': True},
         )
         logger.info('Mobile push notification plugin is started')
 
@@ -98,34 +122,40 @@ class Service:
                 self.subscription_service.delete(subscription.uuid)
             logger.info('User unregistered: %s/%s', tenant_uuid, user_uuid)
 
-    def get_tenant_uuid(self, user_uuid):
+    def get_tenant_uuid(self, user_uuid: str) -> str:
         auth, jwt = self.get_auth(self._config)
         return auth.users.get(user_uuid)["tenant_uuid"]
 
     @classmethod
-    def get_auth(cls, config):
+    def get_auth(cls, config: WebhookdConfigDict) -> tuple[AuthClient, str]:
         auth_config = dict(config['auth'])
         # FIXME(sileht): Keep the certificate
         auth_config['verify_certificate'] = False
         auth = AuthClient(**auth_config)
-        token = auth.token.new('wazo_user', expiration=3600)
+        token: TokenDict = auth.token.new('wazo_user', expiration=3600)
         auth.set_token(token["token"])
         jwt = token.get("metadata", {}).get("jwt", "")
         auth.username = None
         auth.password = None
-        return (auth, jwt)
+        return auth, jwt
 
     @classmethod
-    def get_external_data(cls, config, user_uuid):
+    def get_external_data(
+        cls, config: WebhookdConfigDict, user_uuid: str
+    ) -> tuple[ExternalMobileDict, ExternalConfigDict, str]:
         auth, jwt = cls.get_auth(config)
-        external_tokens = auth.external.get('mobile', user_uuid)
+        external_tokens: ExternalMobileDict = auth.external.get('mobile', user_uuid)
         tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
-        external_config = auth.external.get_config('mobile', tenant_uuid)
+        external_config: ExternalConfigDict = auth.external.get_config(
+            'mobile', tenant_uuid
+        )
 
-        return (external_tokens, external_config, jwt)
+        return external_tokens, external_config, jwt
 
     @classmethod
-    def run(cls, task, config, subscription, event):
+    def run(
+        cls, task: Task, config: WebhookdConfigDict, subscription: Subscription, event
+    ):
         user_uuid = subscription['events_user_uuid']
         if not user_uuid:
             raise HookExpectedError("subscription doesn't have events_user_uuid set")
@@ -151,7 +181,14 @@ class Service:
 
 
 class PushNotification:
-    def __init__(self, task, config, external_tokens, external_config, jwt):
+    def __init__(
+        self,
+        task: Task,
+        config: WebhookdConfigDict,
+        external_tokens: ExternalMobileDict,
+        external_config: ExternalConfigDict,
+        jwt: str,
+    ) -> None:
         self.task = task
         self.config = config
         self.external_tokens = external_tokens
@@ -195,7 +232,12 @@ class PushNotification:
         )
 
     def _send_notification(
-        self, notification_type, message_title, message_body, channel_id, items
+        self,
+        notification_type: str,
+        message_title: str | None,
+        message_body: str | None,
+        channel_id: str,
+        items: dict[str, Any],
     ):
         data = {'notification_type': notification_type, 'items': items}
         if self._can_send_to_apn(self.external_tokens):
@@ -208,7 +250,7 @@ class PushNotification:
                 raise HookRetry({"error": str(e)})
 
     @staticmethod
-    def _can_send_to_apn(external_tokens):
+    def _can_send_to_apn(external_tokens: ExternalMobileDict):
         return bool(
             (
                 external_tokens.get('apns_voip_token')
@@ -223,7 +265,7 @@ class PushNotification:
             message_title,
             message_body,
         )
-
+        fcm_api_key: str | None
         if self.config['mobile_fcm_notification_send_jwt_token']:
             if self.jwt:
                 fcm_api_key = self.jwt
@@ -384,7 +426,8 @@ class PushNotification:
                 token = self.external_tokens['apns_notification_token']
             except KeyError:
                 details = {
-                    'message': 'Mobile application did not upload external auth token `apns_notification_token`',
+                    'message': 'Mobile application did not upload external '
+                    'auth token `apns_notification_token`',
                 }
                 raise NotificationError(details)
 

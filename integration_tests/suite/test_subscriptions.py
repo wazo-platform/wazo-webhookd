@@ -1,5 +1,6 @@
 # Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from typing import Any
 
 from hamcrest import (
     assert_that,
@@ -80,7 +81,7 @@ UNOWNED_USER_1_TEST_SUBSCRIPTION = {
     'events_user_uuid': USER_1_UUID,
 }
 
-INVALID_SUBSCRIPTION = {}
+INVALID_SUBSCRIPTION: dict[str, Any] = {}
 
 
 class TestListSubscriptions(BaseIntegrationTest):
@@ -357,7 +358,7 @@ class TestCreateUserSubscriptions(BaseIntegrationTest):
             has_entry('items', has_item(has_entry('owner_tenant_uuid', USERS_TENANT))),
         )
 
-    def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(
+    def test_given_events_user_uuid_when_create_http_user_subscription_then_events_user_uuid_ignored(  # noqa: E501
         self,
     ):
         webhookd = self.make_webhookd(USER_1_TOKEN)

@@ -1,8 +1,11 @@
 # Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import argparse
 import os
+from collections.abc import Sequence
+from typing import cast, Any
 
 from pyfcm import FCMNotification
 
@@ -10,10 +13,12 @@ from xivo.chain_map import ChainMap
 from xivo.config_helper import parse_config_file, read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
+from wazo_webhookd.types import WebhookdConfigDict
+
 _DEFAULT_HTTP_PORT = 9300
 _PID_DIR = '/run/wazo-webhookd'
 
-_DEFAULT_CONFIG = {
+_DEFAULT_CONFIG: WebhookdConfigDict = {
     'config_file': '/etc/wazo-webhookd/config.yml',
     'debug': False,
     'extra_config_files': '/etc/wazo-webhookd/conf.d',
@@ -43,7 +48,10 @@ _DEFAULT_CONFIG = {
         'worker_min': 3,
         'worker_max': 5,
     },
-    'db_uri': 'postgresql://asterisk:proformatique@localhost/asterisk?application_name=wazo-webhookd',
+    'db_uri': (
+        'postgresql://asterisk:proformatique@localhost/asterisk?'
+        'application_name=wazo-webhookd'
+    ),
     'rest_api': {
         'listen': '127.0.0.1',
         'port': _DEFAULT_HTTP_PORT,
@@ -87,7 +95,7 @@ _DEFAULT_CONFIG = {
 }
 
 
-def _load_key_file(config):
+def _load_key_file(config: dict[str, Any]) -> dict[str, Any]:
     if config['auth'].get('username') and config['auth'].get('password'):
         return {}
 
@@ -103,19 +111,20 @@ def _load_key_file(config):
     }
 
 
-def load_config(args):
+def load_config(args: Sequence[str]) -> WebhookdConfigDict:
     cli_config = _parse_cli_args(args)
     file_config = read_config_file_hierarchy(ChainMap(cli_config, _DEFAULT_CONFIG))
     reinterpreted_config = _get_reinterpreted_raw_values(
         cli_config, file_config, _DEFAULT_CONFIG
     )
     key_file = _load_key_file(ChainMap(cli_config, file_config, _DEFAULT_CONFIG))
-    return ChainMap(
+    config = ChainMap(
         reinterpreted_config, key_file, cli_config, file_config, _DEFAULT_CONFIG
     )
+    return cast(WebhookdConfigDict, config)
 
 
-def _get_reinterpreted_raw_values(*configs):
+def _get_reinterpreted_raw_values(*configs: Any) -> dict[str, Any]:
     config = ChainMap(*configs)
     return dict(
         log_level=get_log_level_by_name(
@@ -124,7 +133,7 @@ def _get_reinterpreted_raw_values(*configs):
     )
 
 
-def _parse_cli_args(args):
+def _parse_cli_args(args: Sequence[str]) -> dict[str, Any]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-c', '--config-file', action='store', help='The path to the config file'

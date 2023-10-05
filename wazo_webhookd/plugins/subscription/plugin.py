@@ -1,5 +1,8 @@
-# Copyright 2017-2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from xivo.pubsub import CallbackCollector
 from .bus import SubscriptionBusEventHandler
@@ -12,9 +15,12 @@ from .http import (
 )
 from .service import SubscriptionService
 
+if TYPE_CHECKING:
+    from ...types import PluginDependencyDict
+
 
 class Plugin:
-    def load(self, dependencies):
+    def load(self, dependencies: PluginDependencyDict) -> None:
         api = dependencies['api']
         bus_consumer = dependencies['bus_consumer']
         config = dependencies['config']

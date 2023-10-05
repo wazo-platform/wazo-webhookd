@@ -42,10 +42,12 @@ def requests_automatic_hook_retry(task):
     try:
         yield
     except (requests.exceptions.HTTPError, httpx.HTTPError) as exc:
+        if exc.request is None or exc.response is None:
+            raise ValueError('No request/response in error object')
         if isinstance(exc.request, requests.PreparedRequest):
             req_data = exc.request.body
         else:
-            req_data = exc.request.content
+            req_data = exc.request.content  # type: ignore
         if exc.response.status_code == 410:
             logger.info(
                 "http request fail, service is gone (%d/%d): '%s %s [%s]' %s",
@@ -98,25 +100,26 @@ def requests_automatic_hook_retry(task):
         requests.exceptions.Timeout,
         requests.exceptions.TooManyRedirects,
     ) as exc:
+        request: requests.PreparedRequest | httpx.Request = exc.request  # type: ignore
         logger.info(
             "http request fail, retrying (%s/%s): '%s %s [%s]'",
             task.request.retries,
             task.max_retries,
-            exc.request.method,
-            exc.request.url,
+            request.method,
+            request.url,
             exc,
         )
-        if isinstance(exc.request, requests.PreparedRequest):
-            req_data = exc.request.body
+        if isinstance(request, requests.PreparedRequest):
+            req_data = request.body
         else:
-            req_data = exc.request.content
+            req_data = request.content
         raise HookRetry(
             {
                 "error": str(exc),
-                "request_method": exc.request.method,
-                "request_url": str(exc.request.url),
+                "request_method": request.method,
+                "request_url": str(request.url),
                 "request_body": _decode(req_data),
-                "request_headers": dict(exc.request.headers),
+                "request_headers": dict(request.headers),
                 "response_status_code": None,
                 "response_headers": {},
                 "response_body": "",
@@ -124,7 +127,7 @@ def requests_automatic_hook_retry(task):
         )
 
 
-def requests_automatic_detail(response: httpx.Response | requests.PreparedRequest):
+def requests_automatic_detail(response: httpx.Response | requests.Response):
     if isinstance(response.request, requests.PreparedRequest):
         req_data = response.request.body
     else:

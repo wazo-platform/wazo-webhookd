@@ -1,4 +1,4 @@
-# Copyright 2022 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from unittest import TestCase
@@ -20,9 +20,9 @@ class TestSendViaFcm(TestCase):
 
         self.push_notification = PushNotification(
             task,
-            config,
-            external_tokens,
-            external_config,
+            config,  # type: ignore
+            external_tokens,  # type: ignore
+            external_config,  # type: ignore
             jwt,
         )
 

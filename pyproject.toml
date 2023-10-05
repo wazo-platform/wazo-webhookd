@@ -1,0 +1,26 @@
+[tool.mypy]
+python_version = "3.10"
+show_error_codes = true
+check_untyped_defs = true
+warn_unused_configs = true
+follow_imports = "skip"
+ignore_missing_imports = true
+
+[tool.black]
+skip-string-normalization = true
+
+[tool.flake8]
+show-source = true
+max-line-length = 99
+ignore = [
+  "E203", # whitespace before ':'
+  "W503", # line break before binary operator
+  "F821", # undefined. Because of injected _execfiles, target, etc.
+]
+exclude = [
+    ".tox",
+    ".eggs",
+]
+per-file-ignores = """
+    alembic/*: E402
+"""
