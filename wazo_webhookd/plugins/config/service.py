@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import cast, TYPE_CHECKING
+from typing import cast
 
-if TYPE_CHECKING:
-    from ...types import WebhookdConfigDict
+from ...types import WebhookdConfigDict
 
 
 class ConfigService:
