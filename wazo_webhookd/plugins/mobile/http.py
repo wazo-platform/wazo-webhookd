@@ -63,5 +63,5 @@ class NotificationResource(AuthResource):
                 # 'retry_errors': (requests.HTTPError,),
             },
         )
-        logging.debug('Notification: %s, was sent (%s)', notification, result)
+        logger.debug('Notification: %s, was sent (%s)', notification, result)
         return '', 204
