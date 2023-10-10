@@ -76,3 +76,4 @@ def spawn_workers(config: WebhookdConfigDict) -> multiprocessing.Process:
 # needs all tasks to be loaded when we create the Celery() app. Also, we don't want to
 # load the whole plugin, just this task. We don't care about the rest.
 import wazo_webhookd.plugins.subscription.celery_tasks  # noqa
+import wazo_webhookd.plugins.mobile.celery_tasks  # noqa

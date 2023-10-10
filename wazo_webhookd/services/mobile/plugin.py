@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import TypedDict, Any, TYPE_CHECKING
+from enum import Enum
+from typing import Any, cast, TypedDict, TYPE_CHECKING, Union, Literal
 
 import httpx
 import logging
@@ -23,6 +24,7 @@ from wazo_webhookd.services.helpers import (
     HookRetry,
     requests_automatic_hook_retry,
     requests_automatic_detail,
+    RequestDetailsDict,
 )
 from .exceptions import NotificationError
 from ...database.models import Subscription
@@ -46,17 +48,85 @@ class ExternalConfigDict(TypedDict):
     client_secret: str
     fcm_api_key: str
     ios_apn_certificate: str
-    ios_apn_private: bool
+    ios_apn_private: str
     use_sandbox: bool
+
+
+class BaseNotificationPayload(TypedDict):
+    notification_type: str
+    items: dict[str, Any]
+
+
+NotificationPayload = Union[BaseNotificationPayload, dict[str, Any]]
+
+
+ApsContentDict = TypedDict(
+    'ApsContentDict',
+    {
+        'badge': int,
+        'sound': str,
+        'content-available': str,
+        'alert': dict[str, str],
+    },
+)
+
+
+class ApnsPayload(BaseNotificationPayload):
+    aps: ApsContentDict
+
+
+ApnsHeaders = TypedDict(
+    'ApnsHeaders',
+    {
+        'apns-topic': str,
+        'apns-push-type': str,
+        'apns-priority': int,
+    },
+)
+
+
+class FcmResponseDict(TypedDict):
+    multicast_ids: list
+    success: int
+    failure: int
+    canonical_ids: int
+    results: list
+    topic_message_id: Union[str, None]
+
+
+class NotificationSentStatusDict(TypedDict):
+    success: bool
+    protocol_used: Literal['apns', 'fcm']
+    full_response: Union[FcmResponseDict, RequestDetailsDict]
 
 
 REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
 
+DEFAULT_ANDROID_CHANNEL_ID = 'io.wazo.songbird'
+
+
+class NotificationType(
+    str, Enum
+):  # TODO: StrEnum would be better, when we have Python 3.11
+    MESSAGE_RECEIVED = 'messageReceived'
+    VOICEMAIL_RECEIVED = 'voicemailReceived'
+    INCOMING_CALL = 'incomingCall'
+    CANCEL_INCOMING_CALL = 'cancelIncomingCall'
+    PLUGIN = 'plugin'
+
+
+RESERVED_NOTIFICATION_TYPES = (
+    NotificationType.MESSAGE_RECEIVED,
+    NotificationType.VOICEMAIL_RECEIVED,
+    NotificationType.INCOMING_CALL,
+    NotificationType.CANCEL_INCOMING_CALL,
+)
+
 MAP_NAME_TO_NOTIFICATION_TYPE = {
-    'user_voicemail_message_created': 'voicemailReceived',
-    'call_push_notification': 'incomingCall',
-    'call_cancel_push_notification': 'cancelIncomingCall',
-    'chatd_user_room_message_created': 'messageReceived',
+    'user_voicemail_message_created': NotificationType.VOICEMAIL_RECEIVED,
+    'call_push_notification': NotificationType.INCOMING_CALL,
+    'call_cancel_push_notification': NotificationType.CANCEL_INCOMING_CALL,
+    'chatd_user_room_message_created': NotificationType.MESSAGE_RECEIVED,
 }
 
 
@@ -108,7 +178,7 @@ class Service:
             )
             logger.info('User registered: %s/%s', tenant_uuid, user_uuid)
 
-    def on_external_auth_deleted(self, body):
+    def on_external_auth_deleted(self, body: dict[str, Any]) -> None:
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
             # TODO(sileht): Should come with the event
@@ -155,9 +225,8 @@ class Service:
     @classmethod
     def run(
         cls, task: Task, config: WebhookdConfigDict, subscription: Subscription, event
-    ):
-        user_uuid = subscription['events_user_uuid']
-        if not user_uuid:
+    ) -> FcmResponseDict | RequestDetailsDict | None:
+        if not (user_uuid := subscription['events_user_uuid']):
             raise HookExpectedError("subscription doesn't have events_user_uuid set")
 
         # TODO(sileht): We should also filter on tenant_uuid
@@ -167,7 +236,7 @@ class Service:
             # and event['data']['tenant_uuid'] == tenant_uuid
             and event['name'] == 'chatd_user_room_message_created'
         ):
-            return
+            return None
 
         external_tokens, external_config, jwt = cls.get_external_data(config, user_uuid)
         push = PushNotification(task, config, external_tokens, external_config, jwt)
@@ -175,9 +244,9 @@ class Service:
         data = event.get('data')
         name = event.get('name')
 
-        notification_type = MAP_NAME_TO_NOTIFICATION_TYPE.get(name)
-        if notification_type:
+        if notification_type := MAP_NAME_TO_NOTIFICATION_TYPE.get(name):
             return getattr(push, notification_type)(data)
+        return None
 
 
 class PushNotification:
@@ -195,62 +264,70 @@ class PushNotification:
         self.external_config = external_config
         self.jwt = jwt
 
-    def cancelIncomingCall(self, data):
-        return self._send_notification(
-            'cancelIncomingCall',
+    def cancelIncomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
+            NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
             None,  # Message body
-            'wazo-notification-cancel-call',
-            data,
+            {'items': data},
         )
 
-    def incomingCall(self, data):
-        return self._send_notification(
-            'incomingCall',
+    def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
+            NotificationType.INCOMING_CALL,
             'Incoming Call',
             f'From: {data["peer_caller_id_number"]}',
-            'wazo-notification-call',
-            data,
+            {'items': data},
         )
 
-    def voicemailReceived(self, data):
-        return self._send_notification(
-            'voicemailReceived',
+    def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
+            NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
             f'From: {data["message"]["caller_id_num"]}',
-            'wazo-notification-voicemail',
-            data,
+            {'items': data},
         )
 
-    def messageReceived(self, data):
-        return self._send_notification(
-            'messageReceived',
+    def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        return self.send_notification(
+            NotificationType.MESSAGE_RECEIVED,
             data['alias'],
             data['content'],
-            'wazo-notification-chat',
-            data,
+            {'items': data},
         )
 
-    def _send_notification(
+    def send_notification(
         self,
-        notification_type: str,
+        notification_type: NotificationType | str,
         message_title: str | None,
         message_body: str | None,
-        channel_id: str,
-        items: dict[str, Any],
-    ):
-        data = {'notification_type': notification_type, 'items': items}
+        extra: dict[str, Any],
+    ) -> NotificationSentStatusDict:
+        data: NotificationPayload = {
+            'notification_type': notification_type,
+            'items': extra.pop('items', {}),
+        } | extra
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
-                return self._send_via_apn(message_title, message_body, channel_id, data)
+                apn_response = self._send_via_apn(message_title, message_body, data)
+                return {
+                    'success': True,  # error would be raised on failure
+                    'protocol_used': 'apns',
+                    'full_response': apn_response,
+                }
         else:
             try:
-                return self._send_via_fcm(message_title, message_body, channel_id, data)
+                fcm_response = self._send_via_fcm(message_title, message_body, data)
+                return {
+                    'success': fcm_response['success'] >= 1,
+                    'protocol_used': 'fcm',
+                    'full_response': fcm_response,
+                }
             except RetryAfterException as e:
                 raise HookRetry({"error": str(e)})
 
     @staticmethod
-    def _can_send_to_apn(external_tokens: ExternalMobileDict):
+    def _can_send_to_apn(external_tokens: ExternalMobileDict) -> bool:
         return bool(
             (
                 external_tokens.get('apns_voip_token')
@@ -259,12 +336,18 @@ class PushNotification:
             or external_tokens.get('apns_token')
         )
 
-    def _send_via_fcm(self, message_title, message_body, channel_id, data):
+    def _send_via_fcm(
+        self,
+        message_title: str | None,
+        message_body: str | None,
+        data: NotificationPayload,
+    ) -> FcmResponseDict:
         logger.debug(
             'Sending push notification to Android: %s, %s',
             message_title,
             message_body,
         )
+        notification_type = data['notification_type']
         fcm_api_key: str | None
         if self.config['mobile_fcm_notification_send_jwt_token']:
             if self.jwt:
@@ -284,14 +367,16 @@ class PushNotification:
             'data_message': data,
         }
 
-        if channel_id == 'wazo-notification-call':
+        if notification_type == NotificationType.INCOMING_CALL:
             notification = push_service.notify_single_device(
                 extra_notification_kwargs={'priority': 'high'},
                 **notify_kwargs,
             )
-        elif channel_id == 'wazo-notification-cancel-call':
+        elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
             notification = push_service.single_device_data_message(
-                extra_notification_kwargs={'android_channel_id': channel_id},
+                extra_notification_kwargs={
+                    'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
+                },
                 **notify_kwargs,
             )
         else:
@@ -301,7 +386,9 @@ class PushNotification:
                 notify_kwargs['message_body'] = message_body
 
             notification = push_service.notify_single_device(
-                extra_notification_kwargs={'android_channel_id': channel_id},
+                extra_notification_kwargs={
+                    'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
+                },
                 badge=1,
                 **notify_kwargs,
             )
@@ -328,9 +415,14 @@ class PushNotification:
             timeout=REQUEST_TIMEOUTS,
         )
 
-    def _send_via_apn(self, message_title, message_body, channel_id, data):
+    def _send_via_apn(
+        self,
+        message_title: str | None,
+        message_body: str | None,
+        data: NotificationPayload,
+    ):
         headers, payload, token = self._create_apn_message(
-            message_title, message_body, channel_id, data
+            message_title, message_body, data
         )
 
         use_sandbox = self.external_config.get('use_sandbox', False)
@@ -339,7 +431,7 @@ class PushNotification:
             headers['X-Use-Sandbox'] = '1'
 
         if self.jwt:
-            headers['Authorization'] = 'Bearer ' + self.jwt
+            headers['Authorization'] = f'Bearer {self.jwt}'
 
         apn_certificate = self.external_config.get('ios_apn_certificate', None)
         apn_private = self.external_config.get('ios_apn_private', None)
@@ -370,40 +462,56 @@ class PushNotification:
         response.raise_for_status()
         return requests_automatic_detail(response)
 
-    def _create_apn_message(self, message_title, message_body, channel_id, data):
+    def _create_apn_message(
+        self,
+        message_title: str | None,
+        message_body: str | None,
+        data: NotificationPayload,
+    ):
         apns_call_topic = self.config['mobile_apns_call_topic']
         apns_default_topic = self.config['mobile_apns_default_topic']
 
-        if channel_id == 'wazo-notification-call':
+        if (
+            notification_type := data['notification_type']
+        ) == NotificationType.INCOMING_CALL:
             headers = {
                 'apns-topic': apns_call_topic,
                 'apns-push-type': 'voip',
                 'apns-priority': '10',
             }
-            payload = {
-                'aps': {'alert': data, 'badge': 1},
-                **data,
-            }
-        elif channel_id == 'wazo-notification-cancel-call':
+            payload = cast(
+                ApnsPayload,
+                {
+                    'aps': {'alert': data, 'badge': 1},
+                    **data,
+                },
+            )
+        elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
             headers = {
                 'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
-            payload = {
-                'aps': {"badge": 1, "sound": "default", "content-available": 1},
-                **data,
-            }
+            payload = cast(
+                ApnsPayload,
+                {
+                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    **data,
+                },
+            )
         else:
             headers = {
                 'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
-            payload = {
-                'aps': {'badge': 1, 'sound': "default"},
-                **data,
-            }
+            payload = cast(
+                ApnsPayload,
+                {
+                    'aps': {'badge': 1, 'sound': "default"},
+                    **data,
+                },
+            )
 
             if message_title or message_body:
                 alert = {}
@@ -413,7 +521,7 @@ class PushNotification:
                     alert['body'] = message_body
                 payload['aps']['alert'] = alert
 
-        if channel_id == 'wazo-notification-call':
+        if notification_type == NotificationType.INCOMING_CALL:
             # TODO(pc-m): The apns_voip_token was added in 20.05
             # the `or self.external_tokens["apns_token"]` should be removed when we stop
             # supporting wazo 20.XX
@@ -435,7 +543,9 @@ class PushNotification:
 
     @staticmethod
     @contextmanager
-    def _certificate_filename(certificate, private_key):
+    def _certificate_filename(
+        certificate: str | None, private_key: str | None
+    ) -> Generator[str | None, None, None]:
         if certificate and private_key:
             with tempfile.NamedTemporaryFile(mode="w+") as cert_file:
                 cert_file.write(certificate + "\r\n")

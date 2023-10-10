@@ -1,5 +1,11 @@
 # Changelog
 
+## 23.14
+
+* New resource added to allow for sending push notifications for mobile
+
+  * POST `/1.0/mobile/notifications` 
+
 ## 21.13
 
 * The `/config` endpoint is now restricted to the master tenant

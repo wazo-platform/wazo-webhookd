@@ -1,7 +1,9 @@
-# Copyright 2017-2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import logging
+from typing import TypedDict, TYPE_CHECKING
 
 from flask import request
 from wazo_webhookd.rest_api import AuthResource
@@ -14,27 +16,48 @@ from .schema import (
     user_subscription_schema,
     subscription_log_schema,
     SubscriptionLogRequestSchema,
+    SubscriptionLogDict,
+    SubscriptionDict,
+    UserSubscriptionDict,
 )
+
+if TYPE_CHECKING:
+    from .service import SubscriptionService
+
 
 logger = logging.getLogger(__name__)
 
 
+class SubscriptionListResponseDict(TypedDict):
+    items: list[SubscriptionDict]
+    total: int
+
+
+class SubscriptionLogListResponseDict(TypedDict):
+    items: list[SubscriptionLogDict]
+    total: int
+
+
+class UserSubscriptionListResponseDict(TypedDict):
+    items: list[UserSubscriptionDict]
+    total: int
+
+
 class SubscriptionsAuthResource(AuthResource):
-    def __init__(self, service):
+    def __init__(self, service: SubscriptionService) -> None:
         super().__init__()
         self._service = service
 
-    def visible_tenants(self, recurse=True):
+    def visible_tenants(self, recurse: bool = True) -> list[str]:
         tenant_uuid = Tenant.autodetect().uuid
         if recurse:
             return [tenant.uuid for tenant in token.visible_tenants(tenant_uuid)]
-        else:
-            return [tenant_uuid]
+        return [tenant_uuid]
 
 
 class SubscriptionsResource(SubscriptionsAuthResource):
     @required_acl('webhookd.subscriptions.read')
-    def get(self):
+    def get(self) -> SubscriptionListResponseDict:
         params = subscription_list_params_schema.load(request.args)
         subscriptions = list(
             self._service.list(
@@ -48,7 +71,7 @@ class SubscriptionsResource(SubscriptionsAuthResource):
         }
 
     @required_acl('webhookd.subscriptions.create')
-    def post(self):
+    def post(self) -> tuple[SubscriptionDict, int]:
         subscription = subscription_schema.load(request.json)
         subscription['owner_tenant_uuid'] = Tenant.autodetect().uuid
         return subscription_schema.dump(self._service.create(subscription)), 201
@@ -56,12 +79,12 @@ class SubscriptionsResource(SubscriptionsAuthResource):
 
 class SubscriptionResource(SubscriptionsAuthResource):
     @required_acl('webhookd.subscriptions.{subscription_uuid}.read')
-    def get(self, subscription_uuid):
+    def get(self, subscription_uuid: str) -> SubscriptionDict:
         subscription = self._service.get(subscription_uuid, self.visible_tenants())
         return subscription_schema.dump(subscription)
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.update')
-    def put(self, subscription_uuid):
+    def put(self, subscription_uuid: str) -> SubscriptionDict:
         subscription = subscription_schema.load(request.json)
         subscription['owner_tenant_uuid'] = Tenant.autodetect().uuid
         subscription = self._service.update(
@@ -70,14 +93,14 @@ class SubscriptionResource(SubscriptionsAuthResource):
         return subscription_schema.dump(subscription)
 
     @required_acl('webhookd.subscriptions.{subscription_uuid}.delete')
-    def delete(self, subscription_uuid):
+    def delete(self, subscription_uuid: str) -> tuple[str, int]:
         self._service.delete(subscription_uuid, self.visible_tenants())
         return '', 204
 
 
 class UserSubscriptionsResource(SubscriptionsAuthResource):
     @required_acl('webhookd.users.me.subscriptions.read')
-    def get(self):
+    def get(self) -> UserSubscriptionListResponseDict:
         params = subscription_list_params_schema.load(request.args)
         subscriptions = list(
             self._service.list(
@@ -92,7 +115,7 @@ class UserSubscriptionsResource(SubscriptionsAuthResource):
         }
 
     @required_acl('webhookd.users.me.subscriptions.create')
-    def post(self):
+    def post(self) -> tuple[UserSubscriptionDict, int]:
         subscription = user_subscription_schema.load(request.json)
         subscription['owner_tenant_uuid'] = token.tenant_uuid
         subscription['events_user_uuid'] = subscription[
@@ -104,7 +127,7 @@ class UserSubscriptionsResource(SubscriptionsAuthResource):
 
 class UserSubscriptionResource(SubscriptionsAuthResource):
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.read')
-    def get(self, subscription_uuid):
+    def get(self, subscription_uuid: str) -> UserSubscriptionDict:
         subscription = self._service.get(
             subscription_uuid,
             owner_tenant_uuids=[token.tenant_uuid],
@@ -113,7 +136,7 @@ class UserSubscriptionResource(SubscriptionsAuthResource):
         return subscription_schema.dump(subscription)
 
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.update')
-    def put(self, subscription_uuid):
+    def put(self, subscription_uuid: str) -> UserSubscriptionDict:
         subscription = user_subscription_schema.load(request.json)
         subscription = self._service.update(
             subscription_uuid,
@@ -124,7 +147,7 @@ class UserSubscriptionResource(SubscriptionsAuthResource):
         return subscription_schema.dump(subscription)
 
     @required_acl('webhookd.users.me.subscriptions.{subscription_uuid}.delete')
-    def delete(self, subscription_uuid):
+    def delete(self, subscription_uuid: str) -> tuple[str, int]:
         self._service.delete(
             subscription_uuid,
             owner_tenant_uuids=[token.tenant_uuid],
@@ -135,8 +158,8 @@ class UserSubscriptionResource(SubscriptionsAuthResource):
 
 class SubscriptionLogsResource(SubscriptionsAuthResource):
     @required_acl('webhookd.subscriptions.{subscription_uuid}.logs.read')
-    def get(self, subscription_uuid):
-        # NOTE:(sileht): To return 404 if the subscription doesn't exists
+    def get(self, subscription_uuid: str) -> SubscriptionLogListResponseDict:
+        # NOTE:(sileht): To return 404 if the subscription doesn't exist
         self._service.get(subscription_uuid, self.visible_tenants())
 
         filter_parameters = SubscriptionLogRequestSchema().load(request.args)

@@ -1,8 +1,11 @@
 # Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
+from collections.abc import Generator
 from contextlib import contextmanager
 import logging
+from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, create_engine, distinct, func, or_, exc
 from sqlalchemy.orm import scoped_session
@@ -16,30 +19,34 @@ from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
 
+if TYPE_CHECKING:
+    from ...types import WebhookdConfigDict
+
+
 logger = logging.getLogger(__name__)
 
 
 class SubscriptionService:
-    # NOTE(sileht): We share the pubsub object, so plugin that instanciate
-    # another service (like push mobile) will continue work.
+    # NOTE(sileht): We share the pubsub object, so a plugin that instantiate
+    # other services (like push mobile) will continue work.
 
     pubsub = Pubsub()
 
-    def __init__(self, config):
+    def __init__(self, config: WebhookdConfigDict) -> None:
         self._engine = create_engine(
             config['db_uri'],
             pool_size=config['rest_api']['max_threads'],
             pool_pre_ping=True,
         )
-        self._Session = scoped_session(sessionmaker())
+        self._Session: scoped_session = scoped_session(sessionmaker())
         self._Session.configure(bind=self._engine)
 
-    def close(self):
+    def close(self) -> None:
         self._Session.close()
         self._engine.dispose()
 
     @contextmanager
-    def rw_session(self):
+    def rw_session(self) -> Generator[scoped_session, None, None]:
         session = self._Session()
         try:
             yield session
@@ -51,7 +58,7 @@ class SubscriptionService:
             self._Session.remove()
 
     @contextmanager
-    def ro_session(self):
+    def ro_session(self) -> Generator[scoped_session, None, None]:
         session = self._Session()
         try:
             yield session

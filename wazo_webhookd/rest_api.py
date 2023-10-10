@@ -47,8 +47,7 @@ class CoreRestApi:
 
     def _load_cors(self) -> None:
         cors_config = dict(self.config.get('cors', {}))
-        enabled = cors_config.pop('enabled', False)
-        if enabled:
+        if cors_config.pop('enabled', False):
             CORS(app, **cors_config)
 
     def run(self) -> None:

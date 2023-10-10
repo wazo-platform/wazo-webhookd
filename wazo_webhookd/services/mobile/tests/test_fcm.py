@@ -4,7 +4,12 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock, sentinel as s
 
-from ..plugin import PushNotification
+from ..plugin import (
+    DEFAULT_ANDROID_CHANNEL_ID,
+    NotificationType,
+    PushNotification,
+    NotificationPayload,
+)
 
 
 class TestSendViaFcm(TestCase):
@@ -32,15 +37,17 @@ class TestSendViaFcm(TestCase):
 
         title = 'Incoming Call'  # Ignored
         body = 'From: 5555555555'  # Ignored
-        channel_id = 'wazo-notification-call'
-        data = s.incoming_call_data
+        data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
 
-        self.push_notification._send_via_fcm(title, body, channel_id, data)
+        self.push_notification._send_via_fcm(title, body, data)
 
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
-            data_message=s.incoming_call_data,
+            data_message=data,
             extra_notification_kwargs={'priority': 'high'},
         )
 
@@ -50,15 +57,19 @@ class TestSendViaFcm(TestCase):
 
         title = None  # Ignored
         body = None  # Ignored
-        channel_id = 'wazo-notification-cancel-call'
-        data = s.cancel_incoming_call_data
+        data: NotificationPayload = {
+            'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+            'items': {},
+        }
 
-        self.push_notification._send_via_fcm(title, body, channel_id, data)
+        self.push_notification._send_via_fcm(title, body, data)
 
         push_service.single_device_data_message.assert_called_once_with(
             registration_id=s.token,
-            data_message=s.cancel_incoming_call_data,
-            extra_notification_kwargs={'android_channel_id': channel_id},
+            data_message=data,
+            extra_notification_kwargs={
+                'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
+            },
         )
         push_service.notify_single_device.assert_not_called()
 
@@ -68,19 +79,23 @@ class TestSendViaFcm(TestCase):
 
         title = 'New voicemail'
         body = 'From: 5555555555'
-        channel_id = 'wazo-notification-voicemail'
-        data = s.voicemail_data
+        data: NotificationPayload = {
+            'notification_type': NotificationType.VOICEMAIL_RECEIVED,
+            'items': {},
+        }
 
-        self.push_notification._send_via_fcm(title, body, channel_id, data)
+        self.push_notification._send_via_fcm(title, body, data)
 
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
-            data_message=s.voicemail_data,
+            data_message=data,
             message_title='New voicemail',
             message_body='From: 5555555555',
             badge=1,
-            extra_notification_kwargs={'android_channel_id': channel_id},
+            extra_notification_kwargs={
+                'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
+            },
         )
 
     @patch('wazo_webhookd.services.mobile.plugin.FCMNotification')
@@ -90,12 +105,13 @@ class TestSendViaFcm(TestCase):
         data = {
             'alias': s.chat_alias,
             'content': s.chat_content,
+            'notification_type': NotificationType.MESSAGE_RECEIVED,
+            'items': {},
         }
         title = s.chat_alias
         body = s.chat_content
-        channel_id = 'wazo-notification-chat'
 
-        self.push_notification._send_via_fcm(title, body, channel_id, data)
+        self.push_notification._send_via_fcm(title, body, data)  # type: ignore
 
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
@@ -104,5 +120,7 @@ class TestSendViaFcm(TestCase):
             message_title=s.chat_alias,
             message_body=s.chat_content,
             badge=1,
-            extra_notification_kwargs={'android_channel_id': channel_id},
+            extra_notification_kwargs={
+                'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
+            },
         )

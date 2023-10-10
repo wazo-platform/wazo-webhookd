@@ -5,18 +5,26 @@ from __future__ import annotations
 import cgi
 import json
 import logging
-from typing import NamedTuple
+from typing import NamedTuple, TYPE_CHECKING
 
 import requests
 import socket
 import urllib.parse
 
+from celery import Task
 from jinja2 import Environment
 
 from wazo_webhookd.services.helpers import (
     requests_automatic_hook_retry,
     requests_automatic_detail,
+    RequestDetailsDict,
 )
+
+if TYPE_CHECKING:
+    from ...config import WebhookdConfigDict
+    from ...database.models import Subscription
+    from ...types import ServicePluginDependencyDict
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +40,13 @@ REQUEST_TIMEOUTS = RequestTimeouts(connect=5, read=15)
 
 
 class Service:
-    def load(self, dependencies):
+    def load(self, dependencies: ServicePluginDependencyDict):
         pass
 
     @classmethod
-    def run(cls, task, config, subscription, event):
+    def run(
+        cls, task: Task, config: WebhookdConfigDict, subscription: Subscription, event
+    ) -> RequestDetailsDict | None:
         options = subscription['config']
         headers = {}
         values = {
@@ -54,7 +64,7 @@ class Service:
                 subscription['owner_user_uuid'],
                 url,
             )
-            return
+            return None
 
         body = options.get('body')
 
@@ -94,7 +104,8 @@ class Service:
                 return requests_automatic_detail(r)
 
     @staticmethod
-    def url_is_localhost(url):
-        remote_host = urllib.parse.urlparse(url).hostname
+    def url_is_localhost(url: str) -> bool:
+        if not (remote_host := urllib.parse.urlparse(url).hostname):
+            return False
         remote_address = socket.gethostbyname(remote_host)
         return remote_address == '127.0.0.1'
