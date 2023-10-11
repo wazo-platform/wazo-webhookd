@@ -7,8 +7,8 @@ paths:
         - application/json
       operationId: postMobileNotification
       parameters:
-        - $ref: '#/parameters/NotificationBody'
         - $ref: '#/parameters/TenantUuidHeader'
+        - $ref: '#/parameters/NotificationBody'
       tags:
         - notifications
       responses:
@@ -39,7 +39,6 @@ parameters:
     type: string
     in: header
     description: "The User's tenant UUID, defining the ownership of a given resource."
-    required: true
 
 definitions:
   Notification:
