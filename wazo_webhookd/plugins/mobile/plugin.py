@@ -14,9 +14,10 @@ class Plugin:
     def load(self, dependencies: PluginDependencyDict) -> None:
         api = dependencies['api']
         config = dependencies['config']
+        auth_client = dependencies['auth_client']
 
         api.add_resource(
             NotificationResource,
             '/mobile/notifications',
-            resource_class_args=[config],
+            resource_class_args=[config, auth_client],
         )

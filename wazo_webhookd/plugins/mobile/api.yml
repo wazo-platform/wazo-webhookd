@@ -7,6 +7,7 @@ paths:
         - application/json
       operationId: postMobileNotification
       parameters:
+        - $ref: '#/parameters/TenantUuidHeader'
         - $ref: '#/parameters/NotificationBody'
       tags:
         - notifications
@@ -33,6 +34,11 @@ parameters:
     required: true
     schema:
       $ref: '#/definitions/Notification'
+  TenantUuidHeader:
+    name: Wazo-Tenant
+    type: string
+    in: header
+    description: "The User's tenant UUID, defining the ownership of a given resource."
 
 definitions:
   Notification:
@@ -41,6 +47,8 @@ definitions:
       notification_type:
         type: string
         pattern: '(?!^(messageReceived|voicemailReceived|incomingCall|cancelIncomingCall)$)(^[a-z0-9_]+$)'
+        description: A name without special characters to differenciate the notification from others
+        example: myCustomNotification
         minLength: 1
         maxLength: 100
       user_uuid:

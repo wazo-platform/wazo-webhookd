@@ -13,41 +13,50 @@ from ....rest_api import VERSION
 from ..http import NotificationResource
 
 
-@patch('wazo_webhookd.plugins.mobile.http.AuthClient')
 @patch('wazo_webhookd.plugins.mobile.http.Tenant')
-@patch('wazo_webhookd.plugins.mobile.http.get_auth_token_from_request')
-def test_verify_user_uuid(
-    mock_auth_from_request: Mock, mock_tenant: Mock, mock_auth_client: Mock
-) -> None:
-    mock_auth_from_request.return_value = sentinel.auth_token
+def test_verify_user_uuid(mock_tenant: Mock) -> None:
     mock_tenant.autodetect.return_value = Mock(uuid=sentinel.tenant)
-    mock_auth_client().users.get.return_value = {'enabled': True}
+    mock_auth_client = Mock()
+    mock_auth_client.users.get.return_value = {
+        'enabled': True,
+        'tenant_uuid': sentinel.tenant,
+    }
 
-    resource = NotificationResource({'auth': {}})  # type: ignore
+    resource = NotificationResource({'auth': {}}, mock_auth_client)  # type: ignore
     resource.verify_user_uuid(sentinel.user_uuid)
 
-    mock_auth_client().set_token.assert_called_once_with(sentinel.auth_token)
-    mock_auth_client().users.get.assert_called_once_with(sentinel.user_uuid)
+    mock_auth_client.users.get.assert_called_once_with(sentinel.user_uuid)
 
 
-@patch('wazo_webhookd.plugins.mobile.http.AuthClient')
 @patch('wazo_webhookd.plugins.mobile.http.Tenant')
-@patch('wazo_webhookd.plugins.mobile.http.get_auth_token_from_request')
-def test_verify_user_uuid_invalid(
-    mock_auth_from_request: Mock, mock_tenant: Mock, mock_auth_client: Mock
-) -> None:
-    mock_auth_from_request.return_value = sentinel.auth_token
+def test_verify_user_wrong_tenant_uuid(mock_tenant: Mock) -> None:
     mock_tenant.autodetect.return_value = Mock(uuid=sentinel.tenant)
-    mock_auth_client().users.get.side_effect = requests.HTTPError(  # type: ignore
-        request=Mock(status_code=401)
-    )
+    mock_auth_client = Mock()
+    mock_auth_client.users.get.return_value = {
+        'enabled': True,
+        'tenant_uuid': 'invalid-tenant',
+    }
 
-    resource = NotificationResource({'auth': {}})  # type: ignore
+    resource = NotificationResource({'auth': {}}, mock_auth_client)  # type: ignore
     with pytest.raises(APIException):
         resource.verify_user_uuid(sentinel.user_uuid)
 
-    mock_auth_client().set_token.assert_called_once_with(sentinel.auth_token)
-    mock_auth_client().users.get.assert_called_once_with(sentinel.user_uuid)
+    mock_auth_client.users.get.assert_called_once_with(sentinel.user_uuid)
+
+
+@patch('wazo_webhookd.plugins.mobile.http.Tenant')
+def test_verify_user_uuid_invalid(mock_tenant: Mock) -> None:
+    mock_tenant.autodetect.return_value = Mock(uuid=sentinel.tenant)
+    mock_auth_client = Mock()
+    mock_auth_client.users.get.side_effect = requests.HTTPError(  # type: ignore
+        request=Mock(status_code=401)
+    )
+
+    resource = NotificationResource({'auth': {}}, mock_auth_client)  # type: ignore
+    with pytest.raises(APIException):
+        resource.verify_user_uuid(sentinel.user_uuid)
+
+    mock_auth_client.users.get.assert_called_once_with(sentinel.user_uuid)
 
 
 @patch('wazo_webhookd.plugins.mobile.http.notification_schema')
@@ -67,7 +76,7 @@ def test_post(
         api.add_resource(
             NotificationResource,
             '/mobile/notifications',
-            resource_class_args=[test_config],
+            resource_class_args=[test_config, Mock()],
         )
         client = api.app.test_client()
         response = client.post(f'/{VERSION}/mobile/notifications', data={})

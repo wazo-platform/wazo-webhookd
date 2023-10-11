@@ -33,7 +33,7 @@ class TestNotifications(BaseIntegrationTest):
         )
 
     def test_can_send_notification_invalid(self) -> None:
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
         self.auth.reset_external_auth()
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
@@ -104,7 +104,7 @@ class TestNotifications(BaseIntegrationTest):
         )
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
 
         test_notification = {
             'notification_type': "plugin",
@@ -175,7 +175,7 @@ class TestNotifications(BaseIntegrationTest):
             statusCode=200,
         )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
+        webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
 
         test_notification = {
             'notification_type': "plugin",
