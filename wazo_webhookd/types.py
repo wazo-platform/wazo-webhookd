@@ -114,17 +114,14 @@ class WebhookdConfigDict(TypedDict):
     service_discovery: ServiceDiscoveryConfigDict
 
 
-class BasePluginDependencyDict(TypedDict):
+class ServicePluginDependencyDict(TypedDict):
     api: Api
+    auth_client: AuthClient
     bus_consumer: BusConsumer
     config: WebhookdConfigDict
 
 
-class ServicePluginDependencyDict(BasePluginDependencyDict):
-    auth_client: AuthClient
-
-
-class PluginDependencyDict(BasePluginDependencyDict):
+class PluginDependencyDict(ServicePluginDependencyDict):
     service_manager: NamedExtensionManager
     next_token_change_subscribe: Callable[[TokenRenewalCallback], None]
 

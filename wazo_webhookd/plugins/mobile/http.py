@@ -16,7 +16,6 @@ from xivo.auth_verifier import required_acl
 
 from .schema import notification_schema
 from .celery_tasks import send_notification
-from ...auth import get_auth_token_from_request
 from ...types import WebhookdConfigDict
 
 logger = logging.getLogger(__name__)
@@ -33,17 +32,18 @@ class UserDict(TypedDict):
 
 
 class NotificationResource(AuthResource):
-    def __init__(self, config: WebhookdConfigDict) -> None:
+    def __init__(self, config: WebhookdConfigDict, auth_client: AuthClient) -> None:
+        self.auth_client = auth_client
         self.config = config
 
     def verify_user_uuid(self, user_uuid: str) -> None:
-        auth_client = AuthClient(**self.config['auth'])
-        auth_client.tenant_uuid = Tenant.autodetect().uuid
-        auth_client.set_token(get_auth_token_from_request())
+        tenant_uuid = Tenant.autodetect().uuid
         try:
-            user: UserDict = auth_client.users.get(user_uuid)
+            user: UserDict = self.auth_client.users.get(user_uuid)
             if user['enabled'] is not True:
                 raise ValueError(f'User {user_uuid} is disabled')
+            if user['tenant_uuid'] != tenant_uuid:
+                raise ValueError('Invalid tenant for specified `user_uuid`')
         except (requests.HTTPError, ValueError) as e:
             logger.debug('Error fetching user: %s', str(e))
             raise APIException(

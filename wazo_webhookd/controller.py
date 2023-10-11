@@ -70,6 +70,7 @@ class Controller:
             names=config['enabled_plugins'],
             dependencies={
                 'api': api,
+                'auth_client': self._auth_client,
                 'bus_consumer': self._bus_consumer,
                 'config': config,
                 'service_manager': self._service_manager,

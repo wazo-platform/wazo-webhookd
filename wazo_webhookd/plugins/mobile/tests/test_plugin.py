@@ -10,11 +10,15 @@ from ..plugin import Plugin as MobilePlugin
 
 def test_load_plugin() -> None:
     mock_api = Mock()
-    dependencies = {'api': mock_api, 'config': sentinel.config}
+    dependencies = {
+        'api': mock_api,
+        'config': sentinel.config,
+        'auth_client': sentinel.auth,
+    }
 
     MobilePlugin().load(dependencies)  # type: ignore
     mock_api.add_resource.assert_called_once_with(
         NotificationResource,
         '/mobile/notifications',
-        resource_class_args=[sentinel.config],
+        resource_class_args=[sentinel.config, sentinel.auth],
     )
