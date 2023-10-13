@@ -43,7 +43,7 @@ def send_notification(
             jwt,
         ) = PushNotificationService.get_external_data(config, notification['user_uuid'])
     except requests.HTTPError as e:
-        if e.response.status_code == 404:
+        if e.response and e.response.status_code == 404:
             logger.error(
                 'Cannot send notification as no authentication exists for mobile (%s)',
                 str(e),
