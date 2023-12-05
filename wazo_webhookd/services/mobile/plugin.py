@@ -362,6 +362,7 @@ class PushNotification:
 
         push_service = FCMNotification(api_key=fcm_api_key)
         push_service.FCM_END_POINT = self.config['mobile_fcm_notification_end_point']
+        logger.debug(f'FCM endpoint: {push_service.FCM_END_POINT}')
         notify_kwargs = {
             'registration_id': self.external_tokens['token'],
             'data_message': data,
