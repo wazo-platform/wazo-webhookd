@@ -91,7 +91,6 @@ _DEFAULT_CONFIG: WebhookdConfigDict = {
     'mobile_apns_port': 443,
     'mobile_apns_call_topic': 'org.wazo-platform.voip',
     'mobile_apns_default_topic': 'org.wazo-platform',
-    'mobile_fcm_notification_send_jwt_token': False,
     'mobile_fcm_notification_end_point': FCMNotification.FCM_END_POINT,
 }
 

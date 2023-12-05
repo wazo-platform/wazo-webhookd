@@ -1,2 +1,1 @@
-mobile_fcm_notification_send_jwt_token: True
 mobile_fcm_notification_end_point: https://fcm.proxy.example.com:443/fcm/send

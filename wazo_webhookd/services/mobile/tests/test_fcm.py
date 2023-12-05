@@ -16,7 +16,6 @@ class TestSendViaFcm(TestCase):
     def setUp(self):
         task = Mock()
         config = {
-            'mobile_fcm_notification_send_jwt_token': False,
             'mobile_fcm_notification_end_point': 'the url',
         }
         external_tokens = {'token': s.token}
@@ -44,6 +43,8 @@ class TestSendViaFcm(TestCase):
 
         self.push_notification._send_via_fcm(title, body, data)
 
+        assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
+        FCMNotification.assert_called_once_with(api_key=s.fcm_api_key)
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
@@ -64,6 +65,8 @@ class TestSendViaFcm(TestCase):
 
         self.push_notification._send_via_fcm(title, body, data)
 
+        assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
+        FCMNotification.assert_called_once_with(api_key=s.fcm_api_key)
         push_service.single_device_data_message.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
@@ -86,6 +89,8 @@ class TestSendViaFcm(TestCase):
 
         self.push_notification._send_via_fcm(title, body, data)
 
+        assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
+        FCMNotification.assert_called_once_with(api_key=s.fcm_api_key)
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
@@ -113,6 +118,8 @@ class TestSendViaFcm(TestCase):
 
         self.push_notification._send_via_fcm(title, body, data)  # type: ignore
 
+        assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
+        FCMNotification.assert_called_once_with(api_key=s.fcm_api_key)
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
@@ -123,4 +130,40 @@ class TestSendViaFcm(TestCase):
             extra_notification_kwargs={
                 'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
             },
+        )
+
+    @patch('wazo_webhookd.services.mobile.plugin.FCMNotification')
+    def test_send_notification_with_jwt(self, FCMNotification):
+        push_service = FCMNotification.return_value
+        task = Mock()
+        config = {
+            'mobile_fcm_notification_end_point': 'the url',
+        }
+        external_tokens = {'token': s.token}
+        external_config: dict[str, str] = {}
+        jwt = 'the jwt'
+        push_notification = PushNotification(
+            task,
+            config,  # type: ignore
+            external_tokens,  # type: ignore
+            external_config,  # type: ignore
+            jwt,
+        )
+
+        title = 'Incoming Call'  # Ignored
+        body = 'From: 5555555555'  # Ignored
+        data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
+
+        push_notification._send_via_fcm(title, body, data)
+
+        assert push_service.FCM_END_POINT == 'the url'
+        FCMNotification.assert_called_once_with(api_key='the jwt')
+        push_service.single_device_data_message.assert_not_called()
+        push_service.notify_single_device.assert_called_once_with(
+            registration_id=s.token,
+            data_message=data,
+            extra_notification_kwargs={'priority': 'high'},
         )

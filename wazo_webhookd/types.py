@@ -109,7 +109,6 @@ class WebhookdConfigDict(TypedDict):
     mobile_apns_default_topic: str
     mobile_apns_host: str
     mobile_apns_port: int
-    mobile_fcm_notification_send_jwt_token: bool
     mobile_fcm_notification_end_point: str
     service_discovery: ServiceDiscoveryConfigDict
 
