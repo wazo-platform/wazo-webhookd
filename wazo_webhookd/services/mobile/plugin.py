@@ -347,26 +347,30 @@ class PushNotification:
             message_title,
             message_body,
         )
-        notification_type = data['notification_type']
-        fcm_api_key: str | None
-        if self.config['mobile_fcm_notification_send_jwt_token']:
-            if self.jwt:
-                fcm_api_key = self.jwt
-            else:
-                logger.warning(
-                    'fcm is configured to use the JWT token but no token available'
-                )
-                raise Exception('No configured JWT token')
+        fcm_api_key: str
+        fcm_end_point: str
+        has_api_key = bool(self.external_config.get('fcm_api_key'))
+        if has_api_key:
+            fcm_api_key = self.external_config['fcm_api_key']
+            fcm_end_point = FCMNotification.FCM_END_POINT
+        elif self.jwt:
+            fcm_api_key = self.jwt
+            fcm_end_point = self.config['mobile_fcm_notification_end_point']
         else:
-            fcm_api_key = self.external_config.get('fcm_api_key')
+            raise Exception(
+                'Unable to send notification to FCM: no valid authorization'
+                'found to be sent to FCM'
+            )
 
         push_service = FCMNotification(api_key=fcm_api_key)
-        push_service.FCM_END_POINT = self.config['mobile_fcm_notification_end_point']
+        push_service.FCM_END_POINT = fcm_end_point
+        logger.debug(f'FCM endpoint: {push_service.FCM_END_POINT}')
         notify_kwargs = {
             'registration_id': self.external_tokens['token'],
             'data_message': data,
         }
 
+        notification_type = data['notification_type']
         if notification_type == NotificationType.INCOMING_CALL:
             notification = push_service.notify_single_device(
                 extra_notification_kwargs={'priority': 'high'},
