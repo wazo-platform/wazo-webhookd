@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from celery import Task
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
+from requests.exceptions import HTTPError
 
 from wazo_auth_client import Client as AuthClient
 
@@ -50,6 +51,16 @@ class ExternalConfigDict(TypedDict):
     ios_apn_certificate: str
     ios_apn_private: str
     use_sandbox: bool
+
+
+EMPTY_EXTERNAL_CONFIG: ExternalConfigDict = {
+    'client_id': '',
+    'client_secret': '',
+    'fcm_api_key': '',
+    'ios_apn_certificate': '',
+    'ios_apn_private': '',
+    'use_sandbox': False,
+}
 
 
 class BaseNotificationPayload(TypedDict):
@@ -216,9 +227,14 @@ class Service:
         auth, jwt = cls.get_auth(config)
         external_tokens: ExternalMobileDict = auth.external.get('mobile', user_uuid)
         tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
-        external_config: ExternalConfigDict = auth.external.get_config(
-            'mobile', tenant_uuid
-        )
+        try:
+            external_config: ExternalConfigDict = auth.external.get_config(
+                'mobile', tenant_uuid
+            )
+        except HTTPError as e:
+            if e.response and e.response.status_code != 404:
+                raise
+            external_config = EMPTY_EXTERNAL_CONFIG
 
         return external_tokens, external_config, jwt
 
