@@ -49,6 +49,7 @@ class TestSendViaFcm(TestCase):
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
+            time_to_live=0,
             extra_notification_kwargs={'priority': 'high'},
         )
 
@@ -70,6 +71,7 @@ class TestSendViaFcm(TestCase):
         push_service.single_device_data_message.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
+            time_to_live=0,
             extra_notification_kwargs={
                 'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
             },
@@ -95,6 +97,7 @@ class TestSendViaFcm(TestCase):
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
+            time_to_live=0,
             message_title='New voicemail',
             message_body='From: 5555555555',
             badge=1,
@@ -124,6 +127,7 @@ class TestSendViaFcm(TestCase):
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
+            time_to_live=0,
             message_title=s.chat_alias,
             message_body=s.chat_content,
             badge=1,
@@ -165,5 +169,6 @@ class TestSendViaFcm(TestCase):
         push_service.notify_single_device.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
+            time_to_live=0,
             extra_notification_kwargs={'priority': 'high'},
         )
