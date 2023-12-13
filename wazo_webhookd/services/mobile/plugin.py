@@ -384,6 +384,7 @@ class PushNotification:
         notify_kwargs = {
             'registration_id': self.external_tokens['token'],
             'data_message': data,
+            'time_to_live': 0,
         }
 
         notification_type = data['notification_type']
