@@ -1,4 +1,4 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from collections.abc import Callable, Sequence
 from threading import Lock
 from typing import Any, Union, TYPE_CHECKING
 
-from xivo_bus.base import Base
-from xivo_bus.mixins import ThreadableMixin, ConsumerMixin
+from wazo_bus.base import Base
+from wazo_bus.mixins import ThreadableMixin, ConsumerMixin
 
 if TYPE_CHECKING:
     from amqp import Message
