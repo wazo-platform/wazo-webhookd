@@ -35,7 +35,7 @@ Depends:
  wazo-auth-client-python3,
  wazo-dbms,
  xivo-lib-python-python3,
- xivo-bus-python3
+ wazo-bus-python3
 Description: Wazo webhookd server
  Wazo is a system based on a powerful IPBX, to bring an easy to
  install solution for telephony and related services.
