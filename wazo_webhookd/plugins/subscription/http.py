@@ -1,24 +1,25 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import logging
-from typing import TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from flask import request
-from wazo_webhookd.rest_api import AuthResource
 from xivo.auth_verifier import required_acl
-from xivo.tenant_flask_helpers import token, Tenant
+from xivo.tenant_flask_helpers import Tenant, token
+
+from wazo_webhookd.rest_api import AuthResource
 
 from .schema import (
-    subscription_schema,
-    subscription_list_params_schema,
-    user_subscription_schema,
-    subscription_log_schema,
-    SubscriptionLogRequestSchema,
-    SubscriptionLogDict,
     SubscriptionDict,
+    SubscriptionLogDict,
+    SubscriptionLogRequestSchema,
     UserSubscriptionDict,
+    subscription_list_params_schema,
+    subscription_log_schema,
+    subscription_schema,
+    user_subscription_schema,
 )
 
 if TYPE_CHECKING:

@@ -1,24 +1,24 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import logging
 import signal
 import threading
-
 from functools import partial
 from types import FrameType
 from typing import TYPE_CHECKING
 
+from wazo_auth_client import Client as AuthClient
 from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
 from xivo.token_renewer import TokenRenewer
-from wazo_auth_client import Client as AuthClient
+
+from wazo_webhookd import celery
 
 from . import auth
 from .bus import BusConsumer
-from .rest_api import api, CoreRestApi
-from wazo_webhookd import celery
+from .rest_api import CoreRestApi, api
 
 if TYPE_CHECKING:
     from .types import WebhookdConfigDict

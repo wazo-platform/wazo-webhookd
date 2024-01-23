@@ -1,16 +1,15 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-import requests
-
 from contextlib import contextmanager
-from wazo_webhookd_client import Client as WebhookdClient
+
+import requests
 from wazo_test_helpers import until
-from wazo_test_helpers.auth import MockCredentials, MockUserToken
 from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
-from wazo_test_helpers.auth import AuthClient
+from wazo_test_helpers.auth import AuthClient, MockCredentials, MockUserToken
 from wazo_test_helpers.bus import BusClient
+from wazo_webhookd_client import Client as WebhookdClient
 
 from .wait_strategy import WaitStrategy
 

@@ -1,14 +1,15 @@
-# Copyright 2022-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from unittest import TestCase
-from unittest.mock import patch, Mock, sentinel as s
+from unittest.mock import Mock, patch
+from unittest.mock import sentinel as s
 
 from ..plugin import (
     DEFAULT_ANDROID_CHANNEL_ID,
+    NotificationPayload,
     NotificationType,
     PushNotification,
-    NotificationPayload,
 )
 
 

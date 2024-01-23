@@ -9,8 +9,9 @@ Revises: 231d4dbd38
 revision = '57e36bf4269'
 down_revision = '231d4dbd38'
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 
 def upgrade():

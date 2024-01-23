@@ -1,4 +1,4 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import operator
 import time
@@ -7,8 +7,13 @@ from hamcrest import assert_that, contains, contains_string, equal_to, has_entri
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
-from .helpers.base import MASTER_TENANT, USERS_TENANT, OTHER_TENANT, BaseIntegrationTest
-from .helpers.base import MASTER_TOKEN
+from .helpers.base import (
+    MASTER_TENANT,
+    MASTER_TOKEN,
+    OTHER_TENANT,
+    USERS_TENANT,
+    BaseIntegrationTest,
+)
 from .helpers.fixtures import subscription
 from .helpers.wait_strategy import ConnectedWaitStrategy
 

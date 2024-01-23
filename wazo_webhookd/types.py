@@ -1,13 +1,13 @@
-# Copyright 2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 from collections.abc import Callable, Collection
-from typing import TypedDict, Union, Protocol, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict
 
 from flask_restful import Api
-from wazo_auth_client.client import AuthClient
 from stevedore.named import NamedExtensionManager
+from wazo_auth_client.client import AuthClient
 
 from .bus import BusConsumer
 
@@ -22,7 +22,7 @@ TokenRenewalCallback = Callable[[Collection[str]], None]
 class AuthConfigDict(TypedDict):
     host: str
     port: int
-    prefix: Union[str, None]
+    prefix: str | None
     https: bool
     key_file: str
 
@@ -53,8 +53,8 @@ class RestApiCorsConfigDict(TypedDict):
 class RestApiConfigDict(TypedDict):
     listen: str
     port: int
-    certificate: Union[str, None]
-    private_key: Union[str, None]
+    certificate: str | None
+    private_key: str | None
     cors: RestApiCorsConfigDict
     max_threads: int
 

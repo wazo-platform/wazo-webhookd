@@ -1,8 +1,9 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import copy
 from functools import wraps
+
 from wazo_webhookd_client.exceptions import WebhookdError
 
 from .base import MASTER_TOKEN

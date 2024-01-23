@@ -1,20 +1,21 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from flask import request
-from wazo_webhookd.rest_api import AuthResource
-from wazo_webhookd.auth import required_master_tenant
-from xivo.auth_verifier import required_acl
 from jsonpatch import JsonPatch
+from xivo.auth_verifier import required_acl
+
+from wazo_webhookd.auth import required_master_tenant
+from wazo_webhookd.rest_api import AuthResource
 
 from .schemas import config_patch_schema
 
 if TYPE_CHECKING:
-    from .service import ConfigService
     from ...types import WebhookdConfigDict
+    from .service import ConfigService
 
 
 class ConfigResource(AuthResource):

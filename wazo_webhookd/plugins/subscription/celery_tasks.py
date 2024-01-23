@@ -1,4 +1,4 @@
-# Copyright 2019-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
@@ -6,18 +6,17 @@ import datetime
 import logging
 from typing import TYPE_CHECKING, Any
 
+import celery
 from pkg_resources import EntryPoint
 
-import celery
-
 from wazo_webhookd.celery import app
-from wazo_webhookd.services.helpers import HookRetry, HookExpectedError
+from wazo_webhookd.services.helpers import HookExpectedError, HookRetry
 
 from .service import SubscriptionService
 
 if TYPE_CHECKING:
-    from ...types import WebhookdConfigDict
     from ...database.models import Subscription
+    from ...types import WebhookdConfigDict
 
 
 logger = logging.getLogger(__name__)

@@ -1,38 +1,37 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 from __future__ import annotations
 
-from collections.abc import Generator
-from enum import Enum
-from typing import Any, cast, TypedDict, TYPE_CHECKING, Union, Literal
-
-import httpx
 import logging
 import tempfile
-
+from collections.abc import Generator
 from contextlib import contextmanager
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
 
+import httpx
 from celery import Task
 from pyfcm import FCMNotification
 from pyfcm.errors import RetryAfterException
 from requests.exceptions import HTTPError
-
 from wazo_auth_client import Client as AuthClient
 
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 from wazo_webhookd.services.helpers import (
     HookExpectedError,
     HookRetry,
-    requests_automatic_hook_retry,
-    requests_automatic_detail,
     RequestDetailsDict,
+    requests_automatic_detail,
+    requests_automatic_hook_retry,
 )
-from .exceptions import NotificationError
+
 from ...database.models import Subscription
+from .exceptions import NotificationError
 
 if TYPE_CHECKING:
     from wazo_auth_client.types import TokenDict
-    from ...types import WebhookdConfigDict, ServicePluginDependencyDict
+
+    from ...types import ServicePluginDependencyDict, WebhookdConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -102,13 +101,13 @@ class FcmResponseDict(TypedDict):
     failure: int
     canonical_ids: int
     results: list
-    topic_message_id: Union[str, None]
+    topic_message_id: str | None
 
 
 class NotificationSentStatusDict(TypedDict):
     success: bool
     protocol_used: Literal['apns', 'fcm']
-    full_response: Union[FcmResponseDict, RequestDetailsDict]
+    full_response: FcmResponseDict | RequestDetailsDict
 
 
 REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)

@@ -1,8 +1,8 @@
-# Copyright 2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
-from unittest.mock import patch, Mock, sentinel
+from unittest.mock import Mock, patch, sentinel
 
 from ..celery_tasks import send_notification
 

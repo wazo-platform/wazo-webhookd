@@ -1,4 +1,4 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from typing import Any
 
@@ -10,24 +10,24 @@ from hamcrest import (
     equal_to,
     has_entries,
     has_entry,
-    has_key,
     has_item,
+    has_key,
     has_property,
     not_,
 )
-from wazo_webhookd_client.exceptions import WebhookdError
 from wazo_test_helpers.hamcrest.raises import raises
+from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import (
-    BaseIntegrationTest,
-    MASTER_TOKEN,
     MASTER_TENANT,
-    WAZO_UUID,
-    USER_1_TOKEN,
-    USER_2_TOKEN,
-    USER_1_UUID,
-    USERS_TENANT,
+    MASTER_TOKEN,
     OTHER_USER_TOKEN,
+    USER_1_TOKEN,
+    USER_1_UUID,
+    USER_2_TOKEN,
+    USERS_TENANT,
+    WAZO_UUID,
+    BaseIntegrationTest,
 )
 from .helpers.fixtures import subscription
 from .helpers.wait_strategy import EverythingOkWaitStrategy

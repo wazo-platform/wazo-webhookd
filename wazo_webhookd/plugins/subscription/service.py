@@ -1,21 +1,21 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
-import logging
 from typing import TYPE_CHECKING
 
-from sqlalchemy import and_, create_engine, distinct, func, or_, exc
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import and_, create_engine, distinct, exc, func, or_
+from sqlalchemy.orm import scoped_session, sessionmaker
+from xivo.pubsub import Pubsub
+
 from wazo_webhookd.database.models import (
     Subscription,
     SubscriptionLog,
     SubscriptionMetadatum,
 )
-from xivo.pubsub import Pubsub
 
 from .exceptions import NoSuchSubscription
 

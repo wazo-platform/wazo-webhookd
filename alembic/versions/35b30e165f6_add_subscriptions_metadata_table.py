@@ -10,9 +10,9 @@ revision = '35b30e165f6'
 down_revision = '57e36bf4269'
 
 import sqlalchemy as sa
+from sqlalchemy.schema import Column
 
 from alembic import op
-from sqlalchemy.schema import Column
 
 
 def upgrade():

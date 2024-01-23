@@ -1,4 +1,4 @@
-# Copyright 2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import json
 from functools import partial
@@ -9,8 +9,7 @@ from mockserver import MockServerClient
 from wazo_test_helpers import until
 from wazo_webhookd_client.exceptions import WebhookdError
 
-from .helpers.base import BaseIntegrationTest, USERS_TENANT
-from .helpers.base import MASTER_TOKEN, USER_1_UUID
+from .helpers.base import MASTER_TOKEN, USER_1_UUID, USERS_TENANT, BaseIntegrationTest
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
 

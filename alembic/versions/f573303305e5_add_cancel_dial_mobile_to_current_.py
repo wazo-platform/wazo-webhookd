@@ -9,8 +9,9 @@ Revises: df313e703ee8
 revision = 'f573303305e5'
 down_revision = 'df313e703ee8'
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 NEW_EVENT_NAME = 'call_cancel_push_notification'
 

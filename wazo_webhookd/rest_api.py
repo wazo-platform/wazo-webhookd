@@ -1,20 +1,17 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import logging
 import os
+from datetime import timedelta
 
 from cheroot import wsgi
-from datetime import timedelta
-from flask import Flask, request, Response
-from flask_restful import Api
-from flask_restful import Resource
+from flask import Flask, Response, request
 from flask_cors import CORS
+from flask_restful import Api, Resource
+from xivo import http_helpers, mallow_helpers, rest_api_helpers
 from xivo.auth_verifier import AuthVerifier
-from xivo import http_helpers
-from xivo import mallow_helpers
-from xivo import rest_api_helpers
 
 from wazo_webhookd.types import WebhookdConfigDict
 
