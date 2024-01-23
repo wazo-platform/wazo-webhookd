@@ -1,13 +1,8 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
-from typing import TypedDict, Literal, Any
+from typing import Any, Literal, TypedDict
 
-from marshmallow import EXCLUDE
-from marshmallow import pre_load, post_load
-from marshmallow import Schema
-from marshmallow import validates
-from marshmallow import ValidationError
-
+from marshmallow import EXCLUDE, Schema, ValidationError, post_load, pre_load, validates
 from xivo.mallow import fields
 from xivo.mallow.validate import Length, OneOf, validate_string_dict
 from xivo.mallow_helpers import ListSchema

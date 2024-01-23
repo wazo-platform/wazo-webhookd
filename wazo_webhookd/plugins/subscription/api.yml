@@ -22,7 +22,7 @@ paths:
     post:
       summary: Subscribe to a HTTP callback (webhook)
       description: '**Required ACL:** `webhookd.subscriptions.create`
-      
+
 
       For more information: https://wazo-platform.org/documentation/api/webhook.html'
       operationId: create

@@ -4,7 +4,7 @@
 
 * New resource added to allow for sending push notifications for mobile
 
-  * POST `/1.0/mobile/notifications` 
+  * POST `/1.0/mobile/notifications`
 
 ## 21.13
 

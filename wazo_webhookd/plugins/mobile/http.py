@@ -1,22 +1,22 @@
-# Copyright 2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import logging
-from typing import TypedDict, Literal
+from typing import Literal, TypedDict
 
 import requests
 from flask import request
 from wazo_auth_client.client import AuthClient
+from xivo.auth_verifier import required_acl
 from xivo.rest_api_helpers import APIException
 from xivo.tenant_flask_helpers import Tenant
 
 from wazo_webhookd.rest_api import AuthResource
-from xivo.auth_verifier import required_acl
 
-from .schema import notification_schema
-from .celery_tasks import send_notification
 from ...types import WebhookdConfigDict
+from .celery_tasks import send_notification
+from .schema import notification_schema
 
 logger = logging.getLogger(__name__)
 

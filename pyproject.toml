@@ -24,3 +24,7 @@ exclude = [
 per-file-ignores = """
     alembic/*: E402
 """
+
+[tool.isort]
+profile = "black"
+py_version = 39

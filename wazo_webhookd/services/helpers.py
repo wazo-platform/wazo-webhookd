@@ -1,15 +1,15 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import contextlib
 import json
 import logging
-from typing import TypedDict, Any, Union
+from typing import Any, TypedDict
 
 # TODO(sileht): move the http plugin to httpx too.
-import requests
 import httpx
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 class RequestDetailsDict(TypedDict):
     request_method: str
     request_url: str
-    request_body: Union[dict[str, str], str, None]
+    request_body: dict[str, str] | str | None
     request_headers: dict[str, str]
-    response_status_code: Union[int, None]
+    response_status_code: int | None
     response_headers: dict[str, str]
-    response_body: Union[dict[str, str], str, None]
+    response_body: dict[str, str] | str | None
 
 
 class ErrorRequestDetailsDict(RequestDetailsDict):

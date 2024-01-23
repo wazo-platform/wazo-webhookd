@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-
 from threading import Lock
-from typing import Any, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Union
 
 from wazo_bus.base import Base
-from wazo_bus.mixins import ThreadableMixin, ConsumerMixin
+from wazo_bus.mixins import ConsumerMixin, ThreadableMixin
 
 if TYPE_CHECKING:
     from amqp import Message

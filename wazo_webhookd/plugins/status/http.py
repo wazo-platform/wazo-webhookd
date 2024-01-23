@@ -1,12 +1,13 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
-from typing import TypedDict, Literal, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
+
+from xivo.auth_verifier import required_acl
 
 from wazo_webhookd import auth
 from wazo_webhookd.rest_api import AuthResource
-from xivo.auth_verifier import required_acl
 
 if TYPE_CHECKING:
     from ...bus import BusConsumer

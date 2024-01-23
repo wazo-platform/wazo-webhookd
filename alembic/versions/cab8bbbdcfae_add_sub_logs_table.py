@@ -9,10 +9,11 @@ Revises: f63e43dcf0ca
 revision = 'cab8bbbdcfae'
 down_revision = 'f63e43dcf0ca'
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.schema import Column
 from sqlalchemy_utils import JSONType
+
+from alembic import op
 
 
 def upgrade():

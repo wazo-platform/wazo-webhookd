@@ -1,14 +1,13 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from typing import Any
-
-from marshmallow import ValidationError
-from hamcrest import assert_that, calling, equal_to, not_, has_key, has_entry, raises
 from unittest import TestCase
+
+from hamcrest import assert_that, calling, equal_to, has_entry, has_key, not_, raises
+from marshmallow import ValidationError
 from werkzeug.datastructures import MultiDict
 
-from ..schema import subscription_schema
-from ..schema import subscription_list_params_schema
+from ..schema import subscription_list_params_schema, subscription_schema
 
 VALID_SUBSCRIPTION: dict[str, Any] = {
     'name': 'test',

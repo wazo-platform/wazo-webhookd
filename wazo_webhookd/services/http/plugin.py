@@ -1,23 +1,22 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import cgi
 import json
 import logging
-from typing import NamedTuple, TYPE_CHECKING
-
-import requests
 import socket
 import urllib.parse
+from typing import TYPE_CHECKING, NamedTuple
 
+import requests
 from celery import Task
 from jinja2 import Environment
 
 from wazo_webhookd.services.helpers import (
-    requests_automatic_hook_retry,
-    requests_automatic_detail,
     RequestDetailsDict,
+    requests_automatic_detail,
+    requests_automatic_hook_retry,
 )
 
 if TYPE_CHECKING:

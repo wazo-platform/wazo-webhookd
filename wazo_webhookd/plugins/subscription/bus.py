@@ -1,29 +1,30 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import logging
+import uuid
+from functools import partial
+from threading import Lock
 from typing import TYPE_CHECKING, Any, Callable, Union
 
 import kombu.exceptions
-import uuid
-
-from threading import Lock
-from functools import partial
 
 from wazo_webhookd.auth import master_tenant_uuid
+
 from .celery_tasks import hook_runner_task
 from .schema import subscription_schema
 
 if TYPE_CHECKING:
     from importlib.metadata import EntryPoint
+
     from stevedore.extension import Extension
     from stevedore.named import NamedExtensionManager
 
-    from .service import SubscriptionService
     from ...bus import BusConsumer
     from ...database.models import Subscription
     from ...types import WebhookdConfigDict
+    from .service import SubscriptionService
 
 
 logger = logging.getLogger(__name__)

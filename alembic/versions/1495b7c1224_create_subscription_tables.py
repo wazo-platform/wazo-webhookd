@@ -9,9 +9,10 @@ Revises: None
 revision = '1495b7c1224'
 down_revision = None
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.schema import Column
+
+from alembic import op
 
 
 def upgrade():

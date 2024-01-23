@@ -1,15 +1,14 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import functools
 import json
 
 import requests
-
 from hamcrest import (
     assert_that,
-    contains_string,
     contains_inanyorder,
+    contains_string,
     equal_to,
     has_entries,
     has_entry,
@@ -18,13 +17,13 @@ from hamcrest import (
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
-from .helpers.base import BaseIntegrationTest
 from .helpers.base import (
     JWT_TENANT_0,
     MASTER_TOKEN,
     USER_1_UUID,
     USER_2_UUID,
     USERS_TENANT,
+    BaseIntegrationTest,
 )
 from .helpers.wait_strategy import ConnectedWaitStrategy
 

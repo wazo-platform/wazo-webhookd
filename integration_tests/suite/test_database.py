@@ -1,12 +1,12 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
 import os
 import uuid
-
 from contextlib import contextmanager
 from functools import partial
+
 from hamcrest import (
     assert_that,
     calling,
@@ -19,11 +19,14 @@ from hamcrest import (
 )
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import scoped_session, sessionmaker
 from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
-from wazo_webhookd.database.models import Subscription
-from wazo_webhookd.database.models import SubscriptionEvent
-from wazo_webhookd.database.models import SubscriptionOption
+
+from wazo_webhookd.database.models import (
+    Subscription,
+    SubscriptionEvent,
+    SubscriptionOption,
+)
 from wazo_webhookd.database.purger import SubscriptionLogsPurger
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 

@@ -1,4 +1,4 @@
-# Copyright 2017-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, TypeVar
 
 from flask import request
 from requests import HTTPError
+from werkzeug.local import LocalProxy as Proxy
 from xivo.auth_verifier import AuthServerUnreachable, required_tenant
 from xivo.rest_api_helpers import APIException
 
-from werkzeug.local import LocalProxy as Proxy
-from .rest_api import app
 from .exceptions import TokenWithUserUUIDRequiredError
+from .rest_api import app
 
 if TYPE_CHECKING:
     from wazo_auth_client.client import AuthClient

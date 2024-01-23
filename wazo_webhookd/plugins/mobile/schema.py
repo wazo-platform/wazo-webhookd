@@ -1,12 +1,13 @@
-# Copyright 2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
 import re
-from typing import TypedDict, Any
+from typing import Any, TypedDict
 
 from marshmallow import Schema, fields
 from marshmallow.validate import Length, NoneOf, Regexp
+
 from ...services.mobile.plugin import RESERVED_NOTIFICATION_TYPES
 
 
