@@ -44,6 +44,15 @@ class FCMNotRegisteredError(FCMError):
     pass
 
 
+class FCMSenderIDMismatch(FCMError):
+    """
+    mobile app is registered to another senderid
+    https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode
+    """
+
+    pass
+
+
 class FCMServerError(FCMError):
     """
     Internal server error or timeout error on Firebase cloud messaging server
@@ -427,6 +436,8 @@ class BaseAPI:
                 )
             elif response.status_code == 400:
                 raise InvalidDataError(response.text)
+            elif response.status_code == 403:
+                raise FCMSenderIDMismatch(response.json()['error'])
             elif response.status_code == 404:
                 raise FCMNotRegisteredError("Token not registered")
             else:
