@@ -7,11 +7,11 @@ import os
 from collections.abc import Sequence
 from typing import Any, cast
 
-from pyfcm import FCMNotification
 from xivo.chain_map import ChainMap
 from xivo.config_helper import parse_config_file, read_config_file_hierarchy
 from xivo.xivo_logging import get_log_level_by_name
 
+from wazo_webhookd.services.mobile.fcm_client import FCMNotification
 from wazo_webhookd.types import WebhookdConfigDict
 
 _DEFAULT_HTTP_PORT = 9300
