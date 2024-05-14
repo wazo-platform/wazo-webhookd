@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import tempfile
+import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
@@ -385,6 +386,14 @@ class PushNotification:
             fcm_api_key = self.external_config['fcm_api_key']
             fcm_end_point = FCMNotificationLegacy.FCM_END_POINT
             logger.debug('Using FCM legacy client')
+            warnings.warn(
+                "Using Firebase Cloud Messaging Legacy Client will be deprecated "
+                "in June 2024. Please generate new credentials and use the service account "
+                "information file instead. \n"
+                "See https://firebase.google.com/docs/cloud-messaging"
+                "/migrate-v1#provide-credentials-manually",
+                FutureWarning,
+            )
         elif self.jwt:
             fcm_api_key = self.jwt
             fcm_end_point = self.config['mobile_fcm_notification_end_point']
