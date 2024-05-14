@@ -423,7 +423,9 @@ class PushNotification:
             }
         else:
             if data.get('items', None):
-                data['items'] = json.dumps(data['items'], separators=(',', ':'), sort_keys=True)
+                data['items'] = json.dumps(
+                    data['items'], separators=(',', ':'), sort_keys=True
+                )
             else:
                 data['items'] = ""
 

@@ -325,7 +325,9 @@ class TestNotificationsFCMv1(BaseIntegrationTest):
                     'path': '/v1/projects/project-123/messages:send',
                     'body': {
                         'type': 'STRING',
-                        'string': json.dumps(expected_payload_body, separators=(',', ':'), sort_keys=True),
+                        'string': json.dumps(
+                            expected_payload_body, separators=(',', ':'), sort_keys=True
+                        ),
                     },
                 },
                 'httpResponse': {
@@ -356,7 +358,9 @@ class TestNotificationsFCMv1(BaseIntegrationTest):
                 'path': '/v1/projects/project-123/messages:send',
                 'body': {
                     'type': 'string',
-                    'string': json.dumps(expected_payload_body, separators=(',', ':'), sort_keys=True),
+                    'string': json.dumps(
+                        expected_payload_body, separators=(',', ':'), sort_keys=True
+                    ),
                 },
             },
         )
