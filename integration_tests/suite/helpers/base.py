@@ -34,6 +34,27 @@ JWT_TENANT_1 = 'first-tenant-jwt-token'
 JWT_TENANT_2 = 'second-tenant-jwt-token'
 
 START_TIMEOUT = int(os.environ.get('INTEGRATION_TEST_TIMEOUT', '30'))
+PRIVATE_KEY = (
+    "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQClXvUW41FSxPQ4"
+    "\nA0fZXePX2bMThU1aRQet2jrsItGxpsjUTQJQya12PYvvFzJfonZ1l7H2m/abyXCB\nxftED5l5mBjntvWOWswieKTX9"
+    "PZDdLkMPWu1kwPKTxR1IqEQBI+xUicf/sW8jTH+\nEt1jo6dxwigYFjE8VKnlJyt/prqSUMN2lu6M8sHv+5jvUbSpiV4L"
+    "rOW5h/9zvDYM\ni9InElVNAC1Sd029/iDaqgJ8eTiX8Bhqop48fi2xPJ90xnvYlmXwJUkhXwFOyp7j\nKFzig9vW07cJL"
+    "5zQlGiEZLwJc5pbNo3kVfJUgeofSI6omy0kA/gxC/FwcBX4is+N\niemJvEiHAgMBAAECggEAA+eTEXng8+HzAwn1l1Ww"
+    "YuqHLOdrC4rK6WyLeZ0Oc6Ur\nFsAriG0xBRqwHb9GRDXMzQf9senxNhc/UQEaTRTlNcn4KvhwVQhVy5Aq329JC6l+\ne"
+    "QiDBr2BS5r3mH07bYP+DimRA1NiDddzniEjf9r5KCZCb7DBptmegIRrpYIlSf3h\nqWpbzOWxsXZ+Q/hWzMge0Yx14KAt"
+    "XmT4s8YPRIFfs1g1f/1SgUJSiIFgUJAg271b\n+CoM39fLhKiL2ujHkoRsjsmjFIeGw+zVvw7MDwlC8CR3hnIO5RuEE7S"
+    "yEoRPzbJp\nQavGZLE1XT7moYGAiE4Uo7DL6qRXY6WEgIMKJs7RcQKBgQDWL8EVggeeb4vmCA9O\nXy3U1lqz8By47bua"
+    "12oSv2fNt1RKx+yx8VQicNxApfTBNnZ93IzQ+WFWkI+dgsLI\ncHh0dZcXHP+Cl2OFXGZ6acueFYDuEjb2NmFuSH8gf8J"
+    "0kmOu1PDFZ7pOYYLoL+LS\na/daFe4cLPc4icg/tju4VqMVbwKBgQDFp5ShFP6hArz4efhBPso/YMkKmLznZpyq\nTfyu"
+    "vAh2/PQKvjiJCrL2PGwcpA0uca9i6f/spaLzkwQ1SdLZinZwzGpZoPF2ZyG8\nZu+xIdgs2L+qZ/f/tp6lylggv0OCCB5"
+    "AwTQg+BhusyxXjl7g9G6qc9GheY+fysrg\nG2jiLZxiaQKBgQDQL6iY1EO9jyTHGWxvO/pbV2LgZXI1mfXxIpLa2Cr4fM"
+    "q0yTDb\nIPwrYdHkEKsfJmX0HmzNLqibMHY3noLfutqKMEYE1E3SzH2Sgeal87FT3gjs3s2H\ncgIv5M2UdDo5fpTfueC"
+    "xsAoZ55QLRYhOCV1qtcg0oMxHqzz2GJZhrexkhwKBgAdN\nMoNk2Ccwh7SSJOacIDKJK8QVcl0GAGGWMfBuh82FeKpw7n"
+    "u5hnTsNH42XTpK/tSj\nmk2urL9cvfoN+RkKMWfnVUJsXJ8oHinsj4w2mNrHQwVTg+jRYTj0qZ7EEgVasWto\n97kEETr"
+    "9qXSukLi0ruXjE2poqDKZ9jajLJO2ZaGJAoGBAMQkdVvRIWxqstdPped5\nF+HYgQ2rZP2NgL+ea+cIwoc5IoOQkYrDVZ"
+    "8P7GwuDUxB+YixjUKsEMkm7/xll3dA\nHvtK7wIl5mQe2OqP2tnf2Un8ofVPYtAWXL8vRXcgaVgnN7BQamB6820ENy7uX"
+    "yZ3\nXVb1NZEIb9zqNmoTihJX33lV\n-----END PRIVATE KEY-----\n"
+)
 
 
 class BaseIntegrationTest(AssetLaunchingTestCase):

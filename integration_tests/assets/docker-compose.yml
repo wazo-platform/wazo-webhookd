@@ -41,6 +41,13 @@ services:
     ports:
       - "443"
 
+  oauth2.googleapis.com:
+    image: jamesdbloom/mockserver:mockserver-5.7.0
+    command: ["-logLevel", "DEBUG", "-serverPort", "443", "-proxyPort", "1090", "-genericJVMOptions", "-Dmockserver.sslCertificateDomainName='oauth2.googleapis.com'"]
+    user: root
+    ports:
+      - "443"
+
   postgres:
     image: wazoplatform/wazo-webhookd-db:local
     ports:

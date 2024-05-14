@@ -3,6 +3,7 @@
 
 import functools
 import json
+import uuid
 
 import requests
 from hamcrest import (
@@ -20,6 +21,7 @@ from wazo_test_helpers import until
 from .helpers.base import (
     JWT_TENANT_0,
     MASTER_TOKEN,
+    PRIVATE_KEY,
     USER_1_UUID,
     USER_2_UUID,
     USERS_TENANT,
@@ -88,7 +90,9 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'peer_caller_id_number': 'caller-id'},
+                                'items': json.dumps(
+                                    {'peer_caller_id_number': 'caller-id'}
+                                ),
                                 'notification_type': 'incomingCall',
                             }
                         },
@@ -109,7 +113,9 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'peer_caller_id_number': 'caller-id'},
+                                'items': json.dumps(
+                                    {'peer_caller_id_number': 'caller-id'}
+                                ),
                                 'notification_type': 'cancelIncomingCall',
                             }
                         },
@@ -302,7 +308,7 @@ class TestMobileCallback(BaseIntegrationTest):
 
         until.assert_(check, timeout=10, interval=0.5)
 
-    def test_workflow_fcm(self):
+    def test_workflow_fcm_legacy(self):
         third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
         )
@@ -348,6 +354,221 @@ class TestMobileCallback(BaseIntegrationTest):
                     'body': json.dumps(
                         {'message_id': 'message-id-cancel-incoming-call'}
                     ),
+                },
+            }
+        )
+
+        auth = self.make_auth()
+        auth.reset_external_auth()
+        auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+            },
+        )
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
+        subscriptions = webhookd.subscriptions.list(recurse=True)
+        assert_that(subscriptions['total'], equal_to(1))
+        assert_that(
+            subscriptions['items'][0],
+            has_entries(
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_1_UUID}",
+                events=contains_inanyorder(
+                    'chatd_user_room_message_created',
+                    'call_push_notification',
+                    'call_cancel_push_notification',
+                    'user_voicemail_message_created',
+                ),
+                owner_tenant_uuid=USERS_TENANT,
+                owner_user_uuid=USER_1_UUID,
+                service='mobile',
+            ),
+        )
+
+        subscription = subscriptions['items'][0]
+
+        # Send incoming call push notification
+        self.bus.publish(
+            {
+                'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                f'user_uuid:{USER_1_UUID}': True,
+                'data': {'peer_caller_id_number': 'caller-id'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-incoming-call'),
+                ),
+                attempts=1,
+            ),
+        )
+
+        # Canceling the push notification
+        self.bus.publish(
+            {
+                'name': 'call_cancel_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                f'user_uuid:{USER_1_UUID}': True,
+                'data': {'peer_caller_id_number': 'caller-id'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        self._wait_items(
+            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            number=2,
+        )
+
+        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(2))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entries(topic_message_id='message-id-cancel-incoming-call'),
+                ),
+                event=has_entries(name='call_cancel_push_notification'),
+                attempts=1,
+            ),
+        )
+
+        webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_workflow_fcm_v1(self):
+        fcm_account_info = {
+            "type": "service_account",
+            "project_id": "project-123",
+            "private_key_id": uuid.uuid4().hex,
+            "private_key": PRIVATE_KEY,
+            "client_email": "project-123@project-123.iam.gserviceaccount.com",
+            "client_id": "0" * 21,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": (
+                "https://www.googleapis.com/robot/v1/metadata/"
+                "x509/project-123%40project-123.iam.gserviceaccount.com"
+            ),
+            "universe_domain": "googleapis.com",
+        }
+
+        fake_token = {
+            "access_token": "valid-access-token",
+            "scope": "",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+        }
+
+        auth = self.make_auth()
+        auth.set_external_config(
+            {
+                'mobile': {
+                    'fcm_service_account_info': json.dumps(fcm_account_info),
+                    'is_sandbox': False,
+                }
+            }
+        )
+        oauth2_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(443, "oauth2.googleapis.com")}'
+        )
+        oauth2_third_party.reset()
+        oauth2_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'method': 'POST',
+                    'path': '/token',
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps(fake_token),
+                },
+            }
+        )
+
+        fcm_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
+        )
+        fcm_third_party.reset()
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/v1/projects/project-123/messages:send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'message': {
+                                'data': {
+                                    'items': r'"{\"peer_caller_id_number\":\"caller-id\"}"',
+                                    'notification_type': 'incomingCall',
+                                },
+                            },
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'name': 'message-id-incoming-call'}),
+                },
+            }
+        )
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/v1/projects/project-123/messages:send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'message': {
+                                'data': {
+                                    'items': r'"{\"peer_caller_id_number\":\"caller-id\"}"',
+                                    'notification_type': 'cancelIncomingCall',
+                                },
+                            },
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'name': 'message-id-cancel-incoming-call'}),
                 },
             }
         )

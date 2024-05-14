@@ -1,6 +1,7 @@
 # Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 import json
+import uuid
 from functools import partial
 
 import pytest
@@ -9,7 +10,13 @@ from mockserver import MockServerClient
 from wazo_test_helpers import until
 from wazo_webhookd_client.exceptions import WebhookdError
 
-from .helpers.base import MASTER_TOKEN, USER_1_UUID, USERS_TENANT, BaseIntegrationTest
+from .helpers.base import (
+    MASTER_TOKEN,
+    PRIVATE_KEY,
+    USER_1_UUID,
+    USERS_TENANT,
+    BaseIntegrationTest,
+)
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
 
@@ -54,7 +61,7 @@ class TestNotifications(BaseIntegrationTest):
             'user_uuid': ['Length must be 36.'],
         }
 
-    def test_can_send_notification_android(self) -> None:
+    def test_can_send_notification_android_legacy(self) -> None:
         third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
         )
@@ -213,6 +220,143 @@ class TestNotifications(BaseIntegrationTest):
                 'body': {
                     'type': 'string',
                     'string': json.dumps(test),
+                },
+            },
+        )
+        until.return_(verify_called, timeout=15, interval=0.5)
+
+
+class TestNotificationsFCMv1(BaseIntegrationTest):
+    asset = 'base'
+    wait_strategy = ConnectedWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.auth = self.make_auth()
+        requests.post(
+            self.auth.url('0.1/users'),
+            json={
+                'email_address': 'foo@bar',
+                'username': 'foobar',
+                'password': 'secret',
+                'uuid': USER_1_UUID,
+            },
+            headers={'Wazo-Tenant': USERS_TENANT},
+        )
+
+    def test_can_send_notification_android_v1(self) -> None:
+        fcm_account_info = {
+            "type": "service_account",
+            "project_id": "project-123",
+            "private_key_id": uuid.uuid4().hex,
+            "private_key": PRIVATE_KEY,
+            "client_email": "project-123@project-123.iam.gserviceaccount.com",
+            "client_id": "0" * 21,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": (
+                "https://www.googleapis.com/robot/v1/metadata/"
+                "x509/project-123%40project-123.iam.gserviceaccount.com"
+            ),
+            "universe_domain": "googleapis.com",
+        }
+
+        fake_token = {
+            "access_token": "valid-access-token",
+            "scope": "",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+        }
+
+        auth = self.make_auth()
+        auth.set_external_config(
+            {
+                'mobile': {
+                    'fcm_service_account_info': json.dumps(fcm_account_info),
+                    'is_sandbox': False,
+                }
+            }
+        )
+        oauth2_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(443, "oauth2.googleapis.com")}'
+        )
+        oauth2_third_party.reset()
+        oauth2_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'method': 'POST',
+                    'path': '/token',
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps(fake_token),
+                },
+            }
+        )
+
+        fcm_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
+        )
+        fcm_third_party.reset()
+        expected_payload_body = {
+            'message': {
+                'data': {
+                    'notification_type': 'plugin',
+                    'plugin': 'test',
+                    'items': '',
+                },
+                'android': {
+                    'priority': 'high',
+                    'ttl': '0s',
+                    'notification': {
+                        'channel_id': 'io.wazo.songbird',
+                        'notification_count': 1,
+                        'body': 'test message',
+                        'title': 'test title',
+                    },
+                },
+                'token': 'token-android',
+            }
+        }
+        fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/v1/projects/project-123/messages:send',
+                    'body': {
+                        'type': 'STRING',
+                        'string': json.dumps(expected_payload_body, separators=(',', ':'), sort_keys=True),
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'name': 'message-id-plugin-test'}),
+                },
+            }
+        )
+
+        self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+        webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
+
+        test_notification = {
+            'notification_type': "plugin",
+            'user_uuid': USER_1_UUID,
+            'title': 'test title',
+            'body': 'test message',
+            'extra': {
+                'plugin': "test",
+            },
+        }
+        webhookd.mobile_notifications.send(test_notification)
+
+        verify_called = partial(
+            fcm_third_party.verify,
+            request={
+                'path': '/v1/projects/project-123/messages:send',
+                'body': {
+                    'type': 'string',
+                    'string': json.dumps(expected_payload_body, separators=(',', ':'), sort_keys=True),
                 },
             },
         )
