@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 from __future__ import annotations
 
+import json
 import logging
 import tempfile
 from collections.abc import Generator
@@ -11,8 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
 
 import httpx
 from celery import Task
-from pyfcm import FCMNotification
-from pyfcm.errors import RetryAfterException
+from pyfcm import FCMNotification as FCMNotificationLegacy
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 
@@ -27,6 +27,7 @@ from wazo_webhookd.services.helpers import (
 
 from ...database.models import Subscription
 from .exceptions import NotificationError
+from .fcm_client import FCMNotification, RetryAfterException
 
 if TYPE_CHECKING:
     from wazo_auth_client.types import TokenDict
@@ -47,6 +48,7 @@ class ExternalConfigDict(TypedDict):
     client_id: str
     client_secret: str
     fcm_api_key: str
+    fcm_service_account_info: str
     ios_apn_certificate: str
     ios_apn_private: str
     use_sandbox: bool
@@ -56,6 +58,7 @@ EMPTY_EXTERNAL_CONFIG: ExternalConfigDict = {
     'client_id': '',
     'client_secret': '',
     'fcm_api_key': '',
+    'fcm_service_account_info': '',
     'ios_apn_certificate': '',
     'ios_apn_private': '',
     'use_sandbox': False,
@@ -64,7 +67,7 @@ EMPTY_EXTERNAL_CONFIG: ExternalConfigDict = {
 
 class BaseNotificationPayload(TypedDict):
     notification_type: str
-    items: dict[str, Any]
+    items: str | dict
 
 
 NotificationPayload = Union[BaseNotificationPayload, dict[str, Any]]
@@ -362,41 +365,73 @@ class PushNotification:
             message_title,
             message_body,
         )
+        fcm_service_account_info: dict
         fcm_api_key: str
-        fcm_end_point: str
         has_api_key = bool(self.external_config.get('fcm_api_key'))
-        if has_api_key:
-            fcm_api_key = self.external_config['fcm_api_key']
+        has_service_account_info = bool(
+            self.external_config.get('fcm_service_account_info')
+        )
+        legacy_fcm = True
+
+        if has_service_account_info:
+            fcm_service_account_info_raw = self.external_config[
+                'fcm_service_account_info'
+            ]
+            fcm_service_account_info = json.loads(fcm_service_account_info_raw)
             fcm_end_point = FCMNotification.FCM_END_POINT
+            legacy_fcm = False
+            logger.debug('Using FCM v1 client')
+        elif has_api_key:
+            fcm_api_key = self.external_config['fcm_api_key']
+            fcm_end_point = FCMNotificationLegacy.FCM_END_POINT
+            logger.debug('Using FCM legacy client')
         elif self.jwt:
             fcm_api_key = self.jwt
             fcm_end_point = self.config['mobile_fcm_notification_end_point']
+            logger.debug('Using FCM legacy client with JWT')
         else:
             raise Exception(
                 'Unable to send notification to FCM: no valid authorization'
                 'found to be sent to FCM'
             )
 
-        push_service = FCMNotification(api_key=fcm_api_key)
+        if legacy_fcm:
+            push_service = FCMNotificationLegacy(api_key=fcm_api_key)
+        else:
+            push_service = FCMNotification(
+                service_account_info=fcm_service_account_info
+            )
+
         push_service.FCM_END_POINT = fcm_end_point
-        logger.debug(f'FCM endpoint: {push_service.FCM_END_POINT}')
-        notify_kwargs = {
-            'registration_id': self.external_tokens['token'],
-            'data_message': data,
-            'time_to_live': 0,
-        }
 
         notification_type = data['notification_type']
+
+        if legacy_fcm:
+            notify_kwargs = {
+                'registration_id': self.external_tokens['token'],
+                'data_message': data,
+                'time_to_live': 0,
+            }
+        else:
+            if data.get('items', None):
+                data['items'] = json.dumps(data['items'], separators=(',', ':'), sort_keys=True)
+            else:
+                data['items'] = ""
+
+            notify_kwargs = {
+                'registration_token': self.external_tokens['token'],
+                'data_message': data,
+                'time_to_live': 0,
+            }
+
         if notification_type == NotificationType.INCOMING_CALL:
             notification = push_service.notify_single_device(
-                extra_notification_kwargs={'priority': 'high'},
+                low_priority=False,
                 **notify_kwargs,
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
             notification = push_service.single_device_data_message(
-                extra_notification_kwargs={
-                    'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
-                },
+                android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
                 **notify_kwargs,
             )
         else:
@@ -406,15 +441,14 @@ class PushNotification:
                 notify_kwargs['message_body'] = message_body
 
             notification = push_service.notify_single_device(
-                extra_notification_kwargs={
-                    'android_channel_id': DEFAULT_ANDROID_CHANNEL_ID
-                },
+                android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
                 badge=1,
                 **notify_kwargs,
             )
 
         if notification.get('failure') != 0:
-            logger.error('Error to send push notification: %s', notification)
+            logger.error('Error sending push notification: %s', notification)
+
         return notification
 
     @contextmanager
