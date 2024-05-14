@@ -430,7 +430,11 @@ class BaseAPI:
             elif response.status_code == 404:
                 raise FCMNotRegisteredError("Token not registered")
             else:
-                raise FCMServerError("FCM server is temporarily unavailable")
+                try:
+                    error = response.json()['error']
+                except (json.JSONDecodeError, KeyError):
+                    error = response.text
+                raise FCMServerError(error)
         return response_dict
 
 
