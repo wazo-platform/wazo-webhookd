@@ -5,7 +5,7 @@ https://github.com/wazo-platform/wazo-bus/archive/master.zip
 alembic==1.4.3
 celery==5.0.0
 cheroot==8.5.2
-cryptography==3.3.2
+cryptography==3.3.2  # improves performance of google-auth RSA algorithm
 flask-cors==3.0.9
 flask-restful==0.3.8
 flask==1.1.2
