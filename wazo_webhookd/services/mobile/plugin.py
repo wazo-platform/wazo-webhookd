@@ -127,6 +127,7 @@ class NotificationType(
     INCOMING_CALL = 'incomingCall'
     CANCEL_INCOMING_CALL = 'cancelIncomingCall'
     PLUGIN = 'plugin'
+    MISSED_CALL = 'missedCall'
 
 
 RESERVED_NOTIFICATION_TYPES = (
@@ -134,6 +135,7 @@ RESERVED_NOTIFICATION_TYPES = (
     NotificationType.VOICEMAIL_RECEIVED,
     NotificationType.INCOMING_CALL,
     NotificationType.CANCEL_INCOMING_CALL,
+    NotificationType.MISSED_CALL,
 )
 
 MAP_NAME_TO_NOTIFICATION_TYPE = {
@@ -141,6 +143,7 @@ MAP_NAME_TO_NOTIFICATION_TYPE = {
     'call_push_notification': NotificationType.INCOMING_CALL,
     'call_cancel_push_notification': NotificationType.CANCEL_INCOMING_CALL,
     'chatd_user_room_message_created': NotificationType.MESSAGE_RECEIVED,
+    'user_missed_call': NotificationType.MISSED_CALL,
 }
 
 
@@ -181,6 +184,7 @@ class Service:
                         'call_push_notification',
                         'call_cancel_push_notification',
                         'user_voicemail_message_created',
+                        'user_missed_call',
                     ],
                     'events_user_uuid': user_uuid,
                     # 'events_tenant_uuid': tenant_uuid,
@@ -313,6 +317,17 @@ class PushNotification:
             data['alias'],
             data['content'],
             {'items': data},
+        )
+
+    def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        logger.debug(
+            'Dispatching notification for missed call event with data: %s', data
+        )
+        return self.send_notification(
+            NotificationType.MISSED_CALL,
+            "Missed call",
+            f"Missed a call from: {data['caller_id_name']}(number {data['caller_id_number']})",
+            data,
         )
 
     def send_notification(
