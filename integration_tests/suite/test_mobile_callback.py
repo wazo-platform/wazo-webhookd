@@ -32,42 +32,8 @@ from .helpers.wait_strategy import ConnectedWaitStrategy
 SOME_ROUTING_KEY = 'routing-key'
 
 
-class TestFCMNotificationProxy(BaseIntegrationTest):
-    asset = 'proxy'
+class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
     wait_strategy = ConnectedWaitStrategy()
-
-    def setUp(self):
-        super().setUp()
-        self.bus = self.make_bus()
-        auth = self.make_auth()
-        requests.post(
-            auth.url('0.1/users'),
-            json={
-                'email_address': 'foo@bar',
-                'username': 'foobar',
-                'password': 'secret',
-                'uuid': USER_1_UUID,
-            },
-            headers={'Wazo-Tenant': USERS_TENANT},
-        )
-        requests.post(
-            auth.url('0.1/users'),
-            json={
-                'email_address': 'foo@bar',
-                'username': 'foobar',
-                'password': 'secret',
-                'uuid': USER_2_UUID,
-            },
-            headers={'Wazo-Tenant': USERS_TENANT},
-        )
-
-        auth.set_external_config(
-            {
-                'mobile': {
-                    'is_sandbox': False,
-                }
-            }
-        )
 
     @staticmethod
     def _wait_items(func, number=1):
@@ -77,12 +43,64 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
 
         until.assert_(check, timeout=10, interval=0.5)
 
-    def test_workflow_fcm(self):
-        third_party = MockServerClient(
+    def setUp(self):
+        super().setUp()
+        self.webhookd = self.make_webhookd(MASTER_TOKEN)
+        self.bus = self.make_bus()
+        self.auth = self.make_auth()
+
+        self.auth.set_external_config(
+            {
+                'mobile': {
+                    'is_sandbox': False,
+                }
+            }
+        )
+
+        self.auth.reset_external_auth()
+
+        # create users
+        requests.post(
+            self.auth.url('0.1/users'),
+            json={
+                'email_address': 'foo@bar',
+                'username': 'foobar',
+                'password': 'secret',
+                'uuid': USER_1_UUID,
+            },
+            headers={'Wazo-Tenant': USERS_TENANT},
+        )
+        requests.post(
+            self.auth.url('0.1/users'),
+            json={
+                'email_address': 'foo@bar',
+                'username': 'foobar',
+                'password': 'secret',
+                'uuid': USER_2_UUID,
+            },
+            headers={'Wazo-Tenant': USERS_TENANT},
+        )
+
+
+class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
+    """
+    coverage for event-triggered mobile push notifications with FCM push proxy
+    """
+
+    asset = 'proxy'
+    wait_strategy = ConnectedWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
         )
-        third_party.reset()
-        third_party.mock_any_response(
+        self.third_party.reset()
+        self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+    def test_incoming_call_workflow_fcm(self):
+        # setup FCM API for incomingCall push notification request
+        self.third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -105,7 +123,8 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
                 },
             }
         )
-        third_party.mock_any_response(
+        # setup FCM API for cancelIncomingCall push notification request
+        self.third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -131,10 +150,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             }
         )
 
-        auth = self.make_auth()
-        auth.reset_external_auth()
-        auth.set_external_auth({'token': 'token-android', 'apns_token': None})
-
+        # mobile user logs in
         self.bus.publish(
             {
                 'name': 'auth_user_external_auth_added',
@@ -148,9 +164,11 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             },
         )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
-        subscriptions = webhookd.subscriptions.list(recurse=True)
+        # expect new subscription for new mobile login
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
@@ -171,7 +189,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
 
         subscription = subscriptions['items'][0]
 
-        # Send incoming call push notification
+        # trigger bus event for incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
@@ -189,10 +207,13 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            )
         )
 
-        third_party.verify(
+        # expect FCM API to receive request for push notif
+        self.third_party.verify(
             request={
                 'path': '/fcm/send',
                 'headers': [
@@ -201,7 +222,7 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             },
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
@@ -233,11 +254,13 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            ),
             number=2,
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(2))
         assert_that(
             logs['items'][0],
@@ -252,69 +275,55 @@ class TestFCMNotificationProxy(BaseIntegrationTest):
             ),
         )
 
-        webhookd.subscriptions.delete(subscription["uuid"])
+        self.webhookd.subscriptions.delete(subscription["uuid"])
 
 
-class TestMobileCallback(BaseIntegrationTest):
+class TestMobileCallback(BaseMobileCallbackIntegrationTest):
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 
     def setUp(self):
         super().setUp()
-        self.bus = self.make_bus()
-        auth = self.make_auth()
-        requests.post(
-            auth.url('0.1/users'),
-            json={
-                'email_address': 'foo@bar',
-                'username': 'foobar',
-                'password': 'secret',
-                'uuid': USER_1_UUID,
-            },
-            headers={'Wazo-Tenant': USERS_TENANT},
-        )
-        requests.post(
-            auth.url('0.1/users'),
-            json={
-                'email_address': 'foo@bar',
-                'username': 'foobar',
-                'password': 'secret',
-                'uuid': USER_2_UUID,
-            },
-            headers={'Wazo-Tenant': USERS_TENANT},
-        )
 
-        with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
-            ios_apn_certificate = f.read()
+        # with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
+        #     ios_apn_certificate = f.read()
 
-        with open(self.assets_root + "/fake-apple-ca/certs/client.key") as f:
-            ios_apn_key = f.read()
+        # with open(self.assets_root + "/fake-apple-ca/certs/client.key") as f:
+        #     ios_apn_key = f.read()
 
-        auth.set_external_config(
+        # self.auth.reset_external_auth()
+        # self.auth.set_external_config(
+        #     {
+        #         'mobile': {
+        #             'fcm_api_key': 'FCM_API_KEY',
+        #             'ios_apn_certificate': ios_apn_certificate,
+        #             'ios_apn_private': ios_apn_key,
+        #             'is_sandbox': False,
+        #         }
+        #     }
+        # )
+
+
+class TestMobileCallbackFCMLegacy(TestMobileCallback):
+    def setUp(self):
+        super().setUp()
+        self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+        self.auth.set_external_config(
             {
                 'mobile': {
                     'fcm_api_key': 'FCM_API_KEY',
-                    'ios_apn_certificate': ios_apn_certificate,
-                    'ios_apn_private': ios_apn_key,
                     'is_sandbox': False,
                 }
             }
         )
-
-    @staticmethod
-    def _wait_items(func, number=1):
-        def check():
-            logs = func()
-            assert_that(logs['total'], equal_to(number))
-
-        until.assert_(check, timeout=10, interval=0.5)
-
-    def test_workflow_fcm_legacy(self):
-        third_party = MockServerClient(
+        self.third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
         )
-        third_party.reset()
-        third_party.mock_any_response(
+        self.third_party.reset()
+
+    def test_incoming_call_workflow(self):
+        # setup FCM incomingCall notification request
+        self.third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -335,7 +344,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 },
             }
         )
-        third_party.mock_any_response(
+        self.third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -359,10 +368,6 @@ class TestMobileCallback(BaseIntegrationTest):
             }
         )
 
-        auth = self.make_auth()
-        auth.reset_external_auth()
-        auth.set_external_auth({'token': 'token-android', 'apns_token': None})
-
         self.bus.publish(
             {
                 'name': 'auth_user_external_auth_added',
@@ -376,9 +381,11 @@ class TestMobileCallback(BaseIntegrationTest):
             },
         )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
-        subscriptions = webhookd.subscriptions.list(recurse=True)
+        # webhookd = self.make_webhookd(MASTER_TOKEN)
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
@@ -417,10 +424,12 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            )
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
@@ -452,11 +461,13 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            ),
             number=2,
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(2))
         assert_that(
             logs['items'][0],
@@ -471,9 +482,12 @@ class TestMobileCallback(BaseIntegrationTest):
             ),
         )
 
-        webhookd.subscriptions.delete(subscription["uuid"])
+        self.webhookd.subscriptions.delete(subscription["uuid"])
 
-    def test_workflow_fcm_v1(self):
+
+class TestMobileCallbackFCMv1(TestMobileCallback):
+    def setUp(self):
+        super().setUp()
         fcm_account_info = {
             "type": "service_account",
             "project_id": "project-123",
@@ -498,8 +512,7 @@ class TestMobileCallback(BaseIntegrationTest):
             "expires_in": 3600,
         }
 
-        auth = self.make_auth()
-        auth.set_external_config(
+        self.auth.set_external_config(
             {
                 'mobile': {
                     'fcm_service_account_info': json.dumps(fcm_account_info),
@@ -507,11 +520,12 @@ class TestMobileCallback(BaseIntegrationTest):
                 }
             }
         )
-        oauth2_third_party = MockServerClient(
+
+        self.oauth2_third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "oauth2.googleapis.com")}'
         )
-        oauth2_third_party.reset()
-        oauth2_third_party.mock_any_response(
+        self.oauth2_third_party.reset()
+        self.oauth2_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'method': 'POST',
@@ -523,12 +537,16 @@ class TestMobileCallback(BaseIntegrationTest):
                 },
             }
         )
-
-        fcm_third_party = MockServerClient(
+        self.fcm_third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
         )
-        fcm_third_party.reset()
-        fcm_third_party.mock_any_response(
+        self.fcm_third_party.reset()
+
+        self.auth.reset_external_auth()
+        self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+    def test_workflow_fcm_v1(self):
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/v1/projects/project-123/messages:send',
@@ -551,7 +569,7 @@ class TestMobileCallback(BaseIntegrationTest):
                 },
             }
         )
-        fcm_third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/v1/projects/project-123/messages:send',
@@ -575,10 +593,6 @@ class TestMobileCallback(BaseIntegrationTest):
             }
         )
 
-        auth = self.make_auth()
-        auth.reset_external_auth()
-        auth.set_external_auth({'token': 'token-android', 'apns_token': None})
-
         self.bus.publish(
             {
                 'name': 'auth_user_external_auth_added',
@@ -592,9 +606,10 @@ class TestMobileCallback(BaseIntegrationTest):
             },
         )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
-        subscriptions = webhookd.subscriptions.list(recurse=True)
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
@@ -633,10 +648,12 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            )
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
@@ -668,11 +685,13 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            ),
             number=2,
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(2))
         assert_that(
             logs['items'][0],
@@ -687,19 +706,41 @@ class TestMobileCallback(BaseIntegrationTest):
             ),
         )
 
-        webhookd.subscriptions.delete(subscription["uuid"])
+        self.webhookd.subscriptions.delete(subscription["uuid"])
 
-    def test_workflow_apns_with_app_using_one_token(self):
-        auth = self.make_auth()
-        auth.reset_external_auth()
-        # Older iOS apps used only one APNs token
-        auth.set_external_auth({'token': 'token-android', 'apns_token': 'token-ios'})
 
-        apns_third_party = MockServerClient(
+class TestMobileCallbackAPNS(TestMobileCallback):
+    def setUp(self):
+        super().setUp()
+        self.auth.reset_external_auth()
+        self.apns_third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
         )
-        apns_third_party.reset()
-        apns_third_party.mock_simple_response(
+        self.apns_third_party.reset()
+        with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
+            ios_apn_certificate = f.read()
+
+        with open(self.assets_root + "/fake-apple-ca/certs/client.key") as f:
+            ios_apn_key = f.read()
+
+        self.auth.set_external_config(
+            {
+                'mobile': {
+                    'fcm_api_key': 'FCM_API_KEY',
+                    'ios_apn_certificate': ios_apn_certificate,
+                    'ios_apn_private': ios_apn_key,
+                    'is_sandbox': False,
+                }
+            }
+        )
+
+    def test_workflow_apns_with_app_using_one_token(self):
+        # Older iOS apps used only one APNs token
+        self.auth.set_external_auth(
+            {'token': 'token-android', 'apns_token': 'token-ios'}
+        )
+
+        self.apns_third_party.mock_simple_response(
             path='/3/device/token-ios',
             responseBody={'tracker': 'tracker'},
             statusCode=200,
@@ -714,9 +755,11 @@ class TestMobileCallback(BaseIntegrationTest):
             headers={'name': 'auth_user_external_auth_added'},
         )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
-        subscriptions = webhookd.subscriptions.list(recurse=True)
+        # webhookd = self.make_webhookd(MASTER_TOKEN)
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
@@ -755,10 +798,12 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            )
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
@@ -790,11 +835,13 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            ),
             number=2,
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(2))
         assert_that(
             logs['items'],
@@ -810,13 +857,12 @@ class TestMobileCallback(BaseIntegrationTest):
             ),
         )
 
-        webhookd.subscriptions.delete(subscription["uuid"])
+        self.webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_workflow_apns_with_app_using_two_tokens(self):
-        auth = self.make_auth()
-        auth.reset_external_auth()
+        # self.auth.reset_external_auth()
         # Newer iOS apps use two APNs token
-        auth.set_external_auth(
+        self.auth.set_external_auth(
             {
                 'token': 'token-android',
                 'apns_token': 'apns-voip-token',
@@ -825,16 +871,12 @@ class TestMobileCallback(BaseIntegrationTest):
             }
         )
 
-        apns_third_party = MockServerClient(
-            f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
-        )
-        apns_third_party.reset()
-        apns_third_party.mock_simple_response(
+        self.apns_third_party.mock_simple_response(
             path='/3/device/apns-voip-token',
             responseBody={'tracker': 'tracker-voip'},
             statusCode=200,
         )
-        apns_third_party.mock_simple_response(
+        self.apns_third_party.mock_simple_response(
             path='/3/device/apns-notification-token',
             responseBody={'tracker': 'tracker-notification'},
             statusCode=200,
@@ -849,9 +891,11 @@ class TestMobileCallback(BaseIntegrationTest):
             headers={'name': 'auth_user_external_auth_added'},
         )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-        self._wait_items(functools.partial(webhookd.subscriptions.list, recurse=True))
-        subscriptions = webhookd.subscriptions.list(recurse=True)
+        # webhookd = self.make_webhookd(MASTER_TOKEN)
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert_that(subscriptions['total'], equal_to(1))
         assert_that(
             subscriptions['items'][0],
@@ -890,10 +934,12 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"])
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            )
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
@@ -928,11 +974,13 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            ),
             number=2,
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(2))
         assert_that(
             logs['items'][0],
@@ -950,8 +998,8 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         # Send chat message push notification
-        apns_third_party.reset()
-        apns_third_party.mock_simple_response(
+        self.apns_third_party.reset()
+        self.apns_third_party.mock_simple_response(
             path='/3/device/apns-notification-token',
             responseBody={'tracker': 'tracker-notification'},
             statusCode=200,
@@ -973,11 +1021,13 @@ class TestMobileCallback(BaseIntegrationTest):
         )
 
         self._wait_items(
-            functools.partial(webhookd.subscriptions.get_logs, subscription["uuid"]),
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription["uuid"]
+            ),
             number=3,
         )
 
-        logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(3))
         assert_that(
             logs['items'][0],
@@ -993,4 +1043,4 @@ class TestMobileCallback(BaseIntegrationTest):
             ),
         )
 
-        webhookd.subscriptions.delete(subscription["uuid"])
+        self.webhookd.subscriptions.delete(subscription["uuid"])
