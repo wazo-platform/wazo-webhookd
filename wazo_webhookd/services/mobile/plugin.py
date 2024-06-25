@@ -326,8 +326,13 @@ class PushNotification:
         return self.send_notification(
             NotificationType.MISSED_CALL,
             "Missed call",
-            f"Missed a call from: {data['caller_id_name']}(number {data['caller_id_number']})",
-            data,
+            f"Missed a call from: {data['caller_id_name']} (number {data['caller_id_number']})",
+            {
+                'items': {
+                    'caller_id_name': data['caller_id_name'],
+                    'caller_id_number': data['caller_id_number'],
+                },
+            },
         )
 
     def send_notification(
