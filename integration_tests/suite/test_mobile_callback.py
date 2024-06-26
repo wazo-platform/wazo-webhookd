@@ -40,6 +40,16 @@ class MockServerClient(_MockServerClient):
         response.raise_for_status()
         return response.json()
 
+    def assert_verify(
+        self, request, count: int | None = None, exact: bool | None = None
+    ):
+        try:
+            assert self.verify(request, count=count, exact=exact)
+        except Exception:
+            raise AssertionError(
+                f'Failed to verify {request} with count {count}(exact={exact})'
+            )
+
 
 class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
     wait_strategy = ConnectedWaitStrategy()
@@ -652,14 +662,21 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
         # expect FCM API to receive request for push notif
-        self.third_party.verify(
-            request={
-                'path': '/fcm/send',
-                'headers': [
-                    {'name': 'authorization', 'values': ['key=FCM_API_KEY']},
-                ],
-            },
-        )
+        def assert_fcm_request():
+            self.third_party.assert_verify(
+                request={
+                    'path': '/fcm/send',
+                    'headers': [
+                        {'name': 'authorization', 'values': ['key=FCM_API_KEY']},
+                    ],
+                    'body': {
+                        'type': 'STRING',
+                        'contentType': 'application/json',
+                    },
+                },
+            )
+
+        until.assert_(assert_fcm_request, timeout=10, interval=0.5)
 
         logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
@@ -952,26 +969,21 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
 
         # expect FCM API to receive request for push notif
         def assert_fcm_request():
-            try:
-                self.fcm_third_party.verify(
-                    request={
-                        'path': '/v1/projects/project-123/messages:send',
-                        'headers': [
-                            {
-                                'name': 'authorization',
-                                'values': [
-                                    f'Bearer {self.oauth2_token["access_token"]}'
-                                ],
-                            },
-                        ],
-                        'body': {
-                            'type': 'STRING',
-                            'contentType': 'application/json',
+            self.fcm_third_party.assert_verify(
+                request={
+                    'path': '/v1/projects/project-123/messages:send',
+                    'headers': [
+                        {
+                            'name': 'authorization',
+                            'values': [f'Bearer {self.oauth2_token["access_token"]}'],
                         },
-                    }
-                )
-            except Exception:
-                raise AssertionError
+                    ],
+                    'body': {
+                        'type': 'STRING',
+                        'contentType': 'application/json',
+                    },
+                }
+            )
 
         until.assert_(assert_fcm_request, timeout=10, interval=0.5)
 
