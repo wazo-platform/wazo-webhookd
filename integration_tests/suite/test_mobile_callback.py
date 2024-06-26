@@ -545,7 +545,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         self.auth.reset_external_auth()
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
-    def test_workflow_fcm_v1(self):
+    def test_incoming_call_workflow(self):
         self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
