@@ -100,6 +100,11 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
             headers={'Wazo-Tenant': USERS_TENANT},
         )
 
+    def tearDown(self) -> None:
+        super().tearDown()
+        for subscription in self.webhookd.subscriptions.list(recurse=True)['items']:
+            self.webhookd.subscriptions.delete(subscription['uuid'])
+
     def _given_mobile_subscription(self, user_uuid):
         # mobile user logs in
         self.bus.publish(
