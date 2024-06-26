@@ -616,18 +616,9 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
             {
                 'httpRequest': {
                     'path': '/fcm/send',
-                    'body': {
-                        'type': 'JSON',
-                        'json': {
-                            'data': {
-                                'items': {
-                                    'caller_id_number': '12221114455',
-                                    'caller_id_name': 'John Doe',
-                                },
-                                'notification_type': 'missedCall',
-                            }
-                        },
-                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    'headers': {
+                        'Content-Type': ['application/json'],
+                        'Authorization': ['key=FCM_API_KEY'],
                     },
                 },
                 'httpResponse': {
@@ -694,6 +685,49 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                     has_entry('topic_message_id', 'message-id-missed-call'),
                 ),
                 attempts=1,
+            ),
+        )
+
+        # check content of FCM request
+        fcm_notification_requests = self.third_party.get_requests(path='/fcm/send')
+        assert fcm_notification_requests and len(fcm_notification_requests) == 1
+        request = fcm_notification_requests[0]
+
+        # expecting a request with a json body and proper authorization header
+        assert_that(
+            request,
+            has_entries(
+                body=has_entries(
+                    type='STRING',
+                    string=instance_of(str),
+                    contentType='application/json',
+                ),
+                headers=has_entries(
+                    'Content-Type',
+                    contains_exactly('application/json'),
+                    'Authorization',
+                    contains_exactly('key=FCM_API_KEY'),
+                ),
+            ),
+        )
+
+        # expecting the json body to contain the proper payload
+        request_body_json = json.loads(request['body']['string'])
+
+        assert_that(
+            request_body_json,
+            has_entries(
+                notification=has_entries(
+                    title=instance_of(str),
+                    body=instance_of(str),
+                ),
+                data=has_entries(
+                    items=has_entries(
+                        caller_id_name='John Doe',
+                        caller_id_number='12221114455',
+                    ),
+                    notification_type='missedCall',
+                ),
             ),
         )
 
