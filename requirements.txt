@@ -3,7 +3,7 @@ https://github.com/wazo-platform/wazo-auth-client/archive/master.zip
 https://github.com/wazo-platform/xivo-lib-python/archive/master.zip
 https://github.com/wazo-platform/wazo-bus/archive/master.zip
 alembic==1.4.3
-celery==5.0.0
+celery==5.0.0  # not compatible with pip >= 24
 cheroot==8.5.2
 cryptography==3.3.2  # improves performance of google-auth RSA algorithm
 flask-cors==3.0.9
