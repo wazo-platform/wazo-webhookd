@@ -11,7 +11,7 @@ from flask import Flask, Response, request
 from flask_cors import CORS
 from flask_restful import Api, Resource
 from xivo import http_helpers, mallow_helpers, rest_api_helpers
-from xivo.auth_verifier import AuthVerifier
+from xivo.flask.auth_verifier import AuthVerifierFlask
 
 from wazo_webhookd.types import WebhookdConfigDict
 
@@ -20,7 +20,7 @@ VERSION = 1.0
 logger = logging.getLogger(__name__)
 app = Flask('wazo-webhookd')
 api = Api(app, prefix=f'/{VERSION}')
-auth_verifier = AuthVerifier()
+auth_verifier = AuthVerifierFlask()
 
 
 def log_request_params(response: Response) -> Response:
