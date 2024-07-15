@@ -38,7 +38,6 @@ class CoreRestApi:
         app.secret_key = os.urandom(24)
         app.permanent_session_lifetime = timedelta(minutes=5)
         app.config['auth'] = global_config['auth']
-        auth_verifier.set_config(global_config['auth'])
         self._load_cors()
         self.server: wsgi.WSGIServer = None  # type: ignore[assignment]
 
