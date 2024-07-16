@@ -11,7 +11,7 @@ from flask import Flask, Response, request
 from flask_cors import CORS
 from flask_restful import Api, Resource
 from xivo import http_helpers, mallow_helpers, rest_api_helpers
-from xivo.auth_verifier import AuthVerifier
+from xivo.flask.auth_verifier import AuthVerifierFlask
 
 from wazo_webhookd.types import WebhookdConfigDict
 
@@ -20,7 +20,7 @@ VERSION = 1.0
 logger = logging.getLogger(__name__)
 app = Flask('wazo-webhookd')
 api = Api(app, prefix=f'/{VERSION}')
-auth_verifier = AuthVerifier()
+auth_verifier = AuthVerifierFlask()
 
 
 def log_request_params(response: Response) -> Response:
@@ -38,7 +38,6 @@ class CoreRestApi:
         app.secret_key = os.urandom(24)
         app.permanent_session_lifetime = timedelta(minutes=5)
         app.config['auth'] = global_config['auth']
-        auth_verifier.set_config(global_config['auth'])
         self._load_cors()
         self.server: wsgi.WSGIServer = None  # type: ignore[assignment]
 
@@ -88,6 +87,6 @@ class ErrorCatchingResource(Resource):
 
 class AuthResource(ErrorCatchingResource):
     method_decorators = [
-        auth_verifier.verify_token,
         auth_verifier.verify_tenant,
+        auth_verifier.verify_token,
     ] + ErrorCatchingResource.method_decorators
