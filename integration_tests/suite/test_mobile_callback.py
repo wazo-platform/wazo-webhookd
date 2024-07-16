@@ -506,7 +506,6 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
             },
         )
 
-        # webhookd = self.make_webhookd(MASTER_TOKEN)
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)
         )
@@ -1133,7 +1132,6 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             headers={'name': 'auth_user_external_auth_added'},
         )
 
-        # webhookd = self.make_webhookd(MASTER_TOKEN)
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)
         )
@@ -1269,7 +1267,6 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             headers={'name': 'auth_user_external_auth_added'},
         )
 
-        # webhookd = self.make_webhookd(MASTER_TOKEN)
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)
         )
