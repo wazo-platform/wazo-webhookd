@@ -3,7 +3,7 @@ LABEL maintainer="Wazo Maintainers <dev@wazo.community>"
 
 COPY . /usr/src/wazo-webhookd
 WORKDIR /usr/src/wazo-webhookd
-ENV ALEMBIC_DB_URI postgresql://wazo-webhookd:Secr7t@localhost/wazo-webhookd
+ENV ALEMBIC_DB_URI=postgresql://wazo-webhookd:Secr7t@localhost/wazo-webhookd
 
 RUN true \
     && python3 setup.py install \
