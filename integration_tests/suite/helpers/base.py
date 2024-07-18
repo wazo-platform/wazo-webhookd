@@ -2,13 +2,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import random
+import string
 from contextlib import contextmanager
 
 import requests
+import yaml
 from wazo_test_helpers import until
 from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from wazo_test_helpers.auth import AuthClient, MockCredentials, MockUserToken
 from wazo_test_helpers.bus import BusClient
+from wazo_test_helpers.filesystem import FileSystemClient
 from wazo_webhookd_client import Client as WebhookdClient
 
 from .wait_strategy import WaitStrategy
@@ -254,3 +258,23 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         until.true(
             bus.is_up, timeout=START_TIMEOUT, message='rabbitmq did not come back up'
         )
+
+    @classmethod
+    @contextmanager
+    def webhookd_with_config(cls, config):
+        filesystem = FileSystemClient(
+            execute=cls.docker_exec,
+            service_name='webhookd',
+            root=True,
+        )
+        name = ''.join(random.choice(string.ascii_lowercase) for _ in range(6))
+        config_file = f'/etc/wazo-webhookd/conf.d/10-{name}.yml'
+        content = yaml.dump(config)
+        try:
+            with filesystem.file_(config_file, content=content):
+                cls.restart_service('webhookd')
+                yield
+        finally:
+            cls.restart_service('webhookd')
+            webhookd = cls.make_webhookd(MASTER_TOKEN)
+            cls.wait_strategy.wait(webhookd)
