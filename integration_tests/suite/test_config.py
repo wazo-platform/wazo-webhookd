@@ -2,13 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that, calling, equal_to, has_entry, has_key, has_properties
-from requests import RequestException
 from wazo_test_helpers import until
 from wazo_test_helpers.hamcrest.raises import raises
 from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import MASTER_TOKEN, START_TIMEOUT, USER_1_TOKEN, BaseIntegrationTest
-from .helpers.wait_strategy import EverythingOkWaitStrategy
+from .helpers.wait_strategy import EverythingOkWaitStrategy, WebhookdStartedWaitStrategy
 
 
 class TestConfig(BaseIntegrationTest):
@@ -63,35 +62,20 @@ class TestConfig(BaseIntegrationTest):
             raises(WebhookdError, has_properties('status_code', 401)),
         )
 
-    def test_restrict_on_with_slow_wazo_auth(self):
-        self.stop_service('webhookd')
-        self.stop_service('auth')
-        self.start_service('webhookd')
+    def test_restrict_when_service_token_not_initialized(self):
+        def _returns_503(webhookd):
+            assert_that(
+                calling(webhookd.config.get),
+                raises(WebhookdError).matching(
+                    has_properties(
+                        status_code=503,
+                        error_id='master-tenant-not-initialized',
+                    )
+                ),
+            )
 
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-
-        def _returns_503():
-            try:
-                webhookd.config.get()
-            except WebhookdError as e:
-                assert e.status_code == 503
-            except RequestException as e:
-                raise AssertionError(e)
-            else:
-                raise AssertionError('Should not return a success')
-
-        until.assert_(_returns_503, tries=10)
-
-        self.start_service('auth')
-        auth = self.make_auth()
-        until.true(auth.is_up, timeout=START_TIMEOUT)
-        self.configured_wazo_auth()
-
-        def _not_return_503():
-            try:
-                response = webhookd.config.get()
-                assert_that(response, has_key('debug'))
-            except Exception as e:
-                raise AssertionError(e)
-
-        until.assert_(_not_return_503, tries=10)
+        config = {'auth': {'username': 'invalid-service'}}
+        with self.webhookd_with_config(config):
+            webhookd = self.make_webhookd(MASTER_TOKEN)
+            WebhookdStartedWaitStrategy().wait(webhookd)
+            until.assert_(_returns_503, webhookd, timeout=START_TIMEOUT)
