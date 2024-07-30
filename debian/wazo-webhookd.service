@@ -10,6 +10,7 @@ ExecStartPre=/usr/bin/install -d -o wazo-webhookd -g wazo-webhookd /run/wazo-web
 ExecStart=/usr/bin/wazo-webhookd
 Restart=on-failure
 RestartSec=5
+SyslogIdentifier=wazo-webhookd
 
 [Install]
 WantedBy=multi-user.target
