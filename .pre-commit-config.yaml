@@ -17,6 +17,7 @@ repos:
         language_version: "3.10"
         args: [--explicit-package-bases]
         additional_dependencies:
+          - "alembic"
           - "sqlalchemy-stubs"
           - "sqlalchemy==1.3.22"
           - "types-pyyaml"
