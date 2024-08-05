@@ -8,6 +8,7 @@ import tempfile
 import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
 
@@ -270,6 +271,13 @@ class Service:
         if notification_type := MAP_NAME_TO_NOTIFICATION_TYPE.get(name):
             return getattr(push, notification_type)(data)
         return None
+
+
+def generate_timestamp(now: datetime | None = None) -> str:
+    if now:
+        return now.isoformat(timespec='seconds')
+    else:
+        return datetime.now(tz=timezone.utc).isoformat(timespec='seconds')
 
 
 class PushNotification:
