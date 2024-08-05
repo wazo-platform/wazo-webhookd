@@ -150,15 +150,15 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
 
     def setUp(self):
         super().setUp()
-        self.third_party = MockServerClient(
+        self.fcm_third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
         )
-        self.third_party.reset()
+        self.fcm_third_party.reset()
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
     def test_incoming_call_workflow_fcm(self):
         # setup FCM API for incomingCall push notification request
-        self.third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -182,7 +182,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
             }
         )
         # setup FCM API for cancelIncomingCall push notification request
-        self.third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -271,7 +271,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         )
 
         # expect FCM API to receive request for push notif
-        self.third_party.verify(
+        self.fcm_third_party.verify(
             request={
                 'path': '/fcm/send',
                 'headers': [
@@ -339,7 +339,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         # user logs in
         subscription = self._given_mobile_subscription(USER_1_UUID)
 
-        self.third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -397,7 +397,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
         # expect FCM API to receive request for push notif
-        self.third_party.verify(
+        self.fcm_third_party.verify(
             request={
                 'path': '/fcm/send',
                 'headers': [
@@ -441,14 +441,14 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                 }
             }
         )
-        self.third_party = MockServerClient(
+        self.fcm_third_party = MockServerClient(
             f'http://127.0.0.1:{self.service_port(443, "fcm.googleapis.com")}'
         )
-        self.third_party.reset()
+        self.fcm_third_party.reset()
 
     def test_incoming_call_workflow(self):
         # setup FCM incomingCall notification request
-        self.third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -469,7 +469,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                 },
             }
         )
-        self.third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -659,7 +659,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
 
         # expect FCM API to receive request for push notif
         def assert_fcm_request():
-            self.third_party.assert_verify(
+            self.fcm_third_party.assert_verify(
                 request={
                     'path': '/fcm/send',
                     'headers': [
@@ -689,7 +689,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         # check content of FCM request
-        fcm_notification_requests = self.third_party.get_requests(path='/fcm/send')
+        fcm_notification_requests = self.fcm_third_party.get_requests(path='/fcm/send')
         assert fcm_notification_requests and len(fcm_notification_requests) == 1
         request = fcm_notification_requests[0]
 
