@@ -139,6 +139,27 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
 
         return subscription
 
+    def assert_last_fcm_request(self, assertion_fun):
+        fcm_notification_requests = self.fcm_third_party.get_requests(path='/fcm/send')
+
+        assert fcm_notification_requests and len(fcm_notification_requests) >= 1
+
+        request = fcm_notification_requests[-1]
+        request_body_meta = request['body']
+        assert (
+            'type' in request_body_meta
+            and 'contentType' in request_body_meta
+            and request_body_meta['type'] in {'STRING', 'JSON'}
+        )
+        if request_body_meta['type'] == 'STRING':
+            assert request_body_meta['contentType'] == 'application/json'
+            request_body = json.loads(request_body_meta['string'])
+        elif request_body_meta['type'] == 'JSON':
+            assert request_body_meta['contentType'] == 'application/json'
+            request_body = json.loads(request_body_meta['json'])
+
+        assertion_fun(request_body)
+
 
 class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
     """
@@ -792,6 +813,29 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         self.auth.reset_external_auth()
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
+    def assert_last_fcm_request(self, assertion_fun):
+        fcm_notification_requests = self.fcm_third_party.get_requests(
+            path='/v1/projects/project-123/messages:send'
+        )
+
+        assert fcm_notification_requests and len(fcm_notification_requests) >= 1
+
+        request = fcm_notification_requests[-1]
+        request_body_meta = request['body']
+        assert (
+            'type' in request_body_meta
+            and 'contentType' in request_body_meta
+            and request_body_meta['type'] in {'STRING', 'JSON'}
+        )
+        if request_body_meta['type'] == 'STRING':
+            assert request_body_meta['contentType'] == 'application/json'
+            request_body = json.loads(request_body_meta['string'])
+        elif request_body_meta['type'] == 'JSON':
+            assert request_body_meta['contentType'] == 'application/json'
+            request_body = json.loads(request_body_meta['json'])
+
+        assertion_fun(request_body)
+
     def test_incoming_call_workflow(self):
         self.fcm_third_party.mock_any_response(
             {
@@ -1110,6 +1154,29 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 }
             }
         )
+
+    def assert_last_apns_request(self, assertion_fun, token):
+        apns_notification_requests = self.apns_third_party.get_requests(
+            path=f'/3/device/{token}'
+        )
+
+        assert apns_notification_requests and len(apns_notification_requests) >= 1
+
+        request = apns_notification_requests[-1]
+        request_body_meta = request['body']
+        assert (
+            'type' in request_body_meta
+            and 'contentType' in request_body_meta
+            and request_body_meta['type'] in {'STRING', 'JSON'}
+        )
+        if request_body_meta['type'] == 'STRING':
+            assert request_body_meta['contentType'] == 'application/json'
+            request_body = json.loads(request_body_meta['string'])
+        elif request_body_meta['type'] == 'JSON':
+            assert request_body_meta['contentType'] == 'application/json'
+            request_body = json.loads(request_body_meta['json'])
+
+        assertion_fun(request_body)
 
     def test_workflow_apns_with_app_using_one_token(self):
         # Older iOS apps used only one APNs token
