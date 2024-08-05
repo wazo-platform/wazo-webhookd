@@ -310,6 +310,26 @@ class PushNotification:
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_time': generate_timestamp()}
+
+        if 'creation_time' not in payload:
+            logger.error(
+                'Missing creation_time in incoming call push notification event payload: %s',
+                data,
+            )
+        else:
+            try:
+                datetime.fromisoformat(payload['creation_time'])
+            except Exception:
+                logger.exception(
+                    'Invalid creation_time "%s" in incoming call '
+                    'push notification event payload: %s',
+                    payload['creation_time'],
+                    payload,
+                )
+                payload.pop('creation_time')
+
+        payload.setdefault('creation_time', payload['notification_time'])
+
         return self.send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
