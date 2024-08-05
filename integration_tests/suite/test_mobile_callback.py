@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
+import datetime
 import functools
 import json
 import uuid
@@ -30,14 +31,15 @@ from .helpers.base import (
     USERS_TENANT,
     BaseIntegrationTest,
 )
+from .helpers.hamcrest import a_timestamp
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
 SOME_ROUTING_KEY = 'routing-key'
 
 
 class MockServerClient(_MockServerClient):
-    def get_requests(self, path: str):
-        response = self._put('/retrieve?type=requests', {'path': path})
+    def get_requests(self, path: str) -> dict:
+        response = self._put('/retrieve?type=requests&format=json', {'path': path})
         response.raise_for_status()
         return response.json()
 
@@ -178,57 +180,6 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
     def test_incoming_call_workflow_fcm(self):
-        # setup FCM API for incomingCall push notification request
-        self.fcm_third_party.mock_any_response(
-            {
-                'httpRequest': {
-                    'path': '/fcm/send',
-                    'body': {
-                        'type': 'JSON',
-                        'json': {
-                            'data': {
-                                'items': json.dumps(
-                                    {'peer_caller_id_number': 'caller-id'}
-                                ),
-                                'notification_type': 'incomingCall',
-                            }
-                        },
-                        'matchType': 'ONLY_MATCHING_FIELDS',
-                    },
-                },
-                'httpResponse': {
-                    'statusCode': 200,
-                    'body': json.dumps({'message_id': 'message-id-incoming-call'}),
-                },
-            }
-        )
-        # setup FCM API for cancelIncomingCall push notification request
-        self.fcm_third_party.mock_any_response(
-            {
-                'httpRequest': {
-                    'path': '/fcm/send',
-                    'body': {
-                        'type': 'JSON',
-                        'json': {
-                            'data': {
-                                'items': json.dumps(
-                                    {'peer_caller_id_number': 'caller-id'}
-                                ),
-                                'notification_type': 'cancelIncomingCall',
-                            }
-                        },
-                        'matchType': 'ONLY_MATCHING_FIELDS',
-                    },
-                },
-                'httpResponse': {
-                    'statusCode': 200,
-                    'body': json.dumps(
-                        {'message_id': 'message-id-cancel-incoming-call'}
-                    ),
-                },
-            }
-        )
-
         # mobile user logs in
         self.bus.publish(
             {
@@ -268,13 +219,63 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
 
         subscription = subscriptions['items'][0]
 
+        call_event_timestamp = datetime.datetime.now()
+        # setup FCM API for incomingCall push notification request
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'notification_type': 'incomingCall',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-incoming-call'}),
+                },
+            }
+        )
+
+        # setup FCM API for cancelIncomingCall push notification request
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'notification_type': 'cancelIncomingCall',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps(
+                        {'message_id': 'message-id-cancel-incoming-call'}
+                    ),
+                },
+            }
+        )
+
         # trigger bus event for incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 f'user_uuid:{USER_1_UUID}': True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                    'creation_time': call_event_timestamp.isoformat(timespec='seconds'),
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={
@@ -301,6 +302,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
             },
         )
 
+        # expect wazo-webhookd to have registered a successful notification log
         logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
         assert_that(
@@ -314,6 +316,28 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                 attempts=1,
             ),
         )
+
+        # check details of FCM notification request
+
+        def assert_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='incomingCall',
+                        items=has_entries(
+                            peer_caller_id_number='caller-id',
+                            creation_time=call_event_timestamp.isoformat(
+                                timespec='seconds'
+                            ),
+                            notification_time=a_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.assert_last_fcm_request(assert_incoming_call_notification)
 
         # Canceling the push notification
         self.bus.publish(
@@ -353,6 +377,23 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                 attempts=1,
             ),
         )
+
+        def assert_cancel_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='cancelIncomingCall',
+                        items=has_entries(
+                            peer_caller_id_number='caller-id',
+                            notification_time=a_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.assert_last_fcm_request(assert_cancel_incoming_call_notification)
 
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
@@ -477,7 +518,6 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'peer_caller_id_number': 'caller-id'},
                                 'notification_type': 'incomingCall',
                             }
                         },
@@ -498,7 +538,6 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         'type': 'JSON',
                         'json': {
                             'data': {
-                                'items': {'peer_caller_id_number': 'caller-id'},
                                 'notification_type': 'cancelIncomingCall',
                             }
                         },
@@ -550,14 +589,17 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
-
+        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 f'user_uuid:{USER_1_UUID}': True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={
@@ -587,6 +629,26 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                 attempts=1,
             ),
         )
+
+        def assert_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='incomingCall',
+                        items=has_entries(
+                            peer_caller_id_number='caller-id',
+                            creation_time=call_creation_time.isoformat(
+                                timespec='seconds'
+                            ),
+                            notification_time=a_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.assert_last_fcm_request(assert_incoming_call_notification)
 
         # Canceling the push notification
         self.bus.publish(
@@ -627,13 +689,30 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
             ),
         )
 
+        def assert_cancel_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='cancelIncomingCall',
+                        items=has_entries(
+                            peer_caller_id_number='caller-id',
+                            notification_time=a_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.assert_last_fcm_request(assert_cancel_incoming_call_notification)
+
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_missed_call_notification(self):
         # user logs in
         subscription = self._given_mobile_subscription(USER_1_UUID)
 
-        self.third_party.mock_any_response(
+        self.fcm_third_party.mock_any_response(
             {
                 'httpRequest': {
                     'path': '/fcm/send',
@@ -846,7 +925,6 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                         'json': {
                             'message': {
                                 'data': {
-                                    'items': r'"{\"peer_caller_id_number\":\"caller-id\"}"',
                                     'notification_type': 'incomingCall',
                                 },
                             },
@@ -869,7 +947,6 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                         'json': {
                             'message': {
                                 'data': {
-                                    'items': r'"{\"peer_caller_id_number\":\"caller-id\"}"',
                                     'notification_type': 'cancelIncomingCall',
                                 },
                             },
@@ -921,13 +998,17 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
+        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 f'user_uuid:{USER_1_UUID}': True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={
@@ -957,6 +1038,31 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 attempts=1,
             ),
         )
+
+        def assert_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'message',
+                    has_entry(
+                        'data',
+                        has_entries(
+                            notification_type='incomingCall', items=instance_of(str)
+                        ),
+                    ),
+                ),
+            )
+            data = json.loads(request['message']['data']['items'])
+            assert_that(
+                data,
+                has_entries(
+                    peer_caller_id_number='caller-id',
+                    creation_time=call_creation_time.isoformat(timespec='seconds'),
+                    notification_time=a_timestamp(),
+                ),
+            )
+
+        self.assert_last_fcm_request(assert_incoming_call_notification)
 
         # Canceling the push notification
         self.bus.publish(
@@ -996,6 +1102,30 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 attempts=1,
             ),
         )
+
+        def assert_cancel_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'message',
+                    has_entry(
+                        'data',
+                        has_entries(
+                            notification_type='cancelIncomingCall',
+                            items=instance_of(str),
+                        ),
+                    ),
+                ),
+            )
+            data = json.loads(request['message']['data']['items'])
+            assert_that(
+                data,
+                has_entries(
+                    peer_caller_id_number='caller-id', notification_time=a_timestamp()
+                ),
+            )
+
+        self.assert_last_fcm_request(assert_cancel_incoming_call_notification)
 
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
@@ -1223,13 +1353,17 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
+        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 f'user_uuid:{USER_2_UUID}': True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={
@@ -1259,6 +1393,31 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 attempts=1,
                 event=has_entries(name='call_push_notification'),
             ),
+        )
+
+        def assert_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'aps',
+                    has_entry(
+                        'alert',
+                        has_entries(
+                            notification_type='incomingCall',
+                            items=has_entries(
+                                peer_caller_id_number='caller-id',
+                                creation_time=call_creation_time.isoformat(
+                                    timespec='seconds'
+                                ),
+                                notification_time=a_timestamp(),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+        self.assert_last_apns_request(
+            assert_incoming_call_notification, token='token-ios'
         )
 
         # Send chat message push notification
@@ -1358,13 +1517,17 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
+        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
                 'name': 'call_push_notification',
                 'origin_uuid': 'my-origin-uuid',
                 f'user_uuid:{USER_2_UUID}': True,
-                'data': {'peer_caller_id_number': 'caller-id'},
+                'data': {
+                    'peer_caller_id_number': 'caller-id',
+                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                },
             },
             routing_key=SOME_ROUTING_KEY,
             headers={
@@ -1396,6 +1559,31 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 event=has_entries(name='call_push_notification'),
                 attempts=1,
             ),
+        )
+
+        def assert_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entry(
+                    'aps',
+                    has_entry(
+                        'alert',
+                        has_entries(
+                            notification_type='incomingCall',
+                            items=has_entries(
+                                peer_caller_id_number='caller-id',
+                                creation_time=call_creation_time.isoformat(
+                                    timespec='seconds'
+                                ),
+                                notification_time=a_timestamp(),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+        self.assert_last_apns_request(
+            assert_incoming_call_notification, token='apns-voip-token'
         )
 
         # Canceling the push notification
@@ -1439,8 +1627,34 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             ),
         )
 
-        # Send chat message push notification
-        self.apns_third_party.reset()
+        def assert_cancel_incoming_call_notification(request):
+            assert_that(
+                request,
+                has_entries(
+                    notification_type='cancelIncomingCall',
+                    items=has_entries(
+                        peer_caller_id_number='caller-id',
+                        notification_time=a_timestamp(),
+                    ),
+                ),
+            )
+
+        self.assert_last_apns_request(
+            assert_cancel_incoming_call_notification, token='apns-notification-token'
+        )
+
+        self.webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_chat_message_notification(self):
+        self.auth.set_external_auth(
+            {
+                'apns_token': 'apns-voip-token',
+                'apns_voip_token': 'apns-voip-token',
+                'apns_notification_token': 'apns-notification-token',
+            }
+        )
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
         self.apns_third_party.mock_simple_response(
             path='/3/device/apns-notification-token',
             responseBody={'tracker': 'tracker-notification'},
@@ -1458,7 +1672,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 'name': 'chatd_user_room_message_created',
                 'origin_uuid': 'my-origin-uuid',
                 'tenant_uuid': USERS_TENANT,
-                f'user_uuid:{USER_2_UUID}': True,
+                f'user_uuid:{USER_1_UUID}': True,
             },
         )
 
@@ -1466,11 +1680,11 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             functools.partial(
                 self.webhookd.subscriptions.get_logs, subscription["uuid"]
             ),
-            number=3,
+            number=1,
         )
 
         logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
-        assert_that(logs['total'], equal_to(3))
+        assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'][0],
             has_entries(
