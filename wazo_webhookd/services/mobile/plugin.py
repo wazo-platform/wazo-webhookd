@@ -268,7 +268,11 @@ class Service:
         data = event.get('data')
         name = event.get('name')
 
+        logger.debug('received event type %s with payload: %s', name, data)
         if notification_type := MAP_NAME_TO_NOTIFICATION_TYPE.get(name):
+            logger.debug(
+                'notification_type %s identified from event %s', notification_type, name
+            )
             return getattr(push, notification_type)(data)
         return None
 
