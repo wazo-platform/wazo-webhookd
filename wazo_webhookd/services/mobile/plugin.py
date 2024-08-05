@@ -300,51 +300,53 @@ class PushNotification:
         self.jwt = jwt
 
     def cancelIncomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_time': generate_timestamp()}
         return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
             None,  # Message body
-            {'items': data},
+            {'items': payload},
         )
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_time': generate_timestamp()}
         return self.send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
-            f'From: {data["peer_caller_id_number"]}',
-            {'items': data},
+            f'From: {payload["peer_caller_id_number"]}',
+            {'items': payload},
         )
 
     def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_time': generate_timestamp()}
         return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
             f'From: {data["message"]["caller_id_num"]}',
-            {'items': data},
+            {'items': payload},
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_time': generate_timestamp()}
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
             data['alias'],
             data['content'],
-            {'items': data},
+            {'items': payload},
         )
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        logger.debug(
-            'Dispatching notification for missed call event with data: %s', data
-        )
+        payload = {
+            'notification_time': generate_timestamp(),
+            'caller_id_name': data['caller_id_name'],
+            'caller_id_number': data['caller_id_number'],
+        }
+
         return self.send_notification(
             NotificationType.MISSED_CALL,
             "Missed call",
             f"Missed a call from: {data['caller_id_name']} (number {data['caller_id_number']})",
-            {
-                'items': {
-                    'caller_id_name': data['caller_id_name'],
-                    'caller_id_number': data['caller_id_number'],
-                },
-            },
+            {'items': payload},
         )
 
     def send_notification(
