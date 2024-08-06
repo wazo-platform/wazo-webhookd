@@ -329,7 +329,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                         items=has_entries(
                             peer_caller_id_number='caller-id',
                             creation_time=call_event_timestamp.isoformat(),
-                            notification_time=a_timestamp(),
+                            notification_timestamp=a_timestamp(),
                         ),
                     ),
                 ),
@@ -385,7 +385,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                         notification_type='cancelIncomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            notification_time=a_timestamp(),
+                            notification_timestamp=a_timestamp(),
                         ),
                     ),
                 ),
@@ -638,7 +638,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         items=has_entries(
                             peer_caller_id_number='caller-id',
                             creation_time=call_creation_time.isoformat(),
-                            notification_time=a_timestamp(),
+                            notification_timestamp=a_timestamp(),
                         ),
                     ),
                 ),
@@ -694,7 +694,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         notification_type='cancelIncomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            notification_time=a_timestamp(),
+                            notification_timestamp=a_timestamp(),
                         ),
                     ),
                 ),
@@ -1054,7 +1054,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 has_entries(
                     peer_caller_id_number='caller-id',
                     creation_time=call_creation_time.isoformat(),
-                    notification_time=a_timestamp(),
+                    notification_timestamp=a_timestamp(),
                 ),
             )
 
@@ -1117,7 +1117,8 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             assert_that(
                 data,
                 has_entries(
-                    peer_caller_id_number='caller-id', notification_time=a_timestamp()
+                    peer_caller_id_number='caller-id',
+                    notification_timestamp=a_timestamp(),
                 ),
             )
 
@@ -1403,7 +1404,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                             items=has_entries(
                                 peer_caller_id_number='caller-id',
                                 creation_time=call_creation_time.isoformat(),
-                                notification_time=a_timestamp(),
+                                notification_timestamp=a_timestamp(),
                             ),
                         ),
                     ),
@@ -1567,7 +1568,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                             items=has_entries(
                                 peer_caller_id_number='caller-id',
                                 creation_time=call_creation_time.isoformat(),
-                                notification_time=a_timestamp(),
+                                notification_timestamp=a_timestamp(),
                             ),
                         ),
                     ),
@@ -1626,7 +1627,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     notification_type='cancelIncomingCall',
                     items=has_entries(
                         peer_caller_id_number='caller-id',
-                        notification_time=a_timestamp(),
+                        notification_timestamp=a_timestamp(),
                     ),
                 ),
             )

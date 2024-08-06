@@ -297,7 +297,7 @@ class PushNotification:
         self.jwt = jwt
 
     def cancelIncomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        payload = data | {'notification_time': generate_timestamp()}
+        payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
@@ -306,7 +306,7 @@ class PushNotification:
         )
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        payload = data | {'notification_time': generate_timestamp()}
+        payload = data | {'notification_timestamp': generate_timestamp()}
 
         if 'creation_time' not in payload:
             logger.error(
@@ -335,7 +335,7 @@ class PushNotification:
         )
 
     def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        payload = data | {'notification_time': generate_timestamp()}
+        payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
@@ -344,7 +344,7 @@ class PushNotification:
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        payload = data | {'notification_time': generate_timestamp()}
+        payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
             data['alias'],
@@ -354,7 +354,7 @@ class PushNotification:
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = {
-            'notification_time': generate_timestamp(),
+            'notification_timestamp': generate_timestamp(),
             'caller_id_name': data['caller_id_name'],
             'caller_id_number': data['caller_id_number'],
         }
