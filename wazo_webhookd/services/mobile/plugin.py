@@ -277,11 +277,8 @@ class Service:
         return None
 
 
-def generate_timestamp(now: datetime | None = None) -> str:
-    if now:
-        return now.isoformat()
-    else:
-        return datetime.now(tz=timezone.utc).isoformat()
+def generate_timestamp() -> str:
+    return datetime.now(tz=timezone.utc).isoformat()
 
 
 class PushNotification:

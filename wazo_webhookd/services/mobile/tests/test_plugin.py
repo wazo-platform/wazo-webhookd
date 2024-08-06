@@ -6,18 +6,12 @@ from ..plugin import generate_timestamp
 
 class TestGenerateTimestamp(TestCase):
     def test_generate_timestamp(self):
+        pre_time = datetime.now(tz=timezone.utc)
         timestamp = generate_timestamp()
+        post_time = datetime.now(tz=timezone.utc)
 
         assert isinstance(timestamp, str)
         timestamp_datetime = datetime.fromisoformat(timestamp)
 
         assert timestamp_datetime.tzinfo is timezone.utc
-
-    def test_generate_timestamp_from_datetime(self):
-        now = datetime.now()
-        timestamp = generate_timestamp(now=now)
-
-        assert isinstance(timestamp, str)
-        timestamp_datetime = datetime.fromisoformat(timestamp)
-
-        assert timestamp_datetime == now
+        assert pre_time <= timestamp_datetime <= post_time
