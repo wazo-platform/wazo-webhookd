@@ -274,7 +274,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                 f'user_uuid:{USER_1_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_event_timestamp.isoformat(timespec='seconds'),
+                    'creation_time': call_event_timestamp.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -328,9 +328,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                         notification_type='incomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            creation_time=call_event_timestamp.isoformat(
-                                timespec='seconds'
-                            ),
+                            creation_time=call_event_timestamp.isoformat(),
                             notification_time=a_timestamp(),
                         ),
                     ),
@@ -598,7 +596,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                 f'user_uuid:{USER_1_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                    'creation_time': call_creation_time.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -639,9 +637,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         notification_type='incomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            creation_time=call_creation_time.isoformat(
-                                timespec='seconds'
-                            ),
+                            creation_time=call_creation_time.isoformat(),
                             notification_time=a_timestamp(),
                         ),
                     ),
@@ -1007,7 +1003,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 f'user_uuid:{USER_1_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                    'creation_time': call_creation_time.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -1057,7 +1053,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 data,
                 has_entries(
                     peer_caller_id_number='caller-id',
-                    creation_time=call_creation_time.isoformat(timespec='seconds'),
+                    creation_time=call_creation_time.isoformat(),
                     notification_time=a_timestamp(),
                 ),
             )
@@ -1362,7 +1358,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 f'user_uuid:{USER_2_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                    'creation_time': call_creation_time.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -1406,9 +1402,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                             notification_type='incomingCall',
                             items=has_entries(
                                 peer_caller_id_number='caller-id',
-                                creation_time=call_creation_time.isoformat(
-                                    timespec='seconds'
-                                ),
+                                creation_time=call_creation_time.isoformat(),
                                 notification_time=a_timestamp(),
                             ),
                         ),
@@ -1526,7 +1520,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 f'user_uuid:{USER_2_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(timespec='seconds'),
+                    'creation_time': call_creation_time.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -1572,9 +1566,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                             notification_type='incomingCall',
                             items=has_entries(
                                 peer_caller_id_number='caller-id',
-                                creation_time=call_creation_time.isoformat(
-                                    timespec='seconds'
-                                ),
+                                creation_time=call_creation_time.isoformat(),
                                 notification_time=a_timestamp(),
                             ),
                         ),

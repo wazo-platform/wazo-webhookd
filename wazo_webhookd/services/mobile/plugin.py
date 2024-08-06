@@ -279,9 +279,9 @@ class Service:
 
 def generate_timestamp(now: datetime | None = None) -> str:
     if now:
-        return now.isoformat(timespec='seconds')
+        return now.isoformat()
     else:
-        return datetime.now(tz=timezone.utc).isoformat(timespec='seconds')
+        return datetime.now(tz=timezone.utc).isoformat()
 
 
 class PushNotification:

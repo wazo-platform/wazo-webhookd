@@ -20,4 +20,4 @@ class TestGenerateTimestamp(TestCase):
         assert isinstance(timestamp, str)
         timestamp_datetime = datetime.fromisoformat(timestamp)
 
-        assert timestamp_datetime == now.replace(microsecond=0)
+        assert timestamp_datetime == now
