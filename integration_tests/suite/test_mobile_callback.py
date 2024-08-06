@@ -274,7 +274,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                 f'user_uuid:{USER_1_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_event_timestamp.isoformat(),
+                    'mobile_wakeup_timestamp': call_event_timestamp.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -328,7 +328,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                         notification_type='incomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            creation_time=call_event_timestamp.isoformat(),
+                            mobile_wakeup_timestamp=call_event_timestamp.isoformat(),
                             notification_timestamp=a_timestamp(),
                         ),
                     ),
@@ -587,7 +587,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
-        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -596,7 +596,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                 f'user_uuid:{USER_1_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(),
+                    'mobile_wakeup_timestamp': call_mobile_wakeup_timestamp.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -637,7 +637,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         notification_type='incomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            creation_time=call_creation_time.isoformat(),
+                            mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
                             notification_timestamp=a_timestamp(),
                         ),
                     ),
@@ -994,7 +994,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
-        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -1003,7 +1003,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 f'user_uuid:{USER_1_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(),
+                    'mobile_wakeup_timestamp': call_mobile_wakeup_timestamp.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -1053,7 +1053,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 data,
                 has_entries(
                     peer_caller_id_number='caller-id',
-                    creation_time=call_creation_time.isoformat(),
+                    mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
                     notification_timestamp=a_timestamp(),
                 ),
             )
@@ -1350,7 +1350,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
-        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -1359,7 +1359,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 f'user_uuid:{USER_2_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(),
+                    'mobile_wakeup_timestamp': call_mobile_wakeup_timestamp.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -1403,7 +1403,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                             notification_type='incomingCall',
                             items=has_entries(
                                 peer_caller_id_number='caller-id',
-                                creation_time=call_creation_time.isoformat(),
+                                mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
                                 notification_timestamp=a_timestamp(),
                             ),
                         ),
@@ -1512,7 +1512,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
-        call_creation_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -1521,7 +1521,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 f'user_uuid:{USER_2_UUID}': True,
                 'data': {
                     'peer_caller_id_number': 'caller-id',
-                    'creation_time': call_creation_time.isoformat(),
+                    'mobile_wakeup_timestamp': call_mobile_wakeup_timestamp.isoformat(),
                 },
             },
             routing_key=SOME_ROUTING_KEY,
@@ -1567,7 +1567,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                             notification_type='incomingCall',
                             items=has_entries(
                                 peer_caller_id_number='caller-id',
-                                creation_time=call_creation_time.isoformat(),
+                                mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
                                 notification_timestamp=a_timestamp(),
                             ),
                         ),
