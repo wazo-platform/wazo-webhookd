@@ -274,6 +274,8 @@ class Service:
                 'notification_type %s identified from event %s', notification_type, name
             )
             return getattr(push, notification_type)(data)
+
+        logger.error('No matching notification type for event %s', name)
         return None
 
 
