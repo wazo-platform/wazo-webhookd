@@ -22,6 +22,7 @@ from hamcrest import (
 )
 from mockserver import MockServerClient as _MockServerClient
 from wazo_test_helpers import until
+from wazo_test_helpers.hamcrest.timestamp import an_iso_timestamp
 
 from .helpers.base import (
     JWT_TENANT_0,
@@ -32,7 +33,6 @@ from .helpers.base import (
     USERS_TENANT,
     BaseIntegrationTest,
 )
-from .helpers.hamcrest import a_timestamp
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
 SOME_ROUTING_KEY = 'routing-key'
@@ -330,7 +330,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                         items=has_entries(
                             peer_caller_id_number='caller-id',
                             mobile_wakeup_timestamp=call_event_timestamp.isoformat(),
-                            notification_timestamp=a_timestamp(),
+                            notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
                 ),
@@ -384,7 +384,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                         notification_type='cancelIncomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            notification_timestamp=a_timestamp(),
+                            notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
                 ),
@@ -635,7 +635,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         items=has_entries(
                             peer_caller_id_number='caller-id',
                             mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
-                            notification_timestamp=a_timestamp(),
+                            notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
                 ),
@@ -689,7 +689,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         notification_type='cancelIncomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
-                            notification_timestamp=a_timestamp(),
+                            notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
                 ),
@@ -1048,7 +1048,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 has_entries(
                     peer_caller_id_number='caller-id',
                     mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
-                    notification_timestamp=a_timestamp(),
+                    notification_timestamp=an_iso_timestamp(),
                 ),
             )
 
@@ -1110,7 +1110,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 data,
                 has_entries(
                     peer_caller_id_number='caller-id',
-                    notification_timestamp=a_timestamp(),
+                    notification_timestamp=an_iso_timestamp(),
                 ),
             )
 
@@ -1392,7 +1392,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     items=has_entries(
                         peer_caller_id_number='caller-id',
                         mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
-                        notification_timestamp=a_timestamp(),
+                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )
@@ -1547,7 +1547,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     items=has_entries(
                         peer_caller_id_number='caller-id',
                         mobile_wakeup_timestamp=call_mobile_wakeup_timestamp.isoformat(),
-                        notification_timestamp=a_timestamp(),
+                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )
@@ -1600,7 +1600,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     notification_type='cancelIncomingCall',
                     items=has_entries(
                         peer_caller_id_number='caller-id',
-                        notification_timestamp=a_timestamp(),
+                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )
