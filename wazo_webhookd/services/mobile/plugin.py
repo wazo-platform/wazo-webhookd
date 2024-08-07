@@ -8,6 +8,7 @@ import tempfile
 import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
 
@@ -267,9 +268,19 @@ class Service:
         data = event.get('data')
         name = event.get('name')
 
+        logger.debug('received event type %s with payload: %s', name, data)
         if notification_type := MAP_NAME_TO_NOTIFICATION_TYPE.get(name):
+            logger.debug(
+                'notification_type %s identified from event %s', notification_type, name
+            )
             return getattr(push, notification_type)(data)
+
+        logger.error('No matching notification type for event %s', name)
         return None
+
+
+def generate_timestamp() -> str:
+    return datetime.now(tz=timezone.utc).isoformat()
 
 
 class PushNotification:
@@ -288,51 +299,54 @@ class PushNotification:
         self.jwt = jwt
 
     def cancelIncomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
             None,  # Message title
             None,  # Message body
-            {'items': data},
+            {'items': payload},
         )
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_timestamp': generate_timestamp()}
+
         return self.send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
-            f'From: {data["peer_caller_id_number"]}',
-            {'items': data},
+            f'From: {payload["peer_caller_id_number"]}',
+            {'items': payload},
         )
 
     def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
             'New voicemail',
             f'From: {data["message"]["caller_id_num"]}',
-            {'items': data},
+            {'items': payload},
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
             data['alias'],
             data['content'],
-            {'items': data},
+            {'items': payload},
         )
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        logger.debug(
-            'Dispatching notification for missed call event with data: %s', data
-        )
+        payload = {
+            'notification_timestamp': generate_timestamp(),
+            'caller_id_name': data['caller_id_name'],
+            'caller_id_number': data['caller_id_number'],
+        }
+
         return self.send_notification(
             NotificationType.MISSED_CALL,
             "Missed call",
             f"Missed a call from: {data['caller_id_name']} (number {data['caller_id_number']})",
-            {
-                'items': {
-                    'caller_id_name': data['caller_id_name'],
-                    'caller_id_number': data['caller_id_number'],
-                },
-            },
+            {'items': payload},
         )
 
     def send_notification(
