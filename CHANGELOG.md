@@ -1,5 +1,15 @@
 # Changelog
 
+## 24.11
+
+* New attribute for mobile push notification `incomingCall`:
+
+  * `mobile_wakeup_timestamp`
+
+* New attribute for all mobile push notifications:
+
+  * `notification_timestamp`
+
 ## 23.14
 
 * New resource added to allow for sending push notifications for mobile
