@@ -3,7 +3,14 @@
 import operator
 import time
 
-from hamcrest import assert_that, contains, contains_string, equal_to, has_entries, is_
+from hamcrest import (
+    assert_that,
+    contains_exactly,
+    contains_string,
+    equal_to,
+    has_entries,
+    is_,
+)
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
@@ -195,7 +202,9 @@ class TestHTTPCallback(BaseIntegrationTest):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
-        assert_that(logs['items'], contains(has_entries(status="success", attempts=1)))
+        assert_that(
+            logs['items'], contains_exactly(has_entries(status="success", attempts=1))
+        )
 
     @subscription(TEST_SUBSCRIPTION)
     def test_given_one_http_subscription_when_bus_event_then_one_http_callback_with_json(
@@ -227,7 +236,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(
                     status="success", detail=has_entries(response_body=body), attempts=1
                 )
@@ -262,7 +271,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(
                     status="error",
                     detail=has_entries(error=contains_string("Gone")),
@@ -303,7 +312,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(2))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(
                     status="failure",
                     detail=has_entries(error=contains_string("Service Unavailable")),
@@ -560,7 +569,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(1))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(
                     status="success",
                     detail=has_entries(request_body='trigger value'),
@@ -794,7 +803,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(5))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(status="success"),
                 has_entries(status="failure"),
                 has_entries(status="success"),
@@ -812,7 +821,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(5))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(status="failure"),
                 has_entries(status="failure"),
                 has_entries(status="success"),
@@ -828,14 +837,14 @@ class TestHTTPCallback(BaseIntegrationTest):
             subscription["uuid"], limit=2, direction="asc"
         )
         assert_that(logs['total'], equal_to(2))
-        assert_that(logs['items'], contains(*all_sorted_items[:2]))
+        assert_that(logs['items'], contains_exactly(*all_sorted_items[:2]))
 
         # limit 2 and offset 2
         logs = webhookd.subscriptions.get_logs(
             subscription["uuid"], limit=2, offset=2, direction="asc"
         )
         assert_that(logs['total'], equal_to(2))
-        assert_that(logs['items'], contains(*all_sorted_items[2:4]))
+        assert_that(logs['items'], contains_exactly(*all_sorted_items[2:4]))
 
         # limit 2, offset 2 and from_date
         logs = webhookd.subscriptions.get_logs(
@@ -846,14 +855,14 @@ class TestHTTPCallback(BaseIntegrationTest):
             direction="asc",
         )
         assert_that(logs['total'], equal_to(2))
-        assert_that(logs['items'], contains(*all_sorted_items[3:5]))
+        assert_that(logs['items'], contains_exactly(*all_sorted_items[3:5]))
 
         # by status
         logs = webhookd.subscriptions.get_logs(subscription["uuid"], order="status")
         assert_that(logs['total'], equal_to(5))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(status="failure"),
                 has_entries(status="failure"),
                 has_entries(status="failure"),
@@ -899,7 +908,7 @@ class TestHTTPCallback(BaseIntegrationTest):
         assert_that(logs['total'], equal_to(3))
         assert_that(
             logs['items'],
-            contains(
+            contains_exactly(
                 has_entries(status="error"),
                 has_entries(status="failure"),
                 has_entries(status="failure"),
