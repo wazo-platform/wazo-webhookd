@@ -781,6 +781,14 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         webhookd = self.make_webhookd(MASTER_TOKEN)
 
+        def all_logs_in_db():
+            logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(logs['total'], equal_to(5), logs)
+
+        until.assert_(
+            all_logs_in_db, message='Some logs are not visible in the API', timeout=5
+        )
+
         # Default order
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(5))
