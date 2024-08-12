@@ -5,7 +5,7 @@ from typing import Any
 from hamcrest import (
     assert_that,
     calling,
-    contains,
+    contains_exactly,
     empty,
     equal_to,
     has_entries,
@@ -111,7 +111,9 @@ class TestListSubscriptions(BaseIntegrationTest):
 
         assert_that(
             response,
-            has_entries({'items': contains(has_entries(**subscription_)), 'total': 1}),
+            has_entries(
+                {'items': contains_exactly(has_entries(**subscription_)), 'total': 1}
+            ),
         )
 
     @subscription(TEST_SUBSCRIPTION)
@@ -127,7 +129,9 @@ class TestListSubscriptions(BaseIntegrationTest):
 
         assert_that(
             response,
-            has_entries({'items': contains(has_entries(**TEST_SUBSCRIPTION_METADATA))}),
+            has_entries(
+                {'items': contains_exactly(has_entries(**TEST_SUBSCRIPTION_METADATA))}
+            ),
         )
 
 
@@ -147,7 +151,10 @@ class TestListUserSubscriptions(BaseIntegrationTest):
         assert_that(
             response,
             has_entries(
-                {'items': contains(has_entries(**user_subscription)), 'total': 1}
+                {
+                    'items': contains_exactly(has_entries(**user_subscription)),
+                    'total': 1,
+                }
             ),
         )
 
