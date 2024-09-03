@@ -1,5 +1,6 @@
 # Copyright 2022-2024 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
+
 from typing import Any
 from unittest import TestCase
 from unittest.mock import Mock
