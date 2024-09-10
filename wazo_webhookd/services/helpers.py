@@ -65,7 +65,8 @@ def requests_automatic_hook_retry(task):
             raise ValueError('No request/response in error object')
         if isinstance(exc.request, requests.PreparedRequest):
             req_data = exc.request.body
-        else:
+        elif isinstance(exc.request, httpx.Request):
+            exc.request.read()  # to be removed in Debian 12 Bookworm with httpx==0.23.3
             req_data = exc.request.content  # type: ignore
         if exc.response.status_code == 410:
             logger.info(

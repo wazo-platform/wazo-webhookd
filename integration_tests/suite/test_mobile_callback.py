@@ -1606,6 +1606,49 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 ),
             )
 
+        # Test error reason is visible in the logs
+        self.apns_third_party.reset()
+        self.apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': 'tracker-error'},
+            statusCode=400,
+        )
+        # Canceling the push notification
+        self.bus.publish(
+            {
+                'name': 'call_cancel_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                f'user_uuid:{USER_2_UUID}': True,
+                'data': {'peer_caller_id_number': 'caller-id'},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'call_push_notification',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{USER_2_UUID}': True,
+            },
+        )
+
+        def notification_logged():
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(
+                logs['items'],
+                has_item(
+                    has_entries(
+                        status="failure",
+                        detail=has_entries(
+                            response_body=has_entries(tracker='tracker-error'),
+                        ),
+                        event=has_entries(name='call_cancel_push_notification'),
+                    ),
+                ),
+            )
+
+        until.assert_(
+            notification_logged, message='notification error was not found', timeout=5
+        )
+
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_chat_message_notification(self):
