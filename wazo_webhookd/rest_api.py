@@ -7,11 +7,10 @@ import logging
 import os
 from datetime import timedelta
 
-from cheroot import wsgi
 from flask import Flask, Response, request
 from flask_cors import CORS
 from flask_restful import Api, Resource
-from xivo import http_helpers, mallow_helpers, rest_api_helpers
+from xivo import http_helpers, mallow_helpers, rest_api_helpers, wsgi
 from xivo.flask.auth_verifier import AuthVerifierFlask
 
 from wazo_webhookd.types import WebhookdConfigDict
