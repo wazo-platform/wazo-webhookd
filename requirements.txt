@@ -13,10 +13,10 @@ google-auth==1.5.1
 httpx==0.16.1
 h2==4.0.0  # required for http2 in httpx - Bullseye only has 4.0 which is older than httpx wants, but it works.
 itsdangerous==1.1.0  # from flask
-jinja2==2.11.3  # from flask
+jinja2==3.0.3  # from flask
 jsonpatch==1.25
 kombu==5.0.2  # from wazo-bus
-markupsafe==1.1.1 # from jinja
+markupsafe==2.0.1 # from jinja
 marshmallow==3.10.0
 netifaces==0.10.9
 psycopg2-binary==2.8.6
