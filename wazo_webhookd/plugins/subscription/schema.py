@@ -128,10 +128,10 @@ class SubscriptionSchema(Schema):
         allow_none=False,
         required=True,
     )
-    events_user_uuid = fields.String(validate=Length(equal=36), missing=None)
-    events_wazo_uuid = fields.String(validate=Length(equal=36), missing=None)
+    events_user_uuid = fields.String(validate=Length(equal=36), load_default=None)
+    events_wazo_uuid = fields.String(validate=Length(equal=36), load_default=None)
     config = ConfigField(allow_none=False, required=True)
-    owner_user_uuid = fields.String(validate=Length(equal=36), missing=None)
+    owner_user_uuid = fields.String(validate=Length(equal=36), load_default=None)
     owner_tenant_uuid = fields.UUID(dump_only=True)
     # TODO(sileht): We should also add an events_tenant_uuid to filter
     # event on tenant_uuid. Currently if I have the
@@ -157,7 +157,7 @@ class UserSubscriptionSchema(Schema):
 
 class SubscriptionListParamsSchema(Schema):
     search_metadata = fields.Dict()
-    recurse = fields.Boolean(missing=False)
+    recurse = fields.Boolean(load_default=False)
 
     @pre_load
     def aggregate_search_metadata(self, data, **kwargs):
