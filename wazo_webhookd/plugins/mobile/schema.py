@@ -38,7 +38,7 @@ class NotificationSchema(Schema):
     # The only technical limit on the payload is a max total size of 2KB.
     title = fields.String(validate=Length(max=128), required=True)
     body = fields.String(validate=Length(max=250), required=True)
-    extra = fields.Dict(missing=dict, default=dict)
+    extra = fields.Dict(load_default=dict, dump_default=dict)
 
 
 notification_schema = NotificationSchema()
