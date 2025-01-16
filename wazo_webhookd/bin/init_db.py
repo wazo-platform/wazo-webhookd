@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 
@@ -68,12 +68,11 @@ def main():
         sys.exit(1)
 
     conn.autocommit = True
-    with conn:
-        with conn.cursor() as cursor:
-            if not db_helper.db_user_exists(cursor, args.owner):
-                db_helper.create_db_user(cursor, args.owner, args.password)
-            if not db_helper.db_exists(cursor, args.db):
-                db_helper.create_db(cursor, args.db, args.owner)
+    with conn.cursor() as cursor:
+        if not db_helper.db_user_exists(cursor, args.owner):
+            db_helper.create_db_user(cursor, args.owner, args.password)
+        if not db_helper.db_exists(cursor, args.db):
+            db_helper.create_db(cursor, args.db, args.owner)
 
     conn = psycopg2.connect(args.webhookd_db_uri)
     with conn:
