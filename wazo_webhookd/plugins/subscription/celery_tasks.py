@@ -1,4 +1,4 @@
-# Copyright 2019-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -51,6 +51,7 @@ def hook_runner_task(
     subscription: Subscription,
     event: dict[str, Any],
 ) -> None:
+    task.max_retries = config["hook_max_attempts"] - 1
     service = task.get_service(config)
 
     hook = EntryPoint.parse(ep_name).resolve()
@@ -66,7 +67,7 @@ def hook_runner_task(
         detail = hook.run(task, config, subscription, event)
     except HookRetry as e:
         if task.request.retries + 1 >= config["hook_max_attempts"]:
-            verb = "reached max retries"
+            verb = "reached max attempts"
             status = "error"
         else:
             verb = "will retry"
@@ -97,7 +98,8 @@ def hook_runner_task(
         if task.request.retries + 1 >= config["hook_max_attempts"]:
             return
 
-        retry_backoff = int(2**task.request.retries)
+        base = config["hook_http_retry_countdown_factor"]
+        retry_backoff = int(base**task.request.retries)
         task.retry(countdown=retry_backoff)
     except Exception as e:
         if isinstance(e, HookExpectedError):

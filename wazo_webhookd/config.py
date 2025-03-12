@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -87,6 +87,7 @@ _DEFAULT_CONFIG: WebhookdConfigDict = {
     },
     'enabled_services': {'http': True, 'mobile': True},
     'hook_max_attempts': 10,
+    'hook_http_retry_countdown_factor': 2,
     'mobile_apns_host': 'api.push.apple.com',
     'mobile_apns_port': 443,
     'mobile_apns_call_topic': 'org.wazo-platform.voip',
