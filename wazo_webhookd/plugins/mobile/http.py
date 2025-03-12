@@ -1,4 +1,4 @@
-# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ class NotificationResource(AuthResource):
             args=(dict(self.config), notification),
             retry=True,
             retry_policy={
-                'max_retries': self.config["hook_max_attempts"],
+                'max_retries': self.config["hook_max_attempts"] - 1,
                 # When we can finally use Celery 5.3 this would be good:
                 # 'retry_errors': (requests.HTTPError,),
             },
