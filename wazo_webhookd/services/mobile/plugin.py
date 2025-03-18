@@ -404,11 +404,15 @@ class PushNotification:
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
+        # data-only notification
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
-            data['alias'],
-            data['content'],
+            # data['alias'],
+            # data['content'],
+            None,
+            None,
             {'items': payload},
+            data_only=True,
         )
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
@@ -431,6 +435,7 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         extra: dict[str, Any],
+        data_only: bool = False,
     ) -> NotificationSentStatusDict:
         data: NotificationPayload = {
             'notification_type': notification_type,
@@ -438,7 +443,9 @@ class PushNotification:
         } | extra
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
-                apn_response = self._send_via_apn(message_title, message_body, data)
+                apn_response = self._send_via_apn(
+                    message_title, message_body, data, data_only
+                )
                 return {
                     'success': True,  # error would be raised on failure
                     'protocol_used': 'apns',
@@ -446,7 +453,9 @@ class PushNotification:
                 }
         else:
             try:
-                fcm_response = self._send_via_fcm(message_title, message_body, data)
+                fcm_response = self._send_via_fcm(
+                    message_title, message_body, data, data_only
+                )
                 return {
                     'success': fcm_response['success'] >= 1,
                     'protocol_used': 'fcm',
@@ -470,11 +479,14 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         data: NotificationPayload,
+        data_only: bool,
     ) -> FcmResponseDict:
         logger.debug(
-            'Sending push notification to Android: %s, %s',
+            'Sending push notification through FCM(type=%s, title=%s, body=%s, data_only=%s)',
+            data['notification_type'],
             message_title,
             message_body,
+            data_only,
         )
         fcm_service_account_info: dict
         fcm_api_key: str
@@ -533,9 +545,10 @@ class PushNotification:
                 'time_to_live': 0,
             }
         else:
-            if data.get('items', None):
+            # data payload must be serialized into a string
+            if data_payload := data.get('items', None):
                 data['items'] = json.dumps(
-                    data['items'], separators=(',', ':'), sort_keys=True
+                    data_payload, separators=(',', ':'), sort_keys=True
                 )
             else:
                 data['items'] = ""
@@ -546,6 +559,7 @@ class PushNotification:
                 'time_to_live': 0,
             }
 
+        # special treatment of some notification types
         if notification_type == NotificationType.INCOMING_CALL:
             notification = push_service.notify_single_device(
                 low_priority=False,
@@ -557,16 +571,32 @@ class PushNotification:
                 **notify_kwargs,
             )
         else:
-            if message_title:
-                notify_kwargs['message_title'] = message_title
-            if message_body:
-                notify_kwargs['message_body'] = message_body
+            if data_only:
+                # data-only notification need high priority
+                # and do not include `android.notification` attributes
+                # TODO: remove android_channel_id
+                #  does not seem useful since `android.notification`
+                #  is not included in request for data messages
+                logger.debug(
+                    'push notification(type=%s) sent as data-only message',
+                    notification_type,
+                )
+                notify_kwargs['low_priority'] = False
+                notification = push_service.single_device_data_message(
+                    android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+                    **notify_kwargs,
+                )
+            else:
+                if message_title:
+                    notify_kwargs['message_title'] = message_title
+                if message_body:
+                    notify_kwargs['message_body'] = message_body
 
-            notification = push_service.notify_single_device(
-                android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
-                badge=1,
-                **notify_kwargs,
-            )
+                notification = push_service.notify_single_device(
+                    android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+                    badge=1,
+                    **notify_kwargs,
+                )
 
         if notification.get('failure') != 0:
             logger.error('Error sending push notification to FCM: %s', notification)
@@ -595,6 +625,7 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         data: NotificationPayload,
+        data_only: bool,
     ):
         headers, payload, token = self._create_apn_message(
             message_title, message_body, data
