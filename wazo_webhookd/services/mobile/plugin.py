@@ -82,7 +82,7 @@ ApsContentDict = TypedDict(
     {
         'badge': int,
         'sound': str,
-        'content-available': str,
+        'content-available': int,
         'alert': dict[str, str],
     },
 )
@@ -623,7 +623,7 @@ class PushNotification:
         data_only: bool,
     ):
         headers, payload, token = self._create_apn_message(
-            message_title, message_body, data
+            message_title, message_body, data, data_only
         )
 
         use_sandbox = self.external_config.get('use_sandbox', False)
@@ -668,6 +668,7 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         data: NotificationPayload,
+        data_only: bool,
     ):
         apns_call_topic = self.config['mobile_apns_call_topic']
         apns_default_topic = self.config['mobile_apns_default_topic']
@@ -714,7 +715,9 @@ class PushNotification:
                 },
             )
 
-            if message_title or message_body:
+            if data_only:
+                payload['aps']['content-available'] = 1
+            elif message_title or message_body:
                 alert = {}
                 if message_title:
                     alert['title'] = message_title
