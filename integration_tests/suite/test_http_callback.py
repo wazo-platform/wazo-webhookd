@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import operator
@@ -886,7 +886,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         until.assert_(
             self.make_third_party_verify_callback(
-                request={'method': 'GET', 'path': '/test'}, count=3, exact=True
+                request={'method': 'GET', 'path': '/test'}, count=5, exact=True
             ),
             timeout=30,
             interval=0.5,
@@ -897,7 +897,7 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         until.assert_(
             self.make_third_party_verify_callback(
-                request={'method': 'GET', 'path': '/test'}, count=3, exact=True
+                request={'method': 'GET', 'path': '/test'}, count=5, exact=True
             ),
             timeout=30,
             interval=0.5,
@@ -906,11 +906,13 @@ class TestHTTPCallback(BaseIntegrationTest):
 
         # Default order
         logs = webhookd.subscriptions.get_logs(subscription["uuid"])
-        assert_that(logs['total'], equal_to(3))
+        assert_that(logs['total'], equal_to(5))
         assert_that(
             logs['items'],
             contains_exactly(
                 has_entries(status="error"),
+                has_entries(status="failure"),
+                has_entries(status="failure"),
                 has_entries(status="failure"),
                 has_entries(status="failure"),
             ),

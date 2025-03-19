@@ -1,4 +1,4 @@
-# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -103,6 +103,7 @@ class WebhookdConfigDict(TypedDict):
     consul: ConsulConfigDict
     db_uri: str
     hook_max_attempts: int
+    hook_http_retry_countdown_factor: int
     rest_api: RestApiConfigDict
     enabled_plugins: EnabledPluginConfigDict
     enabled_services: EnabledServiceConfigDict
