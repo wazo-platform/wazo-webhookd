@@ -31,7 +31,9 @@ class _ConsumerMixin(ConsumerMixin):
     This is a performance optimization to avoid having many queues in RabbitMQ
     for wazo-webhookd."""
 
-    def _check_headers_match(self, headers: Headers | None, binding) -> bool:
+    def _check_headers_match(
+        self, headers: Headers | None, binding: kombu.binding
+    ) -> bool:
         # only perform check if exchange type is headers
         if self.__exchange.type != 'headers':
             return True
@@ -115,7 +117,7 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
         # arg2 = message object from libamqp
         two_arg_callback = callback
 
-        def one_arg_callback(payload: dict[str, Any]):
+        def one_arg_callback(payload: dict[str, Any]) -> None:
             return two_arg_callback(payload, None)
 
         headers: dict[str, str | bool] = {
