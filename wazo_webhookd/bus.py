@@ -35,7 +35,7 @@ class _ConsumerMixin(ConsumerMixin):
         self, headers: Headers | None, binding: kombu.binding
     ) -> bool:
         # only perform check if exchange type is headers
-        if self.__exchange.type != 'headers':
+        if self._exchange.type != 'headers':
             return True
         compare = all if binding.arguments.get('x-match', 'all') == 'all' else any
         headers = {k: v for k, v in headers.items() if not k.startswith('x-')}  # type: ignore
@@ -65,16 +65,24 @@ class _ConsumerMixin(ConsumerMixin):
 
 
 class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(
+        self, name='', exchange_name: str = '', exchange_type: str = '', **kwargs: Any
+    ) -> None:
+        exchange_kwargs = {'auto_delete': True}
         self._webhookd_exchange = WebhookdExchange(
-            kwargs['name'],
-            kwargs['exchange_type'],
-            kwargs['exchange_name'],
-            kwargs['exchange_type'],
+            name,
+            exchange_type,
+            exchange_kwargs,
+            exchange_name,
+            exchange_type,
         )
-        new_kwargs = dict(kwargs)
-        new_kwargs['exchange_name'] = self._webhookd_exchange.name
-        super().__init__(**new_kwargs)
+        super().__init__(
+            name=name,
+            exchange_name=self._webhookd_exchange.name,
+            exchange_type=exchange_type,
+            exchange_kwargs=exchange_kwargs,
+            **kwargs,
+        )
         self._handlers_lock = Lock()
         self._handlers: dict[
             str, tuple[AmpqCallback, Sequence[str], Headers | None]
@@ -150,20 +158,24 @@ class WebhookdExchange:
         self,
         name: str,
         type_: str,
+        kwargs: dict[str, Any],
         upstream_exchange_name: str,
         upstream_exchange_type: str,
     ):
         self.name = name
-        self._kombu_exchange = kombu.Exchange(name, type_)
+        self._kombu_exchange = kombu.Exchange(name, type_, **kwargs)
         self._upstream_kombu_exchange = kombu.Exchange(
             upstream_exchange_name, upstream_exchange_type
         )
-        self._future_bindings: set[kombu.binding] = set()
+        # We need to keep a binding list in case we're not connected yet
+        # and to recreate the bindings after rabbitmq restart, as bindings
+        # on auto-delete exchanges are not kept in rabbitmq
+        self._bindings: set[kombu.binding] = set()
         self._connection: kombu.Connection = None
 
     def subscribe(self, event_name: str) -> None:
         binding = self._binding(event_name)
-        self._future_bindings.add(binding)
+        self._bindings.add(binding)
 
     def subscribe_connected(
         self, event_name: str, consumer_connection: kombu.Connection
@@ -181,14 +193,14 @@ class WebhookdExchange:
             'Binding exchange %s to event %s', self._kombu_exchange.name, event_name
         )
         binding.bind(self._kombu_exchange, channel=channel)
+        self._bindings.add(binding)
 
     def declare(self, channel: StdChannel) -> None:
         logger.debug('Declaring exchange %s', self._kombu_exchange.name)
         self._kombu_exchange.declare(channel=channel)
         logger.debug('Binding exchange %s', self._kombu_exchange.name)
-        for binding in self._future_bindings:
+        for binding in self._bindings:
             binding.bind(self._kombu_exchange, channel=channel)
-        self._future_bindings.clear()
 
     def on_connection_error(self) -> None:
         if self._connection is None:
