@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -91,7 +91,6 @@ class Service:
 
         with requests_automatic_hook_retry(task):
             session = requests.Session()
-            session.trust_env = False
             with session.request(
                 options['method'],
                 url,
