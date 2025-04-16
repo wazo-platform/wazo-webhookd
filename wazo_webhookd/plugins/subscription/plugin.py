@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ class Plugin:
         subscribe_to_next_token_change(master_tenant_callback_collector.new_source())
 
         service = SubscriptionService(config)
+        service.subscribe_bus(bus_consumer)
 
         api.add_resource(
             SubscriptionsResource, '/subscriptions', resource_class_args=[service]

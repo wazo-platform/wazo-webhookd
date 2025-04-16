@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import Any
@@ -17,15 +17,18 @@ from hamcrest import (
     not_,
 )
 from wazo_test_helpers.hamcrest.raises import raises
+from wazo_test_helpers import until
 from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import (
     MASTER_TENANT,
     MASTER_TOKEN,
     OTHER_USER_TOKEN,
+    SOME_ROUTING_KEY,
     USER_1_TOKEN,
     USER_1_UUID,
     USER_2_TOKEN,
+    USER_2_UUID,
     USERS_TENANT,
     WAZO_UUID,
     BaseIntegrationTest,
@@ -63,6 +66,26 @@ USER_1_TEST_SUBSCRIPTION = {
     'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
     'owner_user_uuid': USER_1_UUID,
+    'events_user_uuid': USER_1_UUID,
+    'events_wazo_uuid': WAZO_UUID,
+}
+
+USER_2_TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
+    'events': ['test'],
+    'owner_user_uuid': USER_2_UUID,
+    'events_user_uuid': USER_2_UUID,
+    'events_wazo_uuid': WAZO_UUID,
+}
+
+USER_2_TEST_SUBSCRIPTION_WATCH_USER_1 = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
+    'events': ['test'],
+    'owner_user_uuid': USER_2_UUID,
     'events_user_uuid': USER_1_UUID,
     'events_wazo_uuid': WAZO_UUID,
 }
@@ -813,3 +836,46 @@ class TestMultiTenantSubscriptions(BaseIntegrationTest):
         self.ensure_webhookd_not_consume_subscription(subscription_)
         response = webhookd.subscriptions.list()
         assert_that(response, has_entry('items', equal_to([])))
+
+
+class TestSubscriptionCleanup(BaseIntegrationTest):
+    asset = 'base'
+    wait_strategy = EverythingOkWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.bus = self.make_bus()
+
+    @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    @subscription(USER_2_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    @subscription(USER_2_TEST_SUBSCRIPTION_WATCH_USER_1, tenant=USERS_TENANT)
+    def test_subscription_auto_delete_on_user_deleted(
+        self, subscription_1, subscription_2, subscription_3
+    ):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        response = webhookd.subscriptions.list(recurse=True)
+        subscription_uuids = set(item['uuid'] for item in response['items'])
+        assert subscription_1['uuid'] in subscription_uuids
+        assert subscription_2['uuid'] in subscription_uuids
+        assert subscription_3['uuid'] in subscription_uuids
+
+        event = {
+            'name': 'user_deleted',
+            'data': {'uuid': USER_1_UUID},
+        }
+        self.bus.publish(
+            event, routing_key=SOME_ROUTING_KEY, headers={'name': event['name']}
+        )
+
+        def user_subscription_deleted():
+            response = webhookd.subscriptions.list(recurse=True)
+            subscription_uuids = set(item['uuid'] for item in response['items'])
+            assert subscription_1['uuid'] not in subscription_uuids
+            assert subscription_2['uuid'] in subscription_uuids
+            assert subscription_3['uuid'] not in subscription_uuids
+
+        until.assert_(
+            user_subscription_deleted,
+            timeout=5,
+            message='User subscription not deleted',
+        )

@@ -1,15 +1,17 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
 
 import logging
+
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, create_engine, distinct, exc, func, or_
 from sqlalchemy.orm import scoped_session, sessionmaker
+from wazo_bus.resources.user.event import UserDeletedEvent
 from xivo.pubsub import Pubsub
 
 from wazo_webhookd.database.models import (
@@ -42,6 +44,9 @@ class SubscriptionService:
         self._Session: scoped_session = scoped_session(sessionmaker())
         self._Session.configure(bind=self._engine)
 
+    def subscribe_bus(self, bus):
+        bus.subscribe(UserDeletedEvent.name, self._on_user_deleted_event)
+
     def close(self) -> None:
         self._Session.close()
         self._engine.dispose()
@@ -66,7 +71,13 @@ class SubscriptionService:
         finally:
             self._Session.remove()
 
-    def list(self, owner_tenant_uuids=None, owner_user_uuid=None, search_metadata=None):
+    def list(
+        self,
+        owner_tenant_uuids=None,
+        owner_user_uuid=None,
+        events_user_uuid=None,
+        search_metadata=None,
+    ):
         with self.ro_session() as session:
             query = session.query(Subscription)
             if owner_tenant_uuids:
@@ -75,6 +86,8 @@ class SubscriptionService:
                 )
             if owner_user_uuid:
                 query = query.filter(Subscription.owner_user_uuid == owner_user_uuid)
+            if events_user_uuid:
+                query = query.filter(Subscription.events_user_uuid == events_user_uuid)
             if search_metadata:
                 subquery = (
                     session.query(SubscriptionMetadatum.subscription_uuid)
@@ -232,3 +245,25 @@ class SubscriptionService:
                     session.rollback()
                 else:
                     raise
+
+    # executed in the bus consumer thread
+    def _on_user_deleted_event(self, user):
+        logger.debug('User deleted event received for user %s', user['data']['uuid'])
+        self._remove_user(user['data']['uuid'])
+
+    def _remove_user(self, user_uuid):
+        subscription_uuids = {
+            subscription.uuid
+            for subscription in self.list(owner_user_uuid=user_uuid)
+            + self.list(events_user_uuid=user_uuid)
+        }
+        logger.info(
+            'User deleted event received, removing %d subscriptions for user %s',
+            len(subscription_uuids),
+            user_uuid,
+        )
+        for subscription_uuid in subscription_uuids:
+            try:
+                self.delete(subscription_uuid)
+            except NoSuchSubscription:
+                pass
