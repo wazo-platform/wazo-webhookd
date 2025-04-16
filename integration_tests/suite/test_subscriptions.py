@@ -16,8 +16,8 @@ from hamcrest import (
     has_property,
     not_,
 )
-from wazo_test_helpers.hamcrest.raises import raises
 from wazo_test_helpers import until
+from wazo_test_helpers.hamcrest.raises import raises
 from wazo_webhookd_client.exceptions import WebhookdError
 
 from .helpers.base import (
@@ -843,7 +843,7 @@ class TestSubscriptionCleanup(BaseIntegrationTest):
     ):
         webhookd = self.make_webhookd(MASTER_TOKEN)
         response = webhookd.subscriptions.list(recurse=True)
-        subscription_uuids = set(item['uuid'] for item in response['items'])
+        subscription_uuids = {item['uuid'] for item in response['items']}
         assert subscription_1['uuid'] in subscription_uuids
         assert subscription_2['uuid'] in subscription_uuids
 
@@ -857,7 +857,7 @@ class TestSubscriptionCleanup(BaseIntegrationTest):
 
         def user_subscription_deleted():
             response = webhookd.subscriptions.list(recurse=True)
-            subscription_uuids = set(item['uuid'] for item in response['items'])
+            subscription_uuids = {item['uuid'] for item in response['items']}
             assert subscription_1['uuid'] not in subscription_uuids
             assert subscription_2['uuid'] in subscription_uuids
 
