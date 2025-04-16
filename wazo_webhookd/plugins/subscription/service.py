@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import logging
-
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
