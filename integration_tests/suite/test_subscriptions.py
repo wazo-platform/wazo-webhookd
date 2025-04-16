@@ -23,7 +23,9 @@ from wazo_webhookd_client.exceptions import WebhookdError
 from .helpers.base import (
     MASTER_TENANT,
     MASTER_TOKEN,
+    OTHER_TENANT,
     OTHER_USER_TOKEN,
+    OTHER_USER_UUID,
     SOME_ROUTING_KEY,
     USER_1_TOKEN,
     USER_1_UUID,
@@ -95,6 +97,17 @@ USER_SUBTENANT_TEST_SUBSCRIPTION = {
     'service': 'http',
     'config': {'url': 'http://test.example.com', 'method': 'get'},
     'events': ['test'],
+}
+
+OTHER_USER_TEST_SUBSCRIPTION = {
+    'name': 'test',
+    'service': 'http',
+    'config': {'url': 'http://test.example.com', 'method': 'get'},
+    'events': ['test'],
+    'owner_user_uuid': OTHER_USER_UUID,
+    'owner_tenant_uuid': OTHER_TENANT,
+    'events_user_uuid': OTHER_USER_UUID,
+    'events_wazo_uuid': WAZO_UUID,
 }
 
 UNOWNED_USER_1_TEST_SUBSCRIPTION = {
@@ -878,4 +891,35 @@ class TestSubscriptionCleanup(BaseIntegrationTest):
             user_subscription_deleted,
             timeout=5,
             message='User subscription not deleted',
+        )
+
+    @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
+    @subscription(OTHER_USER_TEST_SUBSCRIPTION, tenant=OTHER_TENANT)
+    def test_subscription_auto_delete_on_tenant_deleted(
+        self, subscription_1, subscription_2
+    ):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+        response = webhookd.subscriptions.list(recurse=True)
+        subscription_uuids = {item['uuid'] for item in response['items']}
+        assert subscription_1['uuid'] in subscription_uuids
+        assert subscription_2['uuid'] in subscription_uuids
+
+        event = {
+            'name': 'auth_tenant_deleted',
+            'data': {'uuid': OTHER_TENANT},
+        }
+        self.bus.publish(
+            event, routing_key=SOME_ROUTING_KEY, headers={'name': event['name']}
+        )
+
+        def tenant_subscription_deleted():
+            response = webhookd.subscriptions.list(recurse=True)
+            subscription_uuids = {item['uuid'] for item in response['items']}
+            assert subscription_1['uuid'] in subscription_uuids
+            assert subscription_2['uuid'] not in subscription_uuids
+
+        until.assert_(
+            tenant_subscription_deleted,
+            timeout=5,
+            message='Tenant subscription not deleted',
         )
