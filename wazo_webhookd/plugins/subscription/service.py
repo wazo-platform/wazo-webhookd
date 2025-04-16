@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, create_engine, distinct, exc, func, or_
 from sqlalchemy.orm import scoped_session, sessionmaker
+from wazo_bus.resources.auth.events import TenantDeletedEvent
 from wazo_bus.resources.user.event import UserDeletedEvent
 from xivo.pubsub import Pubsub
 
@@ -45,6 +46,7 @@ class SubscriptionService:
 
     def subscribe_bus(self, bus):
         bus.subscribe(UserDeletedEvent.name, self._on_user_deleted_event)
+        bus.subscribe(TenantDeletedEvent.name, self._on_tenant_deleted_event)
 
     def close(self) -> None:
         self._Session.close()
@@ -242,12 +244,29 @@ class SubscriptionService:
         logger.debug('User deleted event received for user %s', user['data']['uuid'])
         self._remove_user(user['data']['uuid'])
 
+    # executed in the bus consumer thread
+    def _on_tenant_deleted_event(self, tenant):
+        logger.debug(
+            'Tenant deleted event received for tenant %s', tenant['data']['uuid']
+        )
+        self._remove_tenant(tenant['data']['uuid'])
+
     def _remove_user(self, user_uuid):
         subscriptions = self.list(owner_user_uuid=user_uuid)
         logger.info(
             'User deleted event received, removing %d subscriptions for user %s',
             len(subscriptions),
             user_uuid,
+        )
+        for subscription in subscriptions:
+            self.delete(subscription.uuid)
+
+    def _remove_tenant(self, tenant_uuid):
+        subscriptions = self.list(owner_tenant_uuids=[tenant_uuid])
+        logger.info(
+            'Tenant deleted event received, removing %d subscriptions for tenant %s',
+            len(subscriptions),
+            tenant_uuid,
         )
         for subscription in subscriptions:
             self.delete(subscription.uuid)
