@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
@@ -59,6 +59,8 @@ PRIVATE_KEY = (
     "8P7GwuDUxB+YixjUKsEMkm7/xll3dA\nHvtK7wIl5mQe2OqP2tnf2Un8ofVPYtAWXL8vRXcgaVgnN7BQamB6820ENy7uX"
     "yZ3\nXVb1NZEIb9zqNmoTihJX33lV\n-----END PRIVATE KEY-----\n"
 )
+
+SOME_ROUTING_KEY = 'routing-key'
 
 
 class BaseIntegrationTest(AssetLaunchingTestCase):
