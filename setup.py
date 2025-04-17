@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from setuptools import find_packages, setup
@@ -18,6 +18,7 @@ setup(
             f'{NAME} = wazo_webhookd.bin.daemon:main',
             f'{NAME}-init-db = wazo_webhookd.bin.init_db:main',
             f'{NAME}-init-amqp = wazo_webhookd.bin.init_amqp:main',
+            f'{NAME}-sync-db = wazo_webhookd.bin.sync_db:main',
         ],
         'wazo_webhookd.plugins': [
             'api = wazo_webhookd.plugins.api.plugin:Plugin',

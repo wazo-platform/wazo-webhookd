@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import copy
@@ -10,7 +10,11 @@ from .base import MASTER_TOKEN
 
 
 def subscription(
-    subscription_args, track_test_name=True, token=MASTER_TOKEN, tenant=None
+    subscription_args,
+    track_test_name=True,
+    token=MASTER_TOKEN,
+    tenant=None,
+    auto_delete=True,
 ):
     """This decorator is only compatible with instance methods, not pure functions."""
 
@@ -32,6 +36,9 @@ def subscription(
             try:
                 return decorated(self, *output_args, **kwargs)
             finally:
+                if not auto_delete:
+                    return
+
                 try:
                     webhookd = self.make_webhookd(
                         token, new_subscription['owner_tenant_uuid']
