@@ -95,12 +95,11 @@ def main():
 
 def remove_tenants(session, auth_tenants):
     webhookd_tenants = {
-        subscription.owner_tenant_uuid
-        for subscription in (
-            session.query(Subscription)
-            .filter(Subscription.owner_user_uuid != None)  # noqa
-            .all()
-        )
+        row.owner_tenant_uuid
+        for row in session.query(Subscription.owner_tenant_uuid)
+        .distinct()
+        .filter(Subscription.owner_tenant_uuid != None)  # noqa
+        .all()
     }
     logger.debug('Found %s webhookd tenants', len(webhookd_tenants))
 
