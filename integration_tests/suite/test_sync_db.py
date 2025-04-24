@@ -66,7 +66,13 @@ class TestSyncDB(BaseIntegrationTest):
 
     @classmethod
     def sync_db(cls):
-        print(cls.docker_exec(['wazo-webhookd-sync-db', '--debug']))
+        command = [
+            '/bin/bash',
+            '-c',
+            'wazo-webhookd-sync-db --debug &> /proc/1/fd/1',
+        ]
+        rc = cls.docker_exec(command, return_attr='returncode', privileged=True)
+        assert rc == 0
 
     @subscription(USER_1_TEST_SUBSCRIPTION, tenant=USERS_TENANT, auto_delete=False)
     @subscription(USER_2_TEST_SUBSCRIPTION, tenant=USERS_TENANT)
