@@ -19,6 +19,7 @@ from .helpers.base import (
     MASTER_TENANT,
     MASTER_TOKEN,
     OTHER_TENANT,
+    SOME_ROUTING_KEY,
     USERS_TENANT,
     BaseIntegrationTest,
 )
@@ -134,7 +135,6 @@ TEST_SUBSCRIPTION_FILTER_WAZO_UUID = {
     'events': ['trigger'],
     'events_wazo_uuid': WAZO_UUID,
 }
-SOME_ROUTING_KEY = 'routing-key'
 TRIGGER_EVENT_NAME = 'trigger'
 ANOTHER_TRIGGER_EVENT_NAME = 'another-trigger'
 DONT_TRIGGER_EVENT_NAME = 'dont-trigger'
