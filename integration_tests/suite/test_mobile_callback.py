@@ -166,6 +166,71 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
         yield request_body
 
 
+class TestMobileEvents(BaseMobileCallbackIntegrationTest):
+    asset = 'proxy'
+    wait_strategy = ConnectedWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.fcm_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
+        )
+        self.fcm_third_party.reset()
+        self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+    def test_multiple_user_external_auth_added_events_only_one_mobile(self):
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+            },
+        )
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+            },
+        )
+
+        # expect new subscription for new mobile login
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        subscriptions = self.webhookd.subscriptions.list(recurse=True)
+        assert_that(subscriptions['total'], equal_to(1))
+        assert_that(
+            subscriptions['items'][0],
+            has_entries(
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_1_UUID}",
+                events=contains_inanyorder(
+                    'chatd_user_room_message_created',
+                    'call_push_notification',
+                    'call_cancel_push_notification',
+                    'user_voicemail_message_created',
+                    'user_missed_call',
+                ),
+                owner_tenant_uuid=USERS_TENANT,
+                owner_user_uuid=USER_1_UUID,
+                service='mobile',
+            ),
+        )
+
+        subscription = subscriptions['items'][0]
+        self.webhookd.subscriptions.delete(subscription["uuid"])
+
+
 class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
     """
     coverage for event-triggered mobile push notifications with FCM push proxy
