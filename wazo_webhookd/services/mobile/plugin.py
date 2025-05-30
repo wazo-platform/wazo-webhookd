@@ -174,6 +174,16 @@ class Service:
             user_uuid = body['data']['user_uuid']
             # TODO(sileht): Should come with the event
             tenant_uuid = self.get_tenant_uuid(user_uuid)
+
+            # Delete user mobile subscription(s) if already present
+            subscriptions = self.subscription_service.list(
+                owner_user_uuid=user_uuid,
+                owner_tenant_uuids=[tenant_uuid],
+                search_metadata={'mobile': 'true'},
+            )
+            for subscription in subscriptions:
+                self.subscription_service.delete(subscription.uuid)
+
             self.subscription_service.create(
                 {
                     'name': (
