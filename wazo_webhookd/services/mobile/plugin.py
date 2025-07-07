@@ -432,11 +432,12 @@ class PushNotification:
     def send_notification(
         self,
         notification_type: NotificationType | str,
-        message_title: str | None,
-        message_body: str | None,
-        extra: dict[str, Any],
+        message_title: str | None = None,
+        message_body: str | None = None,
+        extra: dict[str, Any] | None = None,
         data_only: bool = False,
     ) -> NotificationSentStatusDict:
+        extra = extra or {}
         data: NotificationPayload = {
             'notification_type': notification_type,
             'items': extra.pop('items', {}),
