@@ -378,14 +378,12 @@ class PushNotification:
         payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
-            None,  # Message title
-            None,  # Message body
-            {'items': payload},
+            extra={'items': payload},
+            data_only=True,
         )
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
-
         return self.send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
@@ -397,21 +395,15 @@ class PushNotification:
         payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
-            'New voicemail',
-            f'From: {data["message"]["caller_id_num"]}',
-            {'items': payload},
+            extra={'items': payload},
+            data_only=True,
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
-        # data-only notification
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
-            # data['alias'],
-            # data['content'],
-            None,
-            None,
-            {'items': payload},
+            extra={'items': payload},
             data_only=True,
         )
 
@@ -421,12 +413,10 @@ class PushNotification:
             'caller_id_name': data['caller_id_name'],
             'caller_id_number': data['caller_id_number'],
         }
-
         return self.send_notification(
             NotificationType.MISSED_CALL,
-            "Missed call",
-            f"Missed a call from: {data['caller_id_name']} (number {data['caller_id_number']})",
-            {'items': payload},
+            extra={'items': payload},
+            data_only=True,
         )
 
     def send_notification(
