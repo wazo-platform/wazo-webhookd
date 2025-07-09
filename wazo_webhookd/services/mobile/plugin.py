@@ -432,6 +432,12 @@ class PushNotification:
             'notification_type': notification_type,
             'items': extra.pop('items', {}),
         } | extra
+
+        if data_only:
+            # provide explicit data_only flag in notification payload
+            # to help mobile app distinguish between data-only and normal notifications
+            data['items']['data_only'] = True
+
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
                 apn_response = self._send_via_apn(
