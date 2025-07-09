@@ -569,6 +569,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                                     {
                                         'caller_id_number': '12221114455',
                                         'caller_id_name': 'John Doe',
+                                        'data_only': True,
                                     }
                                 ),
                                 'notification_type': 'missedCall',
@@ -1055,14 +1056,12 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         assert_that(
             request_body_json,
             has_entries(
-                notification=has_entries(
-                    title=instance_of(str),
-                    body=instance_of(str),
-                ),
+                priority='high',
                 data=has_entries(
                     items=has_entries(
                         caller_id_name='John Doe',
                         caller_id_number='12221114455',
+                        data_only=True,
                     ),
                     notification_type='missedCall',
                 ),
@@ -1379,12 +1378,14 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         with self.last_fcm_request() as request:
             assert_that(
                 request,
-                has_entry(
-                    'message',
-                    has_entry(
-                        'data',
-                        has_entries(
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(
                             notification_type='incomingCall', items=instance_of(str)
+                        ),
+                        android=has_entries(
+                            priority='high',
+                            ttl='0s',
                         ),
                     ),
                 ),
@@ -1565,12 +1566,6 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             request_body_json,
             has_entries(
                 message=has_entries(
-                    android=has_entries(
-                        notification=has_entries(
-                            title=instance_of(str),
-                            body=instance_of(str),
-                        )
-                    ),
                     data=has_entries(
                         items=instance_of(str),
                         notification_type='missedCall',
