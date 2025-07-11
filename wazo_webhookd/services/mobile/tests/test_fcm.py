@@ -39,7 +39,7 @@ class TestSendViaFcmLegacy(TestCase):
         body = 'From: 5555555555'  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
         self.push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -62,7 +62,7 @@ class TestSendViaFcmLegacy(TestCase):
         body = None  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.CANCEL_INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
         self.push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -85,7 +85,7 @@ class TestSendViaFcmLegacy(TestCase):
         body = 'From: 5555555555'
         data: NotificationPayload = {
             'notification_type': NotificationType.VOICEMAIL_RECEIVED,
-            'items': '',
+            'items': {},
         }
 
         self.push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -111,7 +111,7 @@ class TestSendViaFcmLegacy(TestCase):
             'alias': s.chat_alias,
             'content': s.chat_content,
             'notification_type': NotificationType.MESSAGE_RECEIVED,
-            'items': '',
+            'items': {},
         }
         title = s.chat_alias
         body = s.chat_content
@@ -150,7 +150,7 @@ class TestSendViaFcmLegacy(TestCase):
         body = 'From: 5555555555'  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
         push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -196,7 +196,7 @@ class TestSendViaFCMv1(TestCase):
         body = 'From: 5555555555'  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
         self.push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -211,7 +211,10 @@ class TestSendViaFCMv1(TestCase):
         push_service.notify_single_device.assert_called_once_with(
             low_priority=False,
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'notification_type': NotificationType.INCOMING_CALL,
+                'items': '',
+            },
             time_to_live=0,
         )
 
@@ -224,7 +227,7 @@ class TestSendViaFCMv1(TestCase):
         body = None  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.CANCEL_INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
         self.push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -237,7 +240,10 @@ class TestSendViaFCMv1(TestCase):
         )
         push_service.single_device_data_message.assert_called_once_with(
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+                'items': '',
+            },
             time_to_live=0,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
         )
@@ -252,7 +258,7 @@ class TestSendViaFCMv1(TestCase):
         body = 'From: 5555555555'
         data: NotificationPayload = {
             'notification_type': NotificationType.VOICEMAIL_RECEIVED,
-            'items': '',
+            'items': {},
         }
 
         self.push_notification._send_via_fcm(title, body, data, data_only=False)
@@ -266,7 +272,10 @@ class TestSendViaFCMv1(TestCase):
         push_service.single_device_data_message.assert_not_called()
         push_service.notify_single_device.assert_called_once_with(
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'notification_type': NotificationType.VOICEMAIL_RECEIVED,
+                'items': '',
+            },
             time_to_live=0,
             message_title='New voicemail',
             message_body='From: 5555555555',
@@ -283,7 +292,7 @@ class TestSendViaFCMv1(TestCase):
             'alias': s.chat_alias,
             'content': s.chat_content,
             'notification_type': NotificationType.MESSAGE_RECEIVED,
-            'items': '',
+            'items': {},
         }
         title = s.chat_alias
         body = s.chat_content
@@ -298,7 +307,12 @@ class TestSendViaFCMv1(TestCase):
         )
         push_service.single_device_data_message.assert_called_once_with(
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'alias': s.chat_alias,
+                'content': s.chat_content,
+                'notification_type': NotificationType.MESSAGE_RECEIVED,
+                'items': '',
+            },
             time_to_live=0,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
             low_priority=False,
