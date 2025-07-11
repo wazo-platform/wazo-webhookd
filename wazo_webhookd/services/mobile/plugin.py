@@ -75,10 +75,11 @@ EMPTY_EXTERNAL_CONFIG: ExternalConfigDict = {
 
 class BaseNotificationPayload(TypedDict):
     notification_type: str
-    items: str | dict
+    items: dict[str, Any]
 
 
-NotificationPayload = BaseNotificationPayload | dict[str, Any]
+class NotificationPayload(BaseNotificationPayload, total=False):
+    pass
 
 
 ApsContentDict = TypedDict(
@@ -428,10 +429,14 @@ class PushNotification:
         data_only: bool = False,
     ) -> NotificationSentStatusDict:
         extra = extra or {}
-        data: NotificationPayload = {
-            'notification_type': notification_type,
-            'items': extra.pop('items', {}),
-        } | extra
+        data = cast(
+            NotificationPayload,
+            {
+                'notification_type': notification_type,
+                'items': extra.pop('items', {}),
+            }
+            | extra,
+        )
 
         if data_only:
             # provide explicit data_only flag in notification payload
@@ -542,17 +547,18 @@ class PushNotification:
                 'time_to_live': 0,
             }
         else:
+            data_ = dict(data)
             # data payload must be serialized into a string
             if data_payload := data.get('items', None):
-                data['items'] = json.dumps(
+                data_['items'] = json.dumps(
                     data_payload, separators=(',', ':'), sort_keys=True
                 )
             else:
-                data['items'] = ""
+                data_['items'] = ""
 
             notify_kwargs = {
                 'registration_token': self.external_tokens['token'],
-                'data_message': data,
+                'data_message': data_,
                 'time_to_live': 0,
             }
 
