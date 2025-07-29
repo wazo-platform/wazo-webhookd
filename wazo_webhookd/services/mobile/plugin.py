@@ -175,11 +175,21 @@ class Service:
             # TODO(sileht): Should come with the event
             tenant_uuid = self.get_tenant_uuid(user_uuid)
 
+            logger.debug(
+                'external mobile config added for user %s, registering mobile subscription',
+                user_uuid,
+            )
+
             # Delete user mobile subscription(s) if already present
             subscriptions = self.subscription_service.list(
                 owner_user_uuid=user_uuid,
                 owner_tenant_uuids=[tenant_uuid],
                 search_metadata={'mobile': 'true'},
+            )
+            logger.debug(
+                'found %d mobile subscriptions for user %s, deleting them',
+                len(subscriptions),
+                user_uuid,
             )
             for subscription in subscriptions:
                 self.subscription_service.delete(subscription.uuid)
@@ -211,6 +221,10 @@ class Service:
     def on_external_auth_deleted(self, body: dict[str, Any]) -> None:
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
+            logger.debug(
+                'external mobile config deleted for user %s, unregistering mobile subscription',
+                user_uuid,
+            )
             # TODO(sileht): Should come with the event
             tenant_uuid = self.get_tenant_uuid(user_uuid)
             subscriptions = self.subscription_service.list(
@@ -218,6 +232,7 @@ class Service:
                 owner_tenant_uuids=[tenant_uuid],
                 search_metadata={'mobile': 'true'},
             )
+            logger.debug('found %d mobile subscriptions to delete', len(subscriptions))
             for subscription in subscriptions:
                 self.subscription_service.delete(subscription.uuid)
             logger.info('User unregistered: %s/%s', tenant_uuid, user_uuid)
