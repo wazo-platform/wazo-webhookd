@@ -159,6 +159,27 @@ paths:
           $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+    put:
+      summary: Update a user subscription
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.update`'
+      operationId: update_user_subscription
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+        - $ref: '#/parameters/SubscriptionBody'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '200':
+          description: Details of the updated subscription
+          schema:
+            $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '401':
+          $ref: '#/responses/Unauthorized'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
     delete:
       summary: Delete a user subscription
       description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.delete`'
