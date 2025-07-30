@@ -3,7 +3,7 @@ paths:
     get:
       summary: List subscriptions to HTTP callbacks
       description: '**Required ACL:** `webhookd.subscriptions.read`'
-      operationId: list
+      operationId: list_subscriptions
       tags:
         - subscriptions
       parameters:
@@ -25,7 +25,7 @@ paths:
 
 
       For more information: https://wazo-platform.org/documentation/api/webhook.html'
-      operationId: create
+      operationId: create_subscription
       parameters:
         - $ref: '#/parameters/SubscriptionBody'
       tags:
@@ -43,7 +43,7 @@ paths:
     get:
       summary: Get a subscription
       description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.read`'
-      operationId: get
+      operationId: get_subscription
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
       tags:
@@ -62,7 +62,7 @@ paths:
     put:
       summary: Edit a subscription
       description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.update`'
-      operationId: edit
+      operationId: update_subscription
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
         - $ref: '#/parameters/SubscriptionBody'
@@ -84,7 +84,7 @@ paths:
     delete:
       summary: Delete a subscription
       description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.delete`'
-      operationId: delete
+      operationId: delete_subscription
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
       tags:
@@ -102,7 +102,7 @@ paths:
     get:
       summary: List subscriptions of a user to HTTP callbacks
       description: '**Required ACL:** `webhookd.users.me.subscriptions.read`'
-      operationId: user_list
+      operationId: list_user_subscriptions
       parameters:
         - $ref: "#/parameters/SearchMetadata"
       tags:
@@ -123,7 +123,7 @@ paths:
 
 
       For more information: https://wazo-platform.org/documentation/api/webhook.html'
-      operationId: user_create
+      operationId: create_user_subscription
       parameters:
         - $ref: '#/parameters/UserSubscriptionBody'
       tags:
@@ -159,10 +159,31 @@ paths:
           $ref: '#/responses/Unauthorized'
         '503':
           $ref: '#/responses/AnotherServiceUnavailable'
+    put:
+      summary: Update a user subscription
+      description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.update`'
+      operationId: update_user_subscription
+      parameters:
+        - $ref: '#/parameters/SubscriptionUUID'
+        - $ref: '#/parameters/SubscriptionBody'
+      tags:
+        - subscriptions
+        - users
+      responses:
+        '200':
+          description: Details of the updated subscription
+          schema:
+            $ref: '#/definitions/Subscription'
+        '404':
+          $ref: '#/responses/NotFoundError'
+        '401':
+          $ref: '#/responses/Unauthorized'
+        '503':
+          $ref: '#/responses/AnotherServiceUnavailable'
     delete:
       summary: Delete a user subscription
       description: '**Required ACL:** `webhookd.users.me.subscriptions.{subscription_uuid}.delete`'
-      operationId: user_delete
+      operationId: delete_user_subscription
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
       tags:
@@ -181,7 +202,7 @@ paths:
     get:
       summary: Get hook logs
       description: '**Required ACL:** `webhookd.subscriptions.{subscription_uuid}.logs.read`'
-      operationId: get_logs
+      operationId: get_subscription_logs
       parameters:
         - $ref: '#/parameters/SubscriptionUUID'
       tags:
