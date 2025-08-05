@@ -7,13 +7,16 @@ from hamcrest import (
     assert_that,
     calling,
     contains_exactly,
+    contains_inanyorder,
     empty,
     equal_to,
     has_entries,
     has_entry,
     has_item,
     has_key,
+    has_length,
     has_property,
+    instance_of,
     not_,
 )
 from wazo_test_helpers import until
@@ -35,7 +38,7 @@ from .helpers.base import (
     WAZO_UUID,
     BaseIntegrationTest,
 )
-from .helpers.fixtures import subscription
+from .helpers.fixtures import SubscriptionFixtureMixin, subscription, user_subscription
 from .helpers.wait_strategy import EverythingOkWaitStrategy
 
 SOME_SUBSCRIPTION_UUID = '07ec6a65-0f64-414a-bc8e-e2d1de0ae09d'
@@ -922,4 +925,235 @@ class TestSubscriptionCleanup(BaseIntegrationTest):
             tenant_subscription_deleted,
             timeout=5,
             message='Tenant subscription not deleted',
+        )
+
+
+class TestSubscriptionEvents(SubscriptionFixtureMixin, BaseIntegrationTest):
+    asset = 'base'
+    wait_strategy = EverythingOkWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.bus = self.make_bus()
+
+    def test_subscription_created_event(self):
+        accumulator = self.bus.accumulator(
+            headers={'name': 'webhookd_subscription_created', 'user_uuid:*': True},
+        )
+
+        with self.subscription(TEST_SUBSCRIPTION) as subscription_:
+            assert_that(subscription_, has_entry('uuid', instance_of(str)))
+
+            events = accumulator.accumulate(with_headers=True)
+            assert_that(events, has_length(1))
+
+            assert_that(
+                events,
+                contains_inanyorder(
+                    has_entries(
+                        message=has_entries(
+                            data=has_entries(
+                                uuid=subscription_['uuid'],
+                                owner_tenant_uuid=MASTER_TENANT,
+                                **TEST_SUBSCRIPTION,
+                            ),
+                        )
+                    )
+                ),
+            )
+
+    def test_user_subscription_created_event(self):
+        accumulator = self.bus.accumulator(
+            headers={
+                'name': 'webhookd_user_subscription_created',
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        with self.user_subscription(
+            TEST_SUBSCRIPTION, token=USER_1_TOKEN
+        ) as subscription_:
+            assert_that(subscription_, has_entry('uuid', instance_of(str)))
+
+            events = accumulator.accumulate(with_headers=True)
+            assert_that(events, has_length(1))
+
+            assert_that(
+                events,
+                contains_inanyorder(
+                    has_entries(
+                        message=has_entries(
+                            data=has_entries(
+                                name=subscription_['name'],
+                                service=subscription_['service'],
+                                events=subscription_['events'],
+                                config=has_entries(subscription_['config']),
+                            ),
+                        ),
+                        headers=has_entries(
+                            {
+                                f'user_uuid:{USER_1_UUID}': True,
+                                'name': 'webhookd_user_subscription_created',
+                                'tenant_uuid': USERS_TENANT,
+                            }
+                        ),
+                    )
+                ),
+            )
+
+    @subscription(TEST_SUBSCRIPTION)
+    def test_subscription_updated_event(self, subscription_):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        accumulator = self.bus.accumulator(
+            headers={'name': 'webhookd_subscription_updated', 'user_uuid:*': True},
+        )
+
+        # Update the subscription
+        updated_subscription = dict(subscription_)
+        updated_subscription['name'] = 'updated_test'
+        webhookd.subscriptions.update(
+            updated_subscription.pop('uuid'), updated_subscription
+        )
+
+        events = accumulator.accumulate(with_headers=True)
+        assert_that(events, has_length(1))
+
+        assert_that(
+            events,
+            contains_inanyorder(
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(updated_subscription),
+                    ),
+                    headers=has_entries(
+                        {
+                            'name': 'webhookd_subscription_updated',
+                            'tenant_uuid': MASTER_TENANT,
+                        }
+                    ),
+                )
+            ),
+        )
+
+    @user_subscription(
+        USER_1_TEST_SUBSCRIPTION, token=USER_1_TOKEN, tenant=USERS_TENANT
+    )
+    def test_user_subscription_updated_event(self, subscription_):
+        webhookd = self.make_webhookd(USER_1_TOKEN)
+
+        accumulator = self.bus.accumulator(
+            headers={
+                'name': 'webhookd_user_subscription_updated',
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        # Update the subscription
+        updated_subscription = dict(subscription_)
+        updated_subscription['name'] = 'updated_test'
+        webhookd.subscriptions.update_as_user(
+            updated_subscription.pop('uuid'), updated_subscription
+        )
+
+        events = accumulator.accumulate(with_headers=True)
+        assert_that(events, has_length(1))
+
+        assert_that(
+            events,
+            contains_inanyorder(
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(
+                            name='updated_test',
+                            service=subscription_['service'],
+                            events=subscription_['events'],
+                            config=has_entries(subscription_['config']),
+                        ),
+                    ),
+                    headers=has_entries(
+                        {
+                            f'user_uuid:{USER_1_UUID}': True,
+                            'name': 'webhookd_user_subscription_updated',
+                            'tenant_uuid': USERS_TENANT,
+                        }
+                    ),
+                )
+            ),
+        )
+
+    @subscription(TEST_SUBSCRIPTION, auto_delete=False)
+    def test_subscription_deleted_event(self, subscription_):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        accumulator = self.bus.accumulator(
+            headers={'name': 'webhookd_subscription_deleted', 'user_uuid:*': True},
+        )
+
+        # Delete the subscription
+        webhookd.subscriptions.delete(subscription_['uuid'])
+
+        events = accumulator.accumulate(with_headers=True)
+        assert_that(events, has_length(1))
+
+        assert_that(
+            events,
+            contains_inanyorder(
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(subscription_),
+                    ),
+                    headers=has_entries(
+                        {
+                            'name': 'webhookd_subscription_deleted',
+                            'tenant_uuid': MASTER_TENANT,
+                        }
+                    ),
+                )
+            ),
+        )
+
+    @user_subscription(
+        USER_1_TEST_SUBSCRIPTION,
+        token=USER_1_TOKEN,
+        tenant=USERS_TENANT,
+        auto_delete=False,
+    )
+    def test_user_subscription_deleted_event(self, subscription_):
+        webhookd = self.make_webhookd(USER_1_TOKEN)
+
+        accumulator = self.bus.accumulator(
+            headers={
+                'name': 'webhookd_user_subscription_deleted',
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        # Delete the subscription
+        webhookd.subscriptions.delete_as_user(subscription_['uuid'])
+
+        events = accumulator.accumulate(with_headers=True)
+        assert_that(events, has_length(1))
+
+        assert_that(
+            events,
+            contains_inanyorder(
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(
+                            name=subscription_['name'],
+                            service=subscription_['service'],
+                            events=subscription_['events'],
+                            config=has_entries(subscription_['config']),
+                        ),
+                    ),
+                    headers=has_entries(
+                        {
+                            f'user_uuid:{USER_1_UUID}': True,
+                            'name': 'webhookd_user_subscription_deleted',
+                            'tenant_uuid': USERS_TENANT,
+                        }
+                    ),
+                )
+            ),
         )
