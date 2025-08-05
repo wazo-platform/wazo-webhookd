@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Union
 import kombu
 from wazo_bus.base import Base
 from wazo_bus.mixins import ConsumerMixin, ThreadableMixin
+from wazo_bus.publisher import BusPublisher as BasePublisher
 
 if TYPE_CHECKING:
     from amqp import Message
@@ -151,6 +152,16 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             callback, events, _ = self._handlers.pop(uuid)
         for event in events:
             self.unsubscribe(event, callback)
+
+    @classmethod
+    def from_config(cls, bus_config):
+        return cls(name='wazo_webhookd', **bus_config)
+
+
+class BusPublisher(BasePublisher):
+    @classmethod
+    def from_config(cls, service_uuid, bus_config):
+        return cls(name='wazo-webhookd', service_uuid=service_uuid, **bus_config)
 
 
 class WebhookdExchange:

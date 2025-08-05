@@ -10,7 +10,7 @@ from flask_restful import Api
 from stevedore.named import NamedExtensionManager
 from wazo_auth_client.client import AuthClient
 
-from .bus import BusConsumer
+from .bus import BusConsumer, BusPublisher
 
 if TYPE_CHECKING:
     from .database.models import Subscription
@@ -113,12 +113,14 @@ class WebhookdConfigDict(TypedDict):
     mobile_apns_port: int
     mobile_fcm_notification_end_point: str
     service_discovery: ServiceDiscoveryConfigDict
+    uuid: str
 
 
 class ServicePluginDependencyDict(TypedDict):
     api: Api
     auth_client: AuthClient
     bus_consumer: BusConsumer
+    bus_publisher: BusPublisher
     config: WebhookdConfigDict
 
 

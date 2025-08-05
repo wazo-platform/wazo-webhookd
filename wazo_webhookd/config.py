@@ -18,7 +18,7 @@ from wazo_webhookd.types import WebhookdConfigDict
 _DEFAULT_HTTP_PORT = 9300
 _PID_DIR = '/run/wazo-webhookd'
 
-_DEFAULT_CONFIG: WebhookdConfigDict = {
+_DEFAULT_CONFIG = {
     'config_file': '/etc/wazo-webhookd/config.yml',
     'debug': False,
     'extra_config_files': '/etc/wazo-webhookd/conf.d',
