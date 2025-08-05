@@ -13,6 +13,8 @@ from wazo_bus.resources.webhookd.events import (
     WebhookdSubscriptionUpdatedUserEvent,
 )
 
+from wazo_webhookd.database.models import Subscription
+
 from .schema import subscription_schema, user_subscription_schema
 
 
@@ -20,7 +22,7 @@ class SubscriptionNotifier:
     def __init__(self, bus_publisher: BusPublisher):
         self._bus_publisher = bus_publisher
 
-    def created(self, subscription):
+    def created(self, subscription: Subscription):
         """Publish webhookd_subscription_created event to the bus."""
 
         if subscription.owner_user_uuid:
@@ -38,7 +40,7 @@ class SubscriptionNotifier:
             )
         self._bus_publisher.publish(event)
 
-    def updated(self, subscription):
+    def updated(self, subscription: Subscription):
         """Publish webhookd_subscription_updated event to the bus."""
 
         if subscription.owner_user_uuid:
@@ -56,7 +58,7 @@ class SubscriptionNotifier:
             )
         self._bus_publisher.publish(event)
 
-    def deleted(self, subscription):
+    def deleted(self, subscription: Subscription):
         """Publish webhookd_subscription_deleted event to the bus."""
 
         if subscription.owner_user_uuid:

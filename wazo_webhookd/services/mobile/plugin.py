@@ -19,6 +19,7 @@ from pyfcm import FCMNotification as FCMNotificationLegacy
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 
+from wazo_webhookd.plugins.subscription.notifier import SubscriptionNotifier
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 from wazo_webhookd.services.helpers import (
     HookExpectedError,
@@ -155,8 +156,11 @@ class Service:
 
     def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
+        bus_publisher = dependencies['bus_publisher']
         self._config = dependencies['config']
-        self.subscription_service = SubscriptionService(self._config)
+        self.subscription_service = SubscriptionService(
+            self._config, SubscriptionNotifier(bus_publisher)
+        )
         bus_consumer.subscribe(
             'auth_user_external_auth_added',
             self.on_external_auth_added,
