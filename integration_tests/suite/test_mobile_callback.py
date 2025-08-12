@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -6,6 +6,7 @@ from __future__ import annotations
 import datetime
 import functools
 import json
+import time
 import uuid
 from contextlib import contextmanager
 
@@ -124,9 +125,10 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
                 'origin_uuid': 'my-origin-uuid',
             },
         )
-        self._wait_items(
-            functools.partial(self.webhookd.subscriptions.list, recurse=True)
-        )
+        # Wait a moment for the event to be processed
+        import time
+
+        time.sleep(0.5)
         subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert (
             subscription := next(
@@ -229,6 +231,75 @@ class TestMobileEvents(BaseMobileCallbackIntegrationTest):
 
         subscription = subscriptions['items'][0]
         self.webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_user_external_auth_updated_event_ensures_single_mobile_subscription(self):
+        # First, create a mobile subscription via auth_user_external_auth_added
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': 'my-origin-uuid',
+            },
+        )
+
+        # Wait for the subscription to be created
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        initial_subscriptions = self.webhookd.subscriptions.list(recurse=True)
+        assert_that(initial_subscriptions['total'], equal_to(1))
+
+        initial_subscription = initial_subscriptions['items'][0]
+        initial_subscription_uuid = initial_subscription['uuid']
+
+        # Now send the auth_user_external_auth_updated event
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_updated',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_updated',
+                'origin_uuid': 'my-origin-uuid',
+            },
+        )
+
+        # Wait for the event to be processed
+        time.sleep(0.5)
+
+        # Verify that there's still only one subscription
+        updated_subscriptions = self.webhookd.subscriptions.list(recurse=True)
+        assert_that(updated_subscriptions['total'], equal_to(1))
+
+        # Verify that the subscription has the correct properties
+        updated_subscription = updated_subscriptions['items'][0]
+        assert_that(
+            updated_subscription,
+            has_entries(
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_1_UUID}",
+                events=contains_inanyorder(
+                    'chatd_user_room_message_created',
+                    'call_push_notification',
+                    'call_cancel_push_notification',
+                    'user_voicemail_message_created',
+                    'user_missed_call',
+                ),
+                owner_tenant_uuid=USERS_TENANT,
+                owner_user_uuid=USER_1_UUID,
+                service='mobile',
+                uuid=initial_subscription_uuid,
+            ),
+        )
+
+        # Clean up
+        self.webhookd.subscriptions.delete(updated_subscription["uuid"])
 
 
 class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
