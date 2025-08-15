@@ -178,33 +178,32 @@ class Service:
         )
         logger.info('Mobile push notification plugin is started')
 
-    def on_external_auth_added(self, body):
+    def on_external_auth_added(self, body: dict, headers: dict):
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
-            # TODO(sileht): Should come with the event
-            tenant_uuid = self.get_tenant_uuid(user_uuid)
+            tenant_uuid = headers['tenant_uuid']
 
             self._ensure_mobile_subscription(user_uuid, tenant_uuid)
             logger.info(
                 'User mobile subscription registered: %s/%s', tenant_uuid, user_uuid
             )
 
-    def on_external_auth_updated(self, body):
+    def on_external_auth_updated(self, body, headers):
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
-            # TODO(sileht): Should come with the event
-            tenant_uuid = self.get_tenant_uuid(user_uuid)
+            tenant_uuid = headers['tenant_uuid']
 
             self._ensure_mobile_subscription(user_uuid, tenant_uuid)
             logger.info(
                 'User mobile subscription updated: %s/%s', tenant_uuid, user_uuid
             )
 
-    def on_external_auth_deleted(self, body: dict[str, Any]) -> None:
+    def on_external_auth_deleted(
+        self, body: dict[str, Any], headers: dict[str, Any]
+    ) -> None:
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
-            # TODO(sileht): Should come with the event
-            tenant_uuid = self.get_tenant_uuid(user_uuid)
+            tenant_uuid = headers['tenant_uuid']
             subscriptions = self.subscription_service.list(
                 owner_user_uuid=user_uuid,
                 owner_tenant_uuids=[tenant_uuid],
