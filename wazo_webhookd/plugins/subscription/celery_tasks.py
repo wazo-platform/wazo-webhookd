@@ -10,9 +10,11 @@ from typing import TYPE_CHECKING, Any
 import celery
 from pkg_resources import EntryPoint
 
+from wazo_webhookd.bus import BusPublisher
 from wazo_webhookd.celery import app
 from wazo_webhookd.services.helpers import HookExpectedError, HookRetry
 
+from .notifier import SubscriptionNotifier
 from .service import SubscriptionService
 
 if TYPE_CHECKING:
@@ -38,7 +40,10 @@ class ServiceTask(celery.Task):
     @classmethod
     def get_service(cls, config: WebhookdConfigDict) -> SubscriptionService:
         if cls._service is None:
-            cls._service = SubscriptionService(config)
+            bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
+            cls._service = SubscriptionService(
+                config, SubscriptionNotifier(bus_publisher)
+            )
         return cls._service
 
 

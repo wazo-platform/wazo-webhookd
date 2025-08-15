@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
@@ -6,6 +6,7 @@ import os
 import uuid
 from contextlib import contextmanager
 from functools import partial
+from unittest.mock import Mock
 
 from hamcrest import (
     assert_that,
@@ -130,7 +131,7 @@ class TestDatabase(AssetLaunchingTestCase):
         self._Session.remove()
 
     def test_subscription_pubsub_create(self):
-        service = SubscriptionService(self._some_config())
+        service = SubscriptionService(self._some_config(), Mock())
 
         tracker = {'uuid': None}
 
@@ -150,8 +151,8 @@ class TestDatabase(AssetLaunchingTestCase):
         assert_that(tracker, has_entries({'uuid': is_(not_none())}))
 
     def test_subscription_pubsub_two_services(self):
-        service1 = SubscriptionService(self._some_config())
-        service2 = SubscriptionService(self._some_config())
+        service1 = SubscriptionService(self._some_config(), Mock())
+        service2 = SubscriptionService(self._some_config(), Mock())
 
         tracker = {}
 
@@ -173,7 +174,7 @@ class TestDatabase(AssetLaunchingTestCase):
         assert_that(tracker, has_entries({'service1': True, 'service2': True}))
 
     def test_purger(self):
-        service = SubscriptionService(self._some_config())
+        service = SubscriptionService(self._some_config(), Mock())
         subscription_uuid = service.create(
             {
                 'name': 'test',
@@ -213,7 +214,7 @@ class TestDatabase(AssetLaunchingTestCase):
         assert_that(len(logs), equal_to(4))
 
     def test_subscription_log_on_subscription_deleted(self):
-        service = SubscriptionService(self._some_config())
+        service = SubscriptionService(self._some_config(), Mock())
         subscription_uuid_not_found = str(uuid.uuid4())
 
         service.create_hook_log(

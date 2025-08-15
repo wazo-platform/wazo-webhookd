@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from xivo.token_renewer import TokenRenewer
 from wazo_webhookd import celery
 
 from . import auth
-from .bus import BusConsumer
+from .bus import BusConsumer, BusPublisher
 from .rest_api import CoreRestApi, api
 
 if TYPE_CHECKING:
@@ -52,7 +52,8 @@ class Controller:
                 auth.init_master_tenant
             )
         self._token_renewer.subscribe_to_token_change(self._auth_client.set_token)
-        self._bus_consumer = BusConsumer(name='wazo_webhookd', **config['bus'])
+        self._bus_consumer = BusConsumer.from_config(config['bus'])
+        self._bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
         self.rest_api = CoreRestApi(config)
         self._service_manager = plugin_helpers.load(
             namespace='wazo_webhookd.services',
@@ -60,6 +61,7 @@ class Controller:
             dependencies={
                 'api': api,
                 'bus_consumer': self._bus_consumer,
+                'bus_publisher': self._bus_publisher,
                 'config': config,
                 'auth_client': self._auth_client,
             },
@@ -71,6 +73,7 @@ class Controller:
                 'api': api,
                 'auth_client': self._auth_client,
                 'bus_consumer': self._bus_consumer,
+                'bus_publisher': self._bus_publisher,
                 'config': config,
                 'service_manager': self._service_manager,
                 'next_token_change_subscribe': self._token_renewer.subscribe_to_next_token_change,

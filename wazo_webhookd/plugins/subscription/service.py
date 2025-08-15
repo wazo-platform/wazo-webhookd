@@ -21,6 +21,7 @@ from wazo_webhookd.database.models import (
 )
 
 from .exceptions import NoSuchSubscription
+from .notifier import SubscriptionNotifier
 
 if TYPE_CHECKING:
     from ...types import WebhookdConfigDict
@@ -35,7 +36,9 @@ class SubscriptionService:
 
     pubsub = Pubsub()
 
-    def __init__(self, config: WebhookdConfigDict) -> None:
+    def __init__(
+        self, config: WebhookdConfigDict, notifier: SubscriptionNotifier
+    ) -> None:
         self._engine = create_engine(
             config['db_uri'],
             pool_size=config['rest_api']['max_threads'],
@@ -43,6 +46,7 @@ class SubscriptionService:
         )
         self._Session: scoped_session = scoped_session(sessionmaker())
         self._Session.configure(bind=self._engine)
+        self._notifier = notifier
 
     def subscribe_bus(self, bus):
         bus.subscribe(UserDeletedEvent.name, self._on_user_deleted_event)
@@ -143,6 +147,7 @@ class SubscriptionService:
             session.expire_all()
             subscription.make_transient()
             self.pubsub.publish('created', subscription)
+            self._notifier.created(subscription)
             return subscription
 
     def update(
@@ -163,6 +168,7 @@ class SubscriptionService:
             session.expire_all()
             subscription.make_transient()
             self.pubsub.publish('updated', subscription)
+            self._notifier.updated(subscription)
             return subscription
 
     def delete(self, subscription_uuid, owner_tenant_uuids=None, owner_user_uuid=None):
@@ -172,6 +178,7 @@ class SubscriptionService:
             )
             session.delete(subscription)
             self.pubsub.publish('deleted', subscription)
+            self._notifier.deleted(subscription)
 
     def get_logs(
         self,

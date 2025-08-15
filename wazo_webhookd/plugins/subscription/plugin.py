@@ -15,6 +15,7 @@ from .http import (
     UserSubscriptionResource,
     UserSubscriptionsResource,
 )
+from .notifier import SubscriptionNotifier
 from .service import SubscriptionService
 
 if TYPE_CHECKING:
@@ -25,6 +26,7 @@ class Plugin:
     def load(self, dependencies: PluginDependencyDict) -> None:
         api = dependencies['api']
         bus_consumer = dependencies['bus_consumer']
+        bus_publisher = dependencies['bus_publisher']
         config = dependencies['config']
         service_manager = dependencies['service_manager']
         subscribe_to_next_token_change = dependencies['next_token_change_subscribe']
@@ -32,7 +34,7 @@ class Plugin:
         master_tenant_callback_collector = CallbackCollector()
         subscribe_to_next_token_change(master_tenant_callback_collector.new_source())
 
-        service = SubscriptionService(config)
+        service = SubscriptionService(config, SubscriptionNotifier(bus_publisher))
         service.subscribe_bus(bus_consumer)
 
         api.add_resource(
