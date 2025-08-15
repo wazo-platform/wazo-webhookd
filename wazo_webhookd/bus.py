@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from inspect import signature
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Union
 
@@ -22,6 +23,10 @@ if TYPE_CHECKING:
     AmpqCallback = Callable[[dict[str, Any], Union[Message, None]], None]
 
 logger = logging.getLogger(__name__)
+
+
+def _wants_headers(handler: Callable) -> bool:
+    return len(signature(handler).parameters) == 2
 
 
 # !!DO NOT RENAME!!
@@ -55,7 +60,15 @@ class _ConsumerMixin(ConsumerMixin):
             if not self._check_headers_match(headers, binding):
                 continue
             try:
-                handler(payload)
+                if _wants_headers(handler):
+                    self.log.debug(
+                        'dispatching event %s to handler %s with headers',
+                        event_name,
+                        getattr(handler, '__name__', str(handler)),
+                    )
+                    handler(payload, headers)
+                else:
+                    handler(payload)
             except Exception:
                 self.log.exception(
                     'Handler \'%s\' for event \'%s\' failed',
