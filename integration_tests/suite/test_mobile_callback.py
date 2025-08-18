@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -6,6 +6,7 @@ from __future__ import annotations
 import datetime
 import functools
 import json
+import time
 import uuid
 from contextlib import contextmanager
 
@@ -112,21 +113,11 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
 
     def _given_mobile_subscription(self, user_uuid):
         # mobile user logs in
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': str(user_uuid)},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-            },
-        )
-        self._wait_items(
-            functools.partial(self.webhookd.subscriptions.list, recurse=True)
-        )
+        self._publish_auth_user_external_auth_added(str(user_uuid))
+        # Wait a moment for the event to be processed
+        import time
+
+        time.sleep(0.5)
         subscriptions = self.webhookd.subscriptions.list(recurse=True)
         assert (
             subscription := next(
@@ -165,6 +156,93 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
 
         yield request_body
 
+    def _publish_auth_user_external_auth_added(
+        self,
+        user_uuid: str,
+        external_auth_name: str = 'mobile',
+        tenant_uuid: str = USERS_TENANT,
+        origin_uuid: str = 'my-origin-uuid',
+    ):
+        """
+        Publish an auth_user_external_auth_added event.
+        this should be equivalent to the wazo-bus event
+        UserExternalAuthAddedEvent
+        """
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': origin_uuid,
+                'data': {
+                    'external_auth_name': external_auth_name,
+                    'user_uuid': user_uuid,
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_added',
+                'origin_uuid': origin_uuid,
+                'tenant_uuid': tenant_uuid,
+            },
+        )
+
+    def _publish_auth_user_external_auth_updated(
+        self,
+        user_uuid: str,
+        external_auth_name: str = 'mobile',
+        tenant_uuid: str = USERS_TENANT,
+        origin_uuid: str = 'my-origin-uuid',
+    ):
+        """
+        Publish an auth_user_external_auth_updated event.
+        this should be equivalent to the wazo-bus event
+        UserExternalAuthUpdatedEvent
+        """
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_updated',
+                'origin_uuid': origin_uuid,
+                'data': {
+                    'external_auth_name': external_auth_name,
+                    'user_uuid': user_uuid,
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_updated',
+                'origin_uuid': origin_uuid,
+                'tenant_uuid': tenant_uuid,
+            },
+        )
+
+    def _publish_auth_user_external_auth_deleted(
+        self,
+        user_uuid: str,
+        external_auth_name: str = 'mobile',
+        tenant_uuid: str = USERS_TENANT,
+        origin_uuid: str = 'my-origin-uuid',
+    ):
+        """
+        Publish an auth_user_external_auth_deleted event.
+        this should be equivalent to the wazo-bus event
+        UserExternalAuthDeletedEvent
+        """
+        self.bus.publish(
+            {
+                'name': 'auth_user_external_auth_deleted',
+                'origin_uuid': origin_uuid,
+                'data': {
+                    'external_auth_name': external_auth_name,
+                    'user_uuid': user_uuid,
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_user_external_auth_deleted',
+                'origin_uuid': origin_uuid,
+                'tenant_uuid': tenant_uuid,
+            },
+        )
+
 
 class TestMobileEvents(BaseMobileCallbackIntegrationTest):
     asset = 'proxy'
@@ -179,30 +257,8 @@ class TestMobileEvents(BaseMobileCallbackIntegrationTest):
         self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
 
     def test_multiple_user_external_auth_added_events_only_one_mobile(self):
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-            },
-        )
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-            },
-        )
+        self._publish_auth_user_external_auth_added(USER_1_UUID)
+        self._publish_auth_user_external_auth_added(USER_1_UUID)
 
         # expect new subscription for new mobile login
         self._wait_items(
@@ -230,6 +286,53 @@ class TestMobileEvents(BaseMobileCallbackIntegrationTest):
         subscription = subscriptions['items'][0]
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
+    def test_user_external_auth_updated_event_ensures_single_mobile_subscription(self):
+        # First, create a mobile subscription via auth_user_external_auth_added
+        self._publish_auth_user_external_auth_added(USER_1_UUID)
+
+        # Wait for the subscription to be created
+        self._wait_items(
+            functools.partial(self.webhookd.subscriptions.list, recurse=True)
+        )
+        initial_subscriptions = self.webhookd.subscriptions.list(recurse=True)
+        assert_that(initial_subscriptions['total'], equal_to(1))
+
+        initial_subscription = initial_subscriptions['items'][0]
+        initial_subscription_uuid = initial_subscription['uuid']
+
+        # Now send the auth_user_external_auth_updated event
+        self._publish_auth_user_external_auth_updated(USER_1_UUID)
+
+        # Wait for the event to be processed
+        time.sleep(0.5)
+
+        # Verify that there's still only one subscription
+        updated_subscriptions = self.webhookd.subscriptions.list(recurse=True)
+        assert_that(updated_subscriptions['total'], equal_to(1))
+
+        # Verify that the subscription has the correct properties
+        updated_subscription = updated_subscriptions['items'][0]
+        assert_that(
+            updated_subscription,
+            has_entries(
+                name=f"Push notification mobile for user {USERS_TENANT}/{USER_1_UUID}",
+                events=contains_inanyorder(
+                    'chatd_user_room_message_created',
+                    'call_push_notification',
+                    'call_cancel_push_notification',
+                    'user_voicemail_message_created',
+                    'user_missed_call',
+                ),
+                owner_tenant_uuid=USERS_TENANT,
+                owner_user_uuid=USER_1_UUID,
+                service='mobile',
+                uuid=initial_subscription_uuid,
+            ),
+        )
+
+        # Clean up
+        self.webhookd.subscriptions.delete(updated_subscription["uuid"])
+
 
 class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
     """
@@ -249,18 +352,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
 
     def test_incoming_call_workflow_fcm(self):
         # mobile user logs in
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-            },
-        )
+        self._publish_auth_user_external_auth_added(USER_1_UUID)
 
         # expect new subscription for new mobile login
         self._wait_items(
@@ -614,18 +706,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
             }
         )
 
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-            },
-        )
+        self._publish_auth_user_external_auth_added(USER_1_UUID)
 
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)
@@ -1017,18 +1098,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             }
         )
 
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_1_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-            },
-        )
+        self._publish_auth_user_external_auth_added(USER_1_UUID)
 
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)
@@ -1373,15 +1443,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             responseBody={'tracker': 'tracker'},
             statusCode=200,
         )
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_2_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={'name': 'auth_user_external_auth_added'},
-        )
+        self._publish_auth_user_external_auth_added(USER_2_UUID)
 
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)
@@ -1526,15 +1588,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             responseBody={'tracker': 'tracker-notification'},
             statusCode=200,
         )
-        self.bus.publish(
-            {
-                'name': 'auth_user_external_auth_added',
-                'origin_uuid': 'my-origin-uuid',
-                'data': {'external_auth_name': 'mobile', 'user_uuid': USER_2_UUID},
-            },
-            routing_key=SOME_ROUTING_KEY,
-            headers={'name': 'auth_user_external_auth_added'},
-        )
+        self._publish_auth_user_external_auth_added(USER_2_UUID)
 
         self._wait_items(
             functools.partial(self.webhookd.subscriptions.list, recurse=True)

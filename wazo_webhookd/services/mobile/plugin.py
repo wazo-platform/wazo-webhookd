@@ -167,27 +167,98 @@ class Service:
             headers={'x-internal': True},
         )
         bus_consumer.subscribe(
+            'auth_user_external_auth_updated',
+            self.on_external_auth_updated,
+            headers={'x-internal': True},
+        )
+        bus_consumer.subscribe(
             'auth_user_external_auth_deleted',
             self.on_external_auth_deleted,
             headers={'x-internal': True},
         )
         logger.info('Mobile push notification plugin is started')
 
-    def on_external_auth_added(self, body):
+    def on_external_auth_added(self, body: dict, headers: dict):
         if body['data'].get('external_auth_name') == 'mobile':
             user_uuid = body['data']['user_uuid']
-            # TODO(sileht): Should come with the event
-            tenant_uuid = self.get_tenant_uuid(user_uuid)
+            tenant_uuid = headers['tenant_uuid']
 
-            # Delete user mobile subscription(s) if already present
+            self._ensure_mobile_subscription(user_uuid, tenant_uuid)
+            logger.info(
+                'User mobile subscription registered: %s/%s', tenant_uuid, user_uuid
+            )
+
+    def on_external_auth_updated(self, body, headers):
+        if body['data'].get('external_auth_name') == 'mobile':
+            user_uuid = body['data']['user_uuid']
+            tenant_uuid = headers['tenant_uuid']
+
+            self._ensure_mobile_subscription(user_uuid, tenant_uuid)
+            logger.info(
+                'User mobile subscription updated: %s/%s', tenant_uuid, user_uuid
+            )
+
+    def on_external_auth_deleted(
+        self, body: dict[str, Any], headers: dict[str, Any]
+    ) -> None:
+        if body['data'].get('external_auth_name') == 'mobile':
+            user_uuid = body['data']['user_uuid']
+            tenant_uuid = headers['tenant_uuid']
             subscriptions = self.subscription_service.list(
                 owner_user_uuid=user_uuid,
                 owner_tenant_uuids=[tenant_uuid],
                 search_metadata={'mobile': 'true'},
             )
+            logger.debug(
+                'Found %d mobile subscriptions for user %s/%s',
+                len(subscriptions),
+                tenant_uuid,
+                user_uuid,
+            )
             for subscription in subscriptions:
                 self.subscription_service.delete(subscription.uuid)
+            logger.info('User unregistered: %s/%s', tenant_uuid, user_uuid)
 
+    def _ensure_mobile_subscription(self, user_uuid: str, tenant_uuid: str) -> None:
+        """Create or update mobile subscription for a user, ensuring only one exists."""
+        # Delete any existing mobile subscriptions for this user
+        subscriptions = self.subscription_service.list(
+            owner_user_uuid=user_uuid,
+            owner_tenant_uuids=[tenant_uuid],
+            search_metadata={'mobile': 'true'},
+        )
+        if len(subscriptions) == 1:
+            logger.debug(
+                'Mobile subscription (uuid=%s) already exists for user (tenant=%s/uuid=%s)',
+                subscriptions[0].uuid,
+                tenant_uuid,
+                user_uuid,
+            )
+            return
+
+        if len(subscriptions) > 1:
+            logger.warning(
+                '%d mobile subscriptions found for user %s/%s, cleaning up and keeping only one',
+                len(subscriptions),
+                tenant_uuid,
+                user_uuid,
+            )
+            for subscription in subscriptions[1:]:
+                self.subscription_service.delete(subscription.uuid)
+            logger.debug(
+                'Mobile subscription (uuid=%s) already exists for user (tenant=%s/uuid=%s)',
+                subscriptions[0].uuid,
+                tenant_uuid,
+                user_uuid,
+            )
+            return
+        if len(subscriptions) == 0:
+            logger.info(
+                'Creating new mobile subscription for user (tenant=%s/uuid=%s)',
+                tenant_uuid,
+                user_uuid,
+            )
+            # Create a new mobile subscription
             self.subscription_service.create(
                 {
                     'name': (
@@ -210,21 +281,7 @@ class Service:
                     'metadata_': {'mobile': 'true'},
                 }
             )
-            logger.info('User registered: %s/%s', tenant_uuid, user_uuid)
-
-    def on_external_auth_deleted(self, body: dict[str, Any]) -> None:
-        if body['data'].get('external_auth_name') == 'mobile':
-            user_uuid = body['data']['user_uuid']
-            # TODO(sileht): Should come with the event
-            tenant_uuid = self.get_tenant_uuid(user_uuid)
-            subscriptions = self.subscription_service.list(
-                owner_user_uuid=user_uuid,
-                owner_tenant_uuids=[tenant_uuid],
-                search_metadata={'mobile': 'true'},
-            )
-            for subscription in subscriptions:
-                self.subscription_service.delete(subscription.uuid)
-            logger.info('User unregistered: %s/%s', tenant_uuid, user_uuid)
+            return
 
     def get_tenant_uuid(self, user_uuid: str) -> str:
         auth, jwt = self.get_auth(self._config)
