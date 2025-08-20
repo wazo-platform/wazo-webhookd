@@ -1,4 +1,4 @@
-# Copyright 2022-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from typing import Any
@@ -50,6 +50,7 @@ class TestAPN(TestCase):
             message_title,
             message_body,
             data,
+            False,
         )
 
         assert_that(
@@ -86,6 +87,7 @@ class TestAPN(TestCase):
             message_title,
             message_body,
             data,
+            False,
         )
 
         assert_that(
@@ -105,6 +107,47 @@ class TestAPN(TestCase):
                     'aps': {"badge": 1, "sound": "default", "content-available": 1},
                     'notification_type': NotificationType.CANCEL_INCOMING_CALL,
                     'items': {},
+                }
+            ),
+        )
+        assert_that(token, equal_to(s.apns_notification_token))
+
+    def test_wazo_message_received(self):
+        data: NotificationPayload = {
+            'notification_type': NotificationType.MESSAGE_RECEIVED,
+            'items': {
+                'message': 'Hello',
+                'room_uuid': '1234567890',
+                'user_uuid': '1234567890',
+                'tenant_uuid': '1234567890',
+                'alias': 'John Doe',
+            },
+        }
+
+        headers, payload, token = self._push._create_apn_message(
+            None,
+            None,
+            data,
+            True,
+        )
+
+        assert_that(
+            headers,
+            equal_to(
+                {
+                    'apns-topic': 'org.wazo-platform',
+                    'apns-push-type': 'alert',
+                    'apns-priority': '5',
+                }
+            ),
+        )
+        assert_that(
+            payload,
+            equal_to(
+                {
+                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'notification_type': NotificationType.MESSAGE_RECEIVED,
+                    'items': data['items'],
                 }
             ),
         )
