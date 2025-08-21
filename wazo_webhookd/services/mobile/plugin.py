@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
 
 import httpx
 from celery import Task
-from pyfcm import FCMNotification as FCMNotificationLegacy
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 
@@ -31,7 +30,12 @@ from wazo_webhookd.services.helpers import (
 
 from ...database.models import Subscription
 from .exceptions import NotificationError
-from .fcm_client import FCMNotification, RetryAfterException
+from .fcm_client import (
+    FCMNotification,
+    FCMNotificationLegacy,
+    FCMNotificationProtocol,
+    RetryAfterException,
+)
 
 if TYPE_CHECKING:
     from wazo_auth_client.types import TokenDict
@@ -510,6 +514,7 @@ class PushNotification:
                 'found to be sent to FCM'
             )
 
+        push_service: FCMNotificationProtocol
         if legacy_fcm:
             push_service = FCMNotificationLegacy(api_key=fcm_api_key)
         else:
@@ -564,7 +569,7 @@ class PushNotification:
             )
 
         if notification.get('failure') != 0:
-            logger.error('Error sending push notification: %s', notification)
+            logger.error('Error sending push notification to FCM: %s', notification)
 
         return notification
 
