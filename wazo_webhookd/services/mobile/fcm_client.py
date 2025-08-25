@@ -1,4 +1,4 @@
-# Copyright 2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2024-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Copyright 2019 Emmanuel Adegbite
@@ -9,10 +9,12 @@ import logging
 import os
 import threading
 import time
+from typing import Protocol
 
 import google.auth.transport.requests
 import requests
 from google.oauth2 import service_account
+from pyfcm import FCMNotification as FCMNotificationLegacyBase
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
@@ -628,3 +630,79 @@ class FCMNotification(BaseAPI):
 
         self.send_request([payload], timeout)
         return self.parse_responses()
+
+
+class FCMNotificationLegacy(FCMNotificationLegacyBase):
+    def parse_responses(self):
+        # rewrite parse_responses to provide more transparent error handling
+        # to help debugging
+        # otherwise some conditions are misclassified as FCM server availability errors
+        # e.g. invalid tokens
+        try:
+            return super().parse_responses()
+        except FCMServerError:
+            # inspect the error responses
+            error_responses: list[requests.Response] = [
+                response
+                for response in self.send_request_responses
+                if response.status_code not in (200, 401, 400)
+            ]
+            for response in error_responses:
+                logger.error(
+                    'FCM error: status=%d, text=%s',
+                    response.status_code,
+                    response.text,
+                )
+            raise FCMServerError(
+                error_responses[-1].status_code, error_responses[-1].text
+            )
+
+
+# simplified interface for fcm notification clients
+# based on the methods we use
+class FCMNotificationProtocol(Protocol):
+    FCM_END_POINT: str
+
+    def notify_single_device(
+        self,
+        registration_token,
+        message_body=None,
+        message_title=None,
+        message_icon=None,
+        sound=None,
+        collapse_key=None,
+        time_to_live=None,
+        restricted_package_name=None,
+        low_priority=False,
+        dry_run=False,
+        data_message=None,
+        click_action=None,
+        badge=None,
+        color=None,
+        tag=None,
+        body_loc_key=None,
+        body_loc_args=None,
+        title_loc_key=None,
+        title_loc_args=None,
+        android_channel_id=None,
+        timeout=120,
+        extra_notification_kwargs=None,
+        extra_kwargs={},
+    ):
+        ...
+
+    def single_device_data_message(
+        self,
+        registration_token,
+        collapse_key=None,
+        time_to_live=None,
+        restricted_package_name=None,
+        low_priority=False,
+        dry_run=False,
+        data_message=None,
+        android_channel_id=None,
+        timeout=120,
+        extra_notification_kwargs=None,
+        extra_kwargs={},
+    ):
+        ...
