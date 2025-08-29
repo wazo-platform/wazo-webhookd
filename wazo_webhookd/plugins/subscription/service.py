@@ -19,6 +19,7 @@ from wazo_webhookd.database.models import (
     SubscriptionLog,
     SubscriptionMetadatum,
 )
+from wazo_webhookd.types import ServicePluginDependencyDict
 
 from .exceptions import NoSuchSubscription
 from .notifier import SubscriptionNotifier
@@ -295,3 +296,14 @@ class SubscriptionService:
                 self.delete(subscription.uuid)
             except NoSuchSubscription:
                 pass
+
+
+def build_subscription_service(
+    dependencies: ServicePluginDependencyDict,
+) -> SubscriptionService:
+    return SubscriptionService(
+        config=dependencies['config'],
+        notifier=SubscriptionNotifier(
+            bus_publisher=dependencies['bus_publisher'],
+        ),
+    )
