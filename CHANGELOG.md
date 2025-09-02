@@ -1,4 +1,13 @@
 # Changelog
+## 25.12
+
+* new wazo-bus events for subscription lifecycle:
+  * `webhookd_subscription_created`
+  * `webhookd_subscription_updated`
+  * `webhookd_subscription_deleted`
+  * `webhookd_user_subscription_created`
+  * `webhookd_user_subscription_updated`
+  * `webhookd_user_subscription_deleted`
 
 ## 24.11
 
