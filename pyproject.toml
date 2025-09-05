@@ -21,7 +21,7 @@ exclude = [
     ".eggs",
 ]
 per-file-ignores = """
-    alembic/*: E402
+    alembic/*: E402,F401
 """
 
 [tool.isort]
