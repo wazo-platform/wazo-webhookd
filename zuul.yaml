@@ -1,7 +1,7 @@
 - project:
     templates:
-      - wazo-tox-py39
-      - wazo-tox-linters-310
+      - wazo-tox-py311
+      - wazo-tox-linters-py311
     wazo-check:
       jobs:
         - webhookd-tox-integration
@@ -14,7 +14,7 @@
 - job:
     name: webhookd-tox-integration
     description: Run webhookd integration tests
-    parent: wazo-tox-integration-py39
+    parent: wazo-tox-integration-py311
     timeout: 3600
     vars:
       integration_test_timeout: 60
@@ -22,5 +22,5 @@
 - job:
     name: webhookd-debian-packaging
     description: Run webhookd debian packaging
-    parent: debian-packaging-bullseye
+    parent: debian-packaging-bookworm
     pre-run: zuul.d/pre.yaml
