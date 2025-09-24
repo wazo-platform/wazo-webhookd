@@ -12,11 +12,9 @@ flask==2.2.2
 google-auth==1.5.1
 httpx==0.23.3
 h2==4.1.0  # required for http2 in httpx
-itsdangerous==2.1.2  # from flask
-jinja2==3.1.2  # from flask
+jinja2==3.1.2
 jsonpatch==1.32
-kombu==5.2.4  # from wazo-bus
-markupsafe==2.1.2 # from jinja2
+kombu==5.2.4
 marshmallow==3.18.0
 netifaces==0.11.0  # from xivo-lib-python
 psycopg2-binary==2.9.5
