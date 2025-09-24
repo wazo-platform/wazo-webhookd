@@ -731,7 +731,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
-        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -1124,7 +1124,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
-        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -1469,7 +1469,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
-        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
         self.bus.publish(
             {
@@ -1614,7 +1614,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         subscription = subscriptions['items'][0]
 
-        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
         self.bus.publish(
             {

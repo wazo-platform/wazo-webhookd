@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import copy
+from collections.abc import Callable
 from contextlib import contextmanager
 from functools import wraps
-from typing import Callable
 
 from wazo_webhookd_client import Client as WebhookdClient
 from wazo_webhookd_client.exceptions import WebhookdError
