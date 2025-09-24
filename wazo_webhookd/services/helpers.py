@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -66,7 +66,6 @@ def requests_automatic_hook_retry(task):
         if isinstance(exc.request, requests.PreparedRequest):
             req_data = exc.request.body
         elif isinstance(exc.request, httpx.Request):
-            exc.request.read()  # to be removed in Debian 12 Bookworm with httpx==0.23.3
             req_data = exc.request.content  # type: ignore
         if exc.response.status_code == 410:
             logger.info(
