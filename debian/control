@@ -25,6 +25,7 @@ Depends:
  python3-httpx,
  python3-h2,
  python3-jsonpatch,
+ python3-kombu,
  python3-marshmallow,
  python3-psycopg2,
  python3-pyfcm,
