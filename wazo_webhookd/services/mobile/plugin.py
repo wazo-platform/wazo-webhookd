@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
 
 import httpx
@@ -126,9 +126,7 @@ REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
 DEFAULT_ANDROID_CHANNEL_ID = 'io.wazo.songbird'
 
 
-class NotificationType(
-    str, Enum
-):  # TODO: StrEnum would be better, when we have Python 3.11
+class NotificationType(StrEnum):
     MESSAGE_RECEIVED = 'messageReceived'
     VOICEMAIL_RECEIVED = 'voicemailReceived'
     INCOMING_CALL = 'incomingCall'

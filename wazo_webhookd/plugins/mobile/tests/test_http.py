@@ -1,4 +1,4 @@
-# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -80,8 +80,11 @@ def test_post(
             resource_class_args=[test_config, Mock()],
         )
         client = api.app.test_client()
-        response = client.post(f'/{VERSION}/mobile/notifications', data={})
-        assert response.status_code == 204
+        response = client.post(
+            f'/{VERSION}/mobile/notifications',
+            json={},
+        )
+        assert response.status_code == 204, response.text
         assert response.data == b''
 
     mock_verify.called_once_with(sentinel.user_uuid)
