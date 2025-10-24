@@ -39,6 +39,7 @@ from .fcm_client import (
 
 if TYPE_CHECKING:
     from wazo_auth_client.types import TokenDict
+    from wazo_bus.resources.voicemail.types import VoicemailMessageDict
 
     from ...types import ServicePluginDependencyDict, WebhookdConfigDict
 
@@ -394,49 +395,27 @@ class PushNotification:
 
     def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
-        
-        # iOS needs alert for killed state, Android works fine with data-only
-        if self._can_send_to_apn(self.external_tokens):
-            # iOS device - send hybrid notification (alert + content-available)
-            message = payload.get('message', {})
-            caller_name = message.get('caller_id_name', 'Unknown')
-            caller_number = message.get('caller_id_number', '')
-            
-            return self.send_notification(
-                NotificationType.VOICEMAIL_RECEIVED,
-                message_title='New Voicemail',
-                message_body=f'From: {caller_name} ({caller_number})',
-                extra={'items': payload},
-                data_only=True,  # True adds content-available, title/body adds alert
-            )
-        
-        # Android device - keep current data-only behavior
+        message = cast(VoicemailMessageDict, payload.get('message', {}))
+        caller_name = message.get('caller_id_name', 'Unknown')
+        caller_number = message.get('caller_id_num', '')
+
         return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
+            message_title='New Voicemail',
+            message_body=f'From: {caller_name} ({caller_number})',
             extra={'items': payload},
             data_only=True,
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
-        
-        # iOS needs alert for killed state, Android works fine with data-only
-        if self._can_send_to_apn(self.external_tokens):
-            # iOS device - send hybrid notification (alert + content-available)
-            alias = payload.get('alias', 'Someone')
-            content = payload.get('content', 'New message')
-            
-            return self.send_notification(
-                NotificationType.MESSAGE_RECEIVED,
-                message_title=f'New Message from {alias}',
-                message_body=content[:100],  # Truncate long messages
-                extra={'items': payload},
-                data_only=True,  # True adds content-available, title/body adds alert
-            )
-        
-        # Android device - keep current data-only behavior
+        alias = payload.get('alias', 'Someone')
+        content = payload.get('content', 'New message')
+
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
+            message_title=f'New Message from {alias}',
+            message_body=content[:100],  # Truncate long messages
             extra={'items': payload},
             data_only=True,
         )
@@ -447,24 +426,13 @@ class PushNotification:
             'caller_id_name': data['caller_id_name'],
             'caller_id_number': data['caller_id_number'],
         }
-        
-        # iOS needs alert for killed state, Android works fine with data-only
-        if self._can_send_to_apn(self.external_tokens):
-            # iOS device - send hybrid notification (alert + content-available)
-            caller_name = data.get('caller_id_name', 'Unknown')
-            caller_number = data.get('caller_id_number', '')
-            
-            return self.send_notification(
-                NotificationType.MISSED_CALL,
-                message_title='Missed Call',
-                message_body=f'From: {caller_name} ({caller_number})',
-                extra={'items': payload},
-                data_only=True,  # True adds content-available, title/body adds alert
-            )
-        
-        # Android device - keep current data-only behavior
+        caller_name = data.get('caller_id_name', 'Unknown')
+        caller_number = data.get('caller_id_number', '')
+
         return self.send_notification(
             NotificationType.MISSED_CALL,
+            message_title='Missed Call',
+            message_body=f'From: {caller_name} ({caller_number})',
             extra={'items': payload},
             data_only=True,
         )
@@ -774,8 +742,8 @@ class PushNotification:
 
             if data_only:
                 payload['aps']['content-available'] = 1
-            
-            if message_title or message_body:  # Changed from elif to if
+
+            if message_title or message_body:
                 alert = {}
                 if message_title:
                     alert['title'] = message_title
