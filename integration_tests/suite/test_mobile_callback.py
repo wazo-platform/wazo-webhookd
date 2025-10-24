@@ -1819,6 +1819,28 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             ),
         )
 
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='New Message from sender-name',
+                    body='chat content',
+                ),
+            )
+
+            assert_that(
+                request,
+                has_entries(
+                    notification_type='messageReceived',
+                    items=has_entries(
+                        alias='sender-name',
+                        content='chat content',
+                        notification_timestamp=an_iso_timestamp(),
+                    ),
+                ),
+            )
+
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_missed_call_notification(self):
@@ -1904,3 +1926,26 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 attempts=1,
             ),
         )
+
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='Missed Call',
+                    body='From: A Mctest (8001)',
+                ),
+            )
+            assert_that(
+                request,
+                has_entries(
+                    notification_type='missedCall',
+                    items=has_entries(
+                        caller_id_name='A Mctest',
+                        caller_id_number='8001',
+                        notification_timestamp=an_iso_timestamp(),
+                    ),
+                ),
+            )
+
+        self.webhookd.subscriptions.delete(subscription["uuid"])
