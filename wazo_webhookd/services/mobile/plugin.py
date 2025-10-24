@@ -17,6 +17,7 @@ import httpx
 from celery import Task
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
+from wazo_bus.resources.voicemail.types import VoicemailMessageDict
 
 from wazo_webhookd.plugins.subscription.notifier import SubscriptionNotifier
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
@@ -39,7 +40,6 @@ from .fcm_client import (
 
 if TYPE_CHECKING:
     from wazo_auth_client.types import TokenDict
-    from wazo_bus.resources.voicemail.types import VoicemailMessageDict
 
     from ...types import ServicePluginDependencyDict, WebhookdConfigDict
 
