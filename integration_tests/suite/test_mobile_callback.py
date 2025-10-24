@@ -2402,3 +2402,117 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             )
 
         self.webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_voicemail_received_notification(self):
+        self.auth.set_external_auth(
+            {
+                'token': 'token-android',
+                'apns_token': 'token-ios',
+                'apns_notification_token': 'apns-notification-token',
+            }
+        )
+        # user logs in
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        message_uuid = uuid.uuid4()
+        self.apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': f'tracker-voicemail-{message_uuid}'},
+            statusCode=200,
+        )
+
+        # mobile user receives a voicemail
+        self.bus.publish(
+            {
+                'name': 'user_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'user_uuid': f'{USER_1_UUID}',
+                    'voicemail_id': 123,
+                    'message_id': str(message_uuid),
+                    'message': {
+                        'id': str(message_uuid),
+                        'caller_id_name': 'John Smith',
+                        'caller_id_num': '5551234567',
+                        'duration': 30,
+                        'timestamp': 1640995200,  # 2022-01-01 00:00:00 UTC
+                    },
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'user_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        def assert_apns_notification_posted():
+            try:
+                self.apns_third_party.verify(
+                    request={
+                        'path': '/3/device/apns-notification-token',
+                        'headers': [
+                            {
+                                'name': 'authorization',
+                                'values': [f'Bearer {JWT_TENANT_0}'],
+                            },
+                            {'name': 'user-agent', 'values': ['wazo-webhookd']},
+                        ],
+                    },
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(assert_apns_notification_posted, timeout=10, interval=0.5)
+
+        def assert_subscription_logs():
+            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+
+        until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
+
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry(
+                        'response_body',
+                        has_entry('tracker', f'tracker-voicemail-{message_uuid}'),
+                    ),
+                ),
+                attempts=1,
+            ),
+        )
+
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='New Voicemail',
+                    body='From: John Smith (5551234567)',
+                ),
+            )
+            assert_that(
+                request,
+                has_entries(
+                    notification_type='voicemailReceived',
+                    items=has_entries(
+                        message=has_entries(
+                            id=str(message_uuid),
+                            caller_id_name='John Smith',
+                            caller_id_num='5551234567',
+                            duration=30,
+                            timestamp=1640995200,
+                        ),
+                        notification_timestamp=an_iso_timestamp(),
+                    ),
+                ),
+            )
+
+        self.webhookd.subscriptions.delete(subscription["uuid"])
