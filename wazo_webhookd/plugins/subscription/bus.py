@@ -101,7 +101,8 @@ class SubscriptionBusEventHandler:
             )
 
         for event in events:
-            self._bus_consumer.subscribe(event, fn, headers=extra_headers)
+            headers = self._handle_tenant_events(event, extra_headers)
+            self._bus_consumer.subscribe(event, fn, headers=headers)
 
     def _unregister(self, subscription):
         uuid = subscription.uuid
@@ -181,3 +182,17 @@ class SubscriptionBusEventHandler:
         except Exception:
             # NOTE(sileht): If we have a programming error, don't retry forever
             raise
+
+    def _handle_tenant_events(
+        self, event_name: str, headers: SubscriptionHeaders
+    ) -> SubscriptionHeaders:
+        match event_name:
+            case "shared_voicemail_message_created":
+                updated_headers = headers.copy()
+                for key in headers.keys():
+                    if key.startswith("user_uuid:"):
+                        updated_headers.pop(key, None)
+                updated_headers.update({"user_uuid:*": True})
+                return updated_headers
+            case _:
+                return headers
