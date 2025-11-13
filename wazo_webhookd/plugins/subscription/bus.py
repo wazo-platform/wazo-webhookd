@@ -126,6 +126,7 @@ class SubscriptionBusEventHandler:
         all_events = set(subscription.events) | set(prev_events)
 
         for event in all_events:
+            headers = self._handle_tenant_events(event, headers)
             if event not in subscription.events:  # removed events
                 self._bus_consumer.unsubscribe(event, prev_fn)
             elif event not in prev_events:  # newly added event
@@ -187,7 +188,7 @@ class SubscriptionBusEventHandler:
         self, event_name: str, headers: SubscriptionHeaders
     ) -> SubscriptionHeaders:
         match event_name:
-            case "shared_voicemail_message_created":
+            case "global_voicemail_message_created":
                 updated_headers = headers.copy()
                 for key in headers.keys():
                     if key.startswith("user_uuid:"):
