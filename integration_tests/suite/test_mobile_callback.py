@@ -638,6 +638,105 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
             ),
         )
 
+    def test_global_voicemail_message_created_notification(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {
+                                'notification_type': 'voicemailReceived',
+                            }
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-global-voicemail'}),
+                },
+            }
+        )
+
+        # publish global voicemail message created event
+        self.bus.publish(
+            {
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'message': {
+                        'caller_id_num': '1234567890',
+                        'caller_id_name': 'Global Voicemail Caller',
+                    },
+                    'voicemail_id': 42,
+                    'user_uuid': '*',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                'user_uuid:*': True,
+            },
+        )
+
+        def assert_subscription_logs():
+            sbs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert sbs and sbs.get('items')
+
+        until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
+
+        # expect FCM API to receive request for push notification
+        self.fcm_third_party.verify(
+            request={
+                'path': '/fcm/send',
+                'headers': [
+                    {'name': 'authorization', 'values': [f'key={JWT_TENANT_0}']},
+                ],
+            },
+        )
+
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-global-voicemail'),
+                ),
+                event=has_entries(name='global_voicemail_message_created'),
+                attempts=1,
+            ),
+        )
+
+        # check content of FCM notification request
+        with self.last_fcm_request() as request:
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='voicemailReceived',
+                        items=has_entries(
+                            message=has_entries(
+                                caller_id_num='1234567890',
+                                caller_id_name='Global Voicemail Caller',
+                            ),
+                            voicemail_id=42,
+                            user_uuid='*',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
 
 class TestMobileCallback(BaseMobileCallbackIntegrationTest):
     asset = 'base'
@@ -967,6 +1066,115 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                         caller_id_number='12221114455',
                     ),
                     notification_type='missedCall',
+                ),
+            ),
+        )
+
+    def test_global_voicemail_message_created_notification(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'headers': {
+                        'Content-Type': ['application/json'],
+                        'Authorization': ['key=FCM_API_KEY'],
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-global-voicemail'}),
+                },
+            }
+        )
+
+        # publish global voicemail message created event
+        # Note: global events use user_uuid:* wildcard header instead of specific user UUID
+        self.bus.publish(
+            {
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'message': {
+                        'caller_id_num': '1234567890',
+                        'caller_id_name': 'Global Voicemail Caller',
+                    },
+                    'voicemail_id': 42,
+                    'user_uuid': '*',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                'user_uuid:*': True,
+            },
+        )
+
+        def assert_subscription_logs():
+            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+
+        until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
+
+        # expect FCM API to receive request for push notification
+        def assert_fcm_request():
+            self.fcm_third_party.assert_verify(
+                request={
+                    'path': '/fcm/send',
+                    'headers': [
+                        {'name': 'authorization', 'values': ['key=FCM_API_KEY']},
+                    ],
+                    'body': {
+                        'type': 'STRING',
+                        'contentType': 'application/json',
+                    },
+                },
+            )
+
+        until.assert_(assert_fcm_request, timeout=10, interval=0.5)
+
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-global-voicemail'),
+                ),
+                event=has_entries(name='global_voicemail_message_created'),
+                attempts=1,
+            ),
+        )
+
+        # check content of FCM request
+        fcm_notification_requests = self.fcm_third_party.get_requests(path='/fcm/send')
+        assert fcm_notification_requests and len(fcm_notification_requests) == 1
+        request = fcm_notification_requests[0]
+
+        # expecting the json body to contain the proper payload
+        request_body_json = json.loads(request['body']['string'])
+
+        assert_that(
+            request_body_json,
+            has_entries(
+                notification=has_entries(
+                    title='New voicemail',
+                    body='From: 1234567890',
+                ),
+                data=has_entries(
+                    items=has_entries(
+                        message=has_entries(
+                            caller_id_num='1234567890',
+                            caller_id_name='Global Voicemail Caller',
+                        ),
+                        voicemail_id=42,
+                        user_uuid='*',
+                    ),
+                    notification_type='voicemailReceived',
                 ),
             ),
         )
@@ -1384,6 +1592,130 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                     has_entry('topic_message_id', 'message-id-missed-call'),
                 ),
                 attempts=1,
+            ),
+        )
+
+    def test_global_voicemail_message_created_notification(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/v1/projects/project-123/messages:send',
+                    'headers': {
+                        'Content-Type': ['application/json'],
+                        'Authorization': [
+                            f'Bearer {self.oauth2_token["access_token"]}'
+                        ],
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'name': 'message-id-global-voicemail'}),
+                },
+            }
+        )
+
+        # publish global voicemail message created event
+        self.bus.publish(
+            {
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'message': {
+                        'caller_id_num': '1234567890',
+                        'caller_id_name': 'Global Voicemail Caller',
+                    },
+                    'voicemail_id': 42,
+                    'user_uuid': '*',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                'user_uuid:*': True,
+            },
+        )
+
+        def assert_subscription_logs():
+            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+
+        until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
+
+        # expect FCM API to receive request for push notification
+        def assert_fcm_request():
+            self.fcm_third_party.assert_verify(
+                request={
+                    'path': '/v1/projects/project-123/messages:send',
+                    'headers': [
+                        {
+                            'name': 'authorization',
+                            'values': [f'Bearer {self.oauth2_token["access_token"]}'],
+                        },
+                    ],
+                    'body': {
+                        'type': 'STRING',
+                        'contentType': 'application/json',
+                    },
+                }
+            )
+
+        until.assert_(assert_fcm_request, timeout=10, interval=0.5)
+
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-global-voicemail'),
+                ),
+                event=has_entries(name='global_voicemail_message_created'),
+                attempts=1,
+            ),
+        )
+
+        # check content of FCM request
+        fcm_notification_requests = self.fcm_third_party.get_requests(
+            path='/v1/projects/project-123/messages:send'
+        )
+        assert fcm_notification_requests and len(fcm_notification_requests) == 1
+        request = fcm_notification_requests[0]
+
+        request_body_json = json.loads(request['body']['string'])
+        assert_that(
+            request_body_json,
+            has_entries(
+                message=has_entries(
+                    android=has_entries(
+                        notification=has_entries(
+                            title='New voicemail',
+                            body='From: 1234567890',
+                        )
+                    ),
+                    data=has_entries(
+                        items=instance_of(str),
+                        notification_type='voicemailReceived',
+                    ),
+                ),
+            ),
+        )
+        # Verify the items JSON string contains the expected data
+        items_data = json.loads(request_body_json['message']['data']['items'])
+        assert_that(
+            items_data,
+            has_entries(
+                message=has_entries(
+                    caller_id_num='1234567890',
+                    caller_id_name='Global Voicemail Caller',
+                ),
+                voicemail_id=42,
+                user_uuid='*',
+                notification_timestamp=an_iso_timestamp(),
             ),
         )
 
@@ -1830,6 +2162,124 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 attempts=1,
             ),
         )
+
+        self.webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_global_voicemail_message_created_notification(self):
+        self.auth.set_external_auth(
+            {
+                'token': 'token-android',
+                'apns_token': 'token-android',
+                'apns_notification_token': 'apns-notification-token',
+            }
+        )
+        # user logs in
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        message_uuid = uuid.uuid4()
+        self.apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': f'tracker-global-voicemail-{message_uuid}'},
+            statusCode=200,
+        )
+
+        # publish global voicemail message created event
+        self.bus.publish(
+            {
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'message': {
+                        'caller_id_num': '1234567890',
+                        'caller_id_name': 'Global Voicemail Caller',
+                    },
+                    'voicemail_id': 42,
+                    'user_uuid': '*',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'global_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                'user_uuid:*': True,
+            },
+        )
+
+        def assert_subscription_logs():
+            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+
+        until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
+
+        def assert_apns_notification_posted():
+            try:
+                self.apns_third_party.verify(
+                    request={
+                        'path': '/3/device/apns-notification-token',
+                        'headers': [
+                            {
+                                'name': 'authorization',
+                                'values': [f'Bearer {JWT_TENANT_0}'],
+                            },
+                            {'name': 'user-agent', 'values': ['wazo-webhookd']},
+                        ],
+                    },
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(assert_apns_notification_posted, timeout=10, interval=0.5)
+
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry(
+                        'response_body',
+                        has_entry(
+                            'tracker', f'tracker-global-voicemail-{message_uuid}'
+                        ),
+                    ),
+                ),
+                event=has_entries(name='global_voicemail_message_created'),
+                attempts=1,
+            ),
+        )
+
+        # Verify APNS request content
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert_that(
+                request,
+                has_entries(
+                    notification_type='voicemailReceived',
+                    items=has_entries(
+                        message=has_entries(
+                            caller_id_num='1234567890',
+                            caller_id_name='Global Voicemail Caller',
+                        ),
+                        voicemail_id=42,
+                        user_uuid='*',
+                        notification_timestamp=an_iso_timestamp(),
+                    ),
+                ),
+            )
+            # Verify APNS alert structure
+            assert 'aps' in request
+            assert_that(
+                request['aps'],
+                has_entries(
+                    badge=1,
+                    sound='default',
+                    alert=has_entries(
+                        title='New voicemail',
+                        body='From: 1234567890',
+                    ),
+                ),
+            )
 
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
