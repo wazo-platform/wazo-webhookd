@@ -101,7 +101,8 @@ class SubscriptionBusEventHandler:
             )
 
         for event in events:
-            self._bus_consumer.subscribe(event, fn, headers=extra_headers)
+            headers = self._handle_tenant_events(event, extra_headers)
+            self._bus_consumer.subscribe(event, fn, headers=headers)
 
     def _unregister(self, subscription):
         uuid = subscription.uuid
@@ -125,6 +126,7 @@ class SubscriptionBusEventHandler:
         all_events = set(subscription.events) | set(prev_events)
 
         for event in all_events:
+            headers = self._handle_tenant_events(event, headers)
             if event not in subscription.events:  # removed events
                 self._bus_consumer.unsubscribe(event, prev_fn)
             elif event not in prev_events:  # newly added event
@@ -181,3 +183,17 @@ class SubscriptionBusEventHandler:
         except Exception:
             # NOTE(sileht): If we have a programming error, don't retry forever
             raise
+
+    def _handle_tenant_events(
+        self, event_name: str, headers: SubscriptionHeaders
+    ) -> SubscriptionHeaders:
+        match event_name:
+            case "global_voicemail_message_created":
+                updated_headers = headers.copy()
+                for key in headers.keys():
+                    if key.startswith("user_uuid:"):
+                        updated_headers.pop(key, None)
+                updated_headers.update({"user_uuid:*": True})
+                return updated_headers
+            case _:
+                return headers
