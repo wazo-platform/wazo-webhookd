@@ -406,7 +406,7 @@ class PushNotification:
                 message_title='New Voicemail',
                 message_body=f'From: {caller_name} ({caller_number})',
                 extra={'items': payload},
-                data_only=False,  # False = display notification (alert only, no content-available)
+                data_only=True,  # True + message_title/body = HYBRID (alert + content-available)
             )
         
         # Android device - keep current data-only behavior
@@ -430,7 +430,7 @@ class PushNotification:
                 message_title=f'New Message from {alias}',
                 message_body=content[:100],  # Truncate long messages
                 extra={'items': payload},
-                data_only=False,  # False = display notification (alert only, no content-available)
+                data_only=True,  # True + message_title/body = HYBRID (alert + content-available)
             )
         
         # Android device - keep current data-only behavior
@@ -458,7 +458,7 @@ class PushNotification:
                 message_title='Missed Call',
                 message_body=f'From: {caller_name} ({caller_number})',
                 extra={'items': payload},
-                data_only=False,  # False = display notification (alert only, no content-available)
+                data_only=True,  # True + message_title/body = HYBRID (alert + content-available)
             )
         
         # Android device - keep current data-only behavior
