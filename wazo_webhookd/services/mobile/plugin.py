@@ -145,6 +145,7 @@ RESERVED_NOTIFICATION_TYPES = (
 
 MAP_NAME_TO_NOTIFICATION_TYPE = {
     'user_voicemail_message_created': NotificationType.VOICEMAIL_RECEIVED,
+    'global_voicemail_message_created': NotificationType.VOICEMAIL_RECEIVED,
     'call_push_notification': NotificationType.INCOMING_CALL,
     'call_cancel_push_notification': NotificationType.CANCEL_INCOMING_CALL,
     'chatd_user_room_message_created': NotificationType.MESSAGE_RECEIVED,
@@ -273,6 +274,7 @@ class Service:
                         'call_push_notification',
                         'call_cancel_push_notification',
                         'user_voicemail_message_created',
+                        'global_voicemail_message_created',
                         'user_missed_call',
                     ],
                     'events_user_uuid': user_uuid,
