@@ -100,7 +100,9 @@ class BaseAPI:
     """
 
     CONTENT_TYPE = "application/json"
-    FCM_END_POINT = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
+    FCM_END_POINT: str = (
+        "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
+    )
     FCM_SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"]
 
     #: Indicates that the push message should be sent with low priority. Low
@@ -383,7 +385,7 @@ class BaseAPI:
             return self.do_request(payload, timeout)
         return response
 
-    def send_request(self, payloads=None, timeout=None):
+    def send_request(self, payloads: list[str], timeout: int) -> None:
         self.send_request_responses = []
         for payload in payloads:
             response = self.do_request(payload, timeout)
