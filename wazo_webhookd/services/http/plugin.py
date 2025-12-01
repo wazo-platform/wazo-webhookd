@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import cgi
 import json
 import logging
 import socket
@@ -13,6 +12,7 @@ from typing import TYPE_CHECKING, NamedTuple
 import requests
 from celery import Task
 from jinja2 import Environment
+from xivo.http_helpers import parse_content_type
 
 from wazo_webhookd.services.helpers import (
     RequestDetailsDict,
@@ -84,8 +84,7 @@ class Service:
 
         if body:
             content_type = options.get('content_type', 'text/plain')
-            # NOTE(sileht): parse_header will drop any erroneous options
-            ct_mimetype, ct_options = cgi.parse_header(content_type)
+            ct_mimetype, ct_options = parse_content_type(content_type)
             ct_options.setdefault('charset', 'utf-8')
             _data = Environment().from_string(body).render(values)
         else:
