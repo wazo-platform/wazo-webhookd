@@ -87,13 +87,13 @@ class Service:
             # NOTE(sileht): parse_header will drop any erroneous options
             ct_mimetype, ct_options = cgi.parse_header(content_type)
             ct_options.setdefault('charset', 'utf-8')
-            data = Environment().from_string(body).render(values)
+            _data = Environment().from_string(body).render(values)
         else:
             ct_mimetype = 'application/json'
             ct_options = {'charset': 'utf-8'}
-            data = json.dumps(event['data'])
+            _data = json.dumps(event['data'])
 
-        data = data.encode(ct_options['charset'])
+        data = _data.encode(ct_options['charset'])
 
         headers['Content-Type'] = build_content_type_header(ct_mimetype, ct_options)
 
