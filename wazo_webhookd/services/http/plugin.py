@@ -40,15 +40,6 @@ REQUEST_TIMEOUTS = RequestTimeouts(connect=5, read=15)
 
 
 def build_content_type_header(mimetype: str, options: dict[str, str]) -> str:
-    """Build a Content-Type header string from mimetype and options.
-
-    Args:
-        mimetype: The MIME type (e.g., 'application/json', 'text/plain')
-        options: Dictionary of content type options (e.g., {'charset': 'utf-8'})
-
-    Returns:
-        A formatted Content-Type header string (e.g., 'application/json; charset=utf-8')
-    """
     content_type_options = "; ".join(map("=".join, options.items()))
     return f"{mimetype}; {content_type_options}"
 
