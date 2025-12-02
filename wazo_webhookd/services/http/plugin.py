@@ -7,12 +7,12 @@ import json
 import logging
 import socket
 import urllib.parse
+from email.message import Message
 from typing import TYPE_CHECKING, NamedTuple
 
 import requests
 from celery import Task
 from jinja2 import Environment
-from xivo.http_helpers import parse_content_type
 
 from wazo_webhookd.services.helpers import (
     RequestDetailsDict,
@@ -37,6 +37,25 @@ class RequestTimeouts(NamedTuple):
 
 
 REQUEST_TIMEOUTS = RequestTimeouts(connect=5, read=15)
+
+
+def parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
+    """
+    parse a content-type header
+    and return the media type value and any parameters
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type
+    """
+    msg = Message()
+    msg['content-type'] = content_type
+    media_type = msg.get_content_type()
+    if _params := msg.get_params():
+        params = dict(_params)
+        # the media type value is also included as a value-less key
+        # by get_params
+        params.pop(media_type)
+    else:
+        params = {}
+    return (media_type, params)
 
 
 def build_content_type_header(mimetype: str, options: dict[str, str]) -> str:

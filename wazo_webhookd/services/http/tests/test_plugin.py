@@ -3,7 +3,7 @@
 
 from unittest import TestCase
 
-from ..plugin import build_content_type_header
+from ..plugin import build_content_type_header, parse_content_type
 
 
 class TestBuildContentTypeHeader(TestCase):
@@ -37,3 +37,22 @@ class TestBuildContentTypeHeader(TestCase):
         result = build_content_type_header(mimetype, options)
 
         assert result == 'text/plain; '
+
+
+class TestParseContentType(TestCase):
+    CONTENT_TYPES = [
+        (
+            'text/html; charset=utf-8',
+            ('text/html', {'charset': 'utf-8'}),
+        ),
+        (
+            'multipart/form-data; boundary=ExampleBoundaryString',
+            ('multipart/form-data', {'boundary': 'ExampleBoundaryString'}),
+        ),
+    ]
+
+    def test_parse_content_type(self):
+        for header, (expected_content_type, expected_params) in self.CONTENT_TYPES:
+            content_type, params = parse_content_type(header)
+            assert content_type == expected_content_type
+            assert params == expected_params
