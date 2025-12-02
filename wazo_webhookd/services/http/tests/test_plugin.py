@@ -41,13 +41,28 @@ class TestBuildContentTypeHeader(TestCase):
 
 class TestParseContentType(TestCase):
     CONTENT_TYPES = [
+        # with charset
         (
             'text/html; charset=utf-8',
             ('text/html', {'charset': 'utf-8'}),
         ),
+        # with boundary
         (
             'multipart/form-data; boundary=ExampleBoundaryString',
             ('multipart/form-data', {'boundary': 'ExampleBoundaryString'}),
+        ),
+        # weird casing
+        (
+            'TEXT/html; CHarSeT=utf-8',
+            ('text/html', {'charset': 'utf-8'}),
+        ),
+        # multiple parameters
+        (
+            'multipart/form-data; boundary=ExampleBoundaryString; charset=utf-8',
+            (
+                'multipart/form-data',
+                {'boundary': 'ExampleBoundaryString', 'charset': 'utf-8'},
+            ),
         ),
     ]
 

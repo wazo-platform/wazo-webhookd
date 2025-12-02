@@ -49,10 +49,11 @@ def parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
     msg['content-type'] = content_type
     media_type = msg.get_content_type()
     if _params := msg.get_params():
-        params = dict(_params)
-        # the media type value is also included as a value-less key
-        # by get_params
-        params.pop(media_type)
+        params = {
+            key.lower(): value
+            for key, value in _params
+            if key.lower() != media_type.lower()
+        }
     else:
         params = {}
     return (media_type, params)
