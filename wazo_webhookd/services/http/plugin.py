@@ -60,7 +60,7 @@ def parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
 
 def build_content_type_header(mimetype: str, options: dict[str, str]) -> str:
     content_type_options = "; ".join(map("=".join, options.items()))
-    return f"{mimetype}; {content_type_options}"
+    return f"{mimetype}; {content_type_options}" if content_type_options else mimetype
 
 
 class Service:

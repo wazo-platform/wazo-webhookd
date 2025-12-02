@@ -36,7 +36,7 @@ class TestBuildContentTypeHeader(TestCase):
 
         result = build_content_type_header(mimetype, options)
 
-        assert result == 'text/plain; '
+        assert result == 'text/plain'
 
 
 class TestParseContentType(TestCase):
