@@ -41,8 +41,6 @@ REQUEST_TIMEOUTS = RequestTimeouts(connect=5, read=15)
 
 def parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
     """
-    parse a content-type header
-    and return the media type value and any parameters
     https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type
     """
     msg = Message()
