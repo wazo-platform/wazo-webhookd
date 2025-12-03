@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
-import cgi
 import json
 import logging
 import socket
 import urllib.parse
+from email.message import Message
 from typing import TYPE_CHECKING, NamedTuple
 
 import requests
@@ -37,6 +37,29 @@ class RequestTimeouts(NamedTuple):
 
 
 REQUEST_TIMEOUTS = RequestTimeouts(connect=5, read=15)
+
+
+def parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
+    """
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type
+    """
+    msg = Message()
+    msg['content-type'] = content_type
+    media_type = msg.get_content_type()
+    if _params := msg.get_params():
+        params = {
+            key.lower(): value
+            for key, value in _params
+            if key.lower() != media_type.lower() and value
+        }
+    else:
+        params = {}
+    return (media_type, params)
+
+
+def build_content_type_header(mimetype: str, options: dict[str, str]) -> str:
+    content_type_options = "; ".join(map("=".join, options.items()))
+    return f"{mimetype}; {content_type_options}" if content_type_options else mimetype
 
 
 class Service:
@@ -70,19 +93,17 @@ class Service:
 
         if body:
             content_type = options.get('content_type', 'text/plain')
-            # NOTE(sileht): parse_header will drop any erroneous options
-            ct_mimetype, ct_options = cgi.parse_header(content_type)
+            ct_mimetype, ct_options = parse_content_type(content_type)
             ct_options.setdefault('charset', 'utf-8')
-            data = Environment().from_string(body).render(values)
+            _data = Environment().from_string(body).render(values)
         else:
             ct_mimetype = 'application/json'
             ct_options = {'charset': 'utf-8'}
-            data = json.dumps(event['data'])
+            _data = json.dumps(event['data'])
 
-        data = data.encode(ct_options['charset'])
+        data = _data.encode(ct_options['charset'])
 
-        content_type_options = "; ".join(map("=".join, ct_options.items()))
-        headers['Content-Type'] = f"{ct_mimetype}; {content_type_options}"
+        headers['Content-Type'] = build_content_type_header(ct_mimetype, ct_options)
 
         verify = options.get('verify_certificate')
         if verify:
