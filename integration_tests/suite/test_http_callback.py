@@ -88,6 +88,17 @@ TEST_SUBSCRIPTION_CONTENT_TYPE = {
     },
     'events': ['trigger'],
 }
+TEST_SUBSCRIPTION_MALFORMED_CONTENT_TYPE = {
+    'name': 'test',
+    'service': 'http',
+    'config': {
+        'url': 'http://third-party-http:1080/test',
+        'method': 'post',
+        'body': 'keỳ: vàlue',
+        'content_type': 'text/yaml; charset',
+    },
+    'events': ['trigger'],
+}
 TEST_SUBSCRIPTION_NO_TRIGGER = {
     'name': 'test',
     'service': 'http',
@@ -607,6 +618,30 @@ class TestHTTPCallback(BaseIntegrationTest):
             headers={'name': TRIGGER_EVENT_NAME},
         )
 
+        until.assert_(
+            self.make_third_party_verify_callback(
+                request={
+                    'method': 'POST',
+                    'path': '/test',
+                    'body': 'keỳ: vàlue',
+                    'headers': [
+                        {'name': 'Content-Type', 'values': ['text/yaml; charset=utf-8']}
+                    ],
+                }
+            ),
+            timeout=10,
+            interval=0.5,
+        )
+
+    @subscription(TEST_SUBSCRIPTION_MALFORMED_CONTENT_TYPE)
+    def test_given_http_subscription_with_malformed_content_type_when_bus_event_then_http_callback_with_default_content_type(  # noqa: E501
+        self, subscription
+    ):
+        self.bus.publish(
+            trigger_event(),
+            routing_key=SOME_ROUTING_KEY,
+            headers={'name': TRIGGER_EVENT_NAME},
+        )
         until.assert_(
             self.make_third_party_verify_callback(
                 request={
