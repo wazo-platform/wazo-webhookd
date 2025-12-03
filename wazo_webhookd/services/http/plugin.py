@@ -50,7 +50,7 @@ def parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
         params = {
             key.lower(): value
             for key, value in _params
-            if key.lower() != media_type.lower()
+            if key.lower() != media_type.lower() and value
         }
     else:
         params = {}

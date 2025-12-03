@@ -63,6 +63,11 @@ CONTENT_TYPES = [
             {'boundary': 'ExampleBoundaryString', 'charset': 'utf-8'},
         ),
     ),
+    # valueless parameters are ignored
+    (
+        'text/html; charset',
+        ('text/html', {}),
+    ),
 ]
 
 
