@@ -7,7 +7,7 @@ import logging
 from collections.abc import Callable, Sequence
 from inspect import signature
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import kombu
 from wazo_bus.base import Base
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     Payload = dict[str, Any]
     Headers = dict[str, Any]
-    AmpqCallback = Callable[[dict[str, Any], Union[Message, None]], None]
+    AmpqCallback = Callable[[dict[str, Any], Message | None], None]
 
 logger = logging.getLogger(__name__)
 
