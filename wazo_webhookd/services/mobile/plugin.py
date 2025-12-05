@@ -423,18 +423,20 @@ class PushNotification:
         )
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        caller_name = data.get('caller_id_name')
+        caller_number = data.get('caller_id_number')
         payload = {
             'notification_timestamp': generate_timestamp(),
-            'caller_id_name': data['caller_id_name'],
-            'caller_id_number': data['caller_id_number'],
+            'caller_id_name': caller_name,
+            'caller_id_number': caller_number,
         }
-        caller_name = data.get('caller_id_name', 'Unknown')
-        caller_number = data.get('caller_id_number', '')
 
+        display_name = caller_name or '<name unknown>'
+        display_number = caller_number or '<number unknown>'
         return self.send_notification(
             NotificationType.MISSED_CALL,
             message_title='Missed Call',
-            message_body=f'From: {caller_name} ({caller_number})',
+            message_body=f'From: {display_name} ({display_number})',
             extra={'items': payload},
             data_only=True,
         )
