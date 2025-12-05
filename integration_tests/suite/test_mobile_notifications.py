@@ -1,4 +1,4 @@
-# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import json
@@ -205,13 +205,15 @@ class TestNotifications(BaseIntegrationTest):
                 'sound': 'default',
                 'alert': {'title': 'test title', 'body': 'test message'},
             },
-            'notification_type': 'plugin',
-            'items': {},
-            'plugin': {
-                'id': 'test',
-                'entityId': 'test-plugin',
-                'action': 'test',
-                'payload': {},
+            'data': {
+                'notification_type': 'plugin',
+                'items': {},
+                'plugin': {
+                    'id': 'test',
+                    'entityId': 'test-plugin',
+                    'action': 'test',
+                    'payload': {},
+                },
             },
         }
         verify_called = partial(
