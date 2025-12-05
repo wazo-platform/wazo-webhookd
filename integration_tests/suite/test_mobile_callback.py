@@ -2168,11 +2168,13 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request,
                 has_entries(
-                    notification_type='messageReceived',
-                    items=has_entries(
-                        alias='sender-name',
-                        content='chat content',
-                        notification_timestamp=an_iso_timestamp(),
+                    data=has_entries(
+                        notification_type='messageReceived',
+                        items=has_entries(
+                            alias='sender-name',
+                            content='chat content',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
                     ),
                 ),
             )
@@ -2392,11 +2394,13 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request,
                 has_entries(
-                    notification_type='missedCall',
-                    items=has_entries(
-                        caller_id_name='A Mctest',
-                        caller_id_number='8001',
-                        notification_timestamp=an_iso_timestamp(),
+                    data=has_entries(
+                        notification_type='missedCall',
+                        items=has_entries(
+                            caller_id_name='A Mctest',
+                            caller_id_number='8001',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
                     ),
                 ),
             )
@@ -2501,16 +2505,18 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request,
                 has_entries(
-                    notification_type='voicemailReceived',
-                    items=has_entries(
-                        message=has_entries(
-                            id=str(message_uuid),
-                            caller_id_name='John Smith',
-                            caller_id_num='5551234567',
-                            duration=30,
-                            timestamp=1640995200,
+                    data=has_entries(
+                        notification_type='voicemailReceived',
+                        items=has_entries(
+                            message=has_entries(
+                                id=str(message_uuid),
+                                caller_id_name='John Smith',
+                                caller_id_num='5551234567',
+                                duration=30,
+                                timestamp=1640995200,
+                            ),
+                            notification_timestamp=an_iso_timestamp(),
                         ),
-                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )

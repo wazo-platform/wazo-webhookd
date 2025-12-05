@@ -146,8 +146,10 @@ class TestAPN(TestCase):
             equal_to(
                 {
                     'aps': {"badge": 1, "sound": "default", "content-available": 1},
-                    'notification_type': NotificationType.MESSAGE_RECEIVED,
-                    'items': data['items'],
+                    'data': {
+                        'notification_type': NotificationType.MESSAGE_RECEIVED,
+                        'items': data['items'],
+                    },
                 }
             ),
         )
