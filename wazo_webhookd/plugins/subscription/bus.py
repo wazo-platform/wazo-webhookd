@@ -8,7 +8,7 @@ import uuid
 from collections.abc import Callable
 from functools import partial
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import kombu.exceptions
 
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 SubscriptionHeaders = dict[str, Any]
 SubscriptionCallback = Callable[[dict[str, Any]], None]
 SubscriptionCallbackRow = tuple[
-    Union[SubscriptionCallback, None], list[str], SubscriptionHeaders
+    SubscriptionCallback | None, list[str], SubscriptionHeaders
 ]
 
 EMPTY_SUBSCRIPTION_CALLBACK: SubscriptionCallbackRow = None, [], {}

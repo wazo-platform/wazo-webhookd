@@ -11,7 +11,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
 import httpx
 from celery import Task
@@ -78,7 +78,7 @@ class BaseNotificationPayload(TypedDict):
     items: str | dict
 
 
-NotificationPayload = Union[BaseNotificationPayload, dict[str, Any]]
+NotificationPayload = BaseNotificationPayload | dict[str, Any]
 
 
 ApsContentDict = TypedDict(
