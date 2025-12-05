@@ -1159,10 +1159,6 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         assert_that(
             request_body_json,
             has_entries(
-                notification=has_entries(
-                    title='New voicemail',
-                    body='From: 1234567890',
-                ),
                 data=has_entries(
                     items=has_entries(
                         message=has_entries(
@@ -1170,6 +1166,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                             caller_id_name='Global Voicemail Caller',
                         ),
                         voicemail_id=42,
+                        data_only=True,
                     ),
                     notification_type='voicemailReceived',
                 ),
@@ -1685,10 +1682,8 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             has_entries(
                 message=has_entries(
                     android=has_entries(
-                        notification=has_entries(
-                            title='New voicemail',
-                            body='From: 1234567890',
-                        )
+                        priority='high',
+                        ttl='0s',
                     ),
                     data=has_entries(
                         items=instance_of(str),
@@ -1708,6 +1703,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 ),
                 voicemail_id=42,
                 notification_timestamp=an_iso_timestamp(),
+                data_only=True,
             ),
         )
 
@@ -2271,14 +2267,17 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request,
                 has_entries(
-                    notification_type='voicemailReceived',
-                    items=has_entries(
-                        message=has_entries(
-                            caller_id_num='1234567890',
-                            caller_id_name='Global Voicemail Caller',
+                    data=has_entries(
+                        notification_type='voicemailReceived',
+                        items=has_entries(
+                            message=has_entries(
+                                caller_id_num='1234567890',
+                                caller_id_name='Global Voicemail Caller',
+                            ),
+                            voicemail_id=42,
+                            notification_timestamp=an_iso_timestamp(),
+                            data_only=True,
                         ),
-                        voicemail_id=42,
-                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )
@@ -2290,8 +2289,8 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     badge=1,
                     sound='default',
                     alert=has_entries(
-                        title='New voicemail',
-                        body='From: 1234567890',
+                        title='New Voicemail',
+                        body='From: Global Voicemail Caller (1234567890)',
                     ),
                 ),
             )

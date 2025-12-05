@@ -261,7 +261,7 @@ class TestSendViaFCMv1(TestCase):
             'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data, data_only=False)
+        self.push_notification._send_via_fcm(title, body, data, data_only=True)
 
         assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
 
@@ -269,18 +269,15 @@ class TestSendViaFCMv1(TestCase):
         FCMNotification.assert_called_once_with(
             service_account_info=json_loads.return_value
         )
-        push_service.single_device_data_message.assert_not_called()
-        push_service.notify_single_device.assert_called_once_with(
+        push_service.single_device_data_message.assert_called_once_with(
             registration_token=s.token,
             data_message={
                 'notification_type': NotificationType.VOICEMAIL_RECEIVED,
                 'items': '',
             },
             time_to_live=0,
-            message_title='New voicemail',
-            message_body='From: 5555555555',
-            badge=1,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+            low_priority=False,
         )
 
     @patch('wazo_webhookd.services.mobile.plugin.json.loads')
