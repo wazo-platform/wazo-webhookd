@@ -409,13 +409,15 @@ class PushNotification:
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
-        alias = payload.get('alias', 'Someone')
-        content = payload.get('content', 'New message')
+        alias = payload.get('alias') or '[Unknown]'
+        content = payload.get('content') or ''
+        # Truncate long messages
+        body = content[:97] + '...' if len(content) > 100 else content
 
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
             message_title=f'New Message from {alias}',
-            message_body=content[:100],  # Truncate long messages
+            message_body=body,
             extra={'items': payload},
             data_only=True,
         )
