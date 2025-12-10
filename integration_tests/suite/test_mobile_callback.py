@@ -992,7 +992,8 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
@@ -1112,7 +1113,8 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
@@ -1508,7 +1510,8 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         )
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
@@ -1630,7 +1633,8 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         )
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
@@ -2219,7 +2223,8 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         )
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
@@ -2340,7 +2345,8 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         )
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
@@ -2365,7 +2371,6 @@ class TestMobileCallbackAPNS(TestMobileCallback):
 
         logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
         assert_that(logs['total'], equal_to(1))
-        print(logs['items'][0])
         assert_that(
             logs['items'][0],
             has_entries(
@@ -2471,7 +2476,8 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         until.assert_(assert_apns_notification_posted, timeout=10, interval=0.5)
 
         def assert_subscription_logs():
-            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert logs and logs.get('items')
 
         until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
 
