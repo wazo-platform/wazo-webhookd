@@ -1,4 +1,4 @@
-# Copyright 2022-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from unittest import TestCase
@@ -39,10 +39,10 @@ class TestSendViaFcmLegacy(TestCase):
         body = 'From: 5555555555'  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data)
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
 
         assert push_service.FCM_END_POINT == FCMNotificationLegacy.FCM_END_POINT
         FCMNotificationLegacy.assert_called_once_with(api_key=s.fcm_api_key)
@@ -62,10 +62,10 @@ class TestSendViaFcmLegacy(TestCase):
         body = None  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.CANCEL_INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data)
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
 
         assert push_service.FCM_END_POINT == FCMNotificationLegacy.FCM_END_POINT
         FCMNotificationLegacy.assert_called_once_with(api_key=s.fcm_api_key)
@@ -85,10 +85,10 @@ class TestSendViaFcmLegacy(TestCase):
         body = 'From: 5555555555'
         data: NotificationPayload = {
             'notification_type': NotificationType.VOICEMAIL_RECEIVED,
-            'items': '',
+            'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data)
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
 
         assert push_service.FCM_END_POINT == FCMNotificationLegacy.FCM_END_POINT
         FCMNotificationLegacy.assert_called_once_with(api_key=s.fcm_api_key)
@@ -111,23 +111,20 @@ class TestSendViaFcmLegacy(TestCase):
             'alias': s.chat_alias,
             'content': s.chat_content,
             'notification_type': NotificationType.MESSAGE_RECEIVED,
-            'items': '',
+            'items': {},
         }
         title = s.chat_alias
         body = s.chat_content
 
-        self.push_notification._send_via_fcm(title, body, data)  # type: ignore
+        self.push_notification._send_via_fcm(title, body, data, data_only=True)  # type: ignore
 
         assert push_service.FCM_END_POINT == FCMNotificationLegacy.FCM_END_POINT
         FCMNotificationLegacy.assert_called_once_with(api_key=s.fcm_api_key)
-        push_service.single_device_data_message.assert_not_called()
-        push_service.notify_single_device.assert_called_once_with(
+        push_service.single_device_data_message.assert_called_once_with(
             registration_id=s.token,
             data_message=data,
             time_to_live=0,
-            message_title=s.chat_alias,
-            message_body=s.chat_content,
-            badge=1,
+            low_priority=False,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
         )
 
@@ -153,10 +150,10 @@ class TestSendViaFcmLegacy(TestCase):
         body = 'From: 5555555555'  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
-        push_notification._send_via_fcm(title, body, data)
+        push_notification._send_via_fcm(title, body, data, data_only=False)
 
         assert push_service.FCM_END_POINT == 'the url'
         FCMNotificationLegacy.assert_called_once_with(api_key='the jwt')
@@ -199,10 +196,10 @@ class TestSendViaFCMv1(TestCase):
         body = 'From: 5555555555'  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data)
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
 
         assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
 
@@ -214,7 +211,10 @@ class TestSendViaFCMv1(TestCase):
         push_service.notify_single_device.assert_called_once_with(
             low_priority=False,
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'notification_type': NotificationType.INCOMING_CALL,
+                'items': '',
+            },
             time_to_live=0,
         )
 
@@ -227,10 +227,10 @@ class TestSendViaFCMv1(TestCase):
         body = None  # Ignored
         data: NotificationPayload = {
             'notification_type': NotificationType.CANCEL_INCOMING_CALL,
-            'items': '',
+            'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data)
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
 
         assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
 
@@ -240,7 +240,10 @@ class TestSendViaFCMv1(TestCase):
         )
         push_service.single_device_data_message.assert_called_once_with(
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+                'items': '',
+            },
             time_to_live=0,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
         )
@@ -255,10 +258,10 @@ class TestSendViaFCMv1(TestCase):
         body = 'From: 5555555555'
         data: NotificationPayload = {
             'notification_type': NotificationType.VOICEMAIL_RECEIVED,
-            'items': '',
+            'items': {},
         }
 
-        self.push_notification._send_via_fcm(title, body, data)
+        self.push_notification._send_via_fcm(title, body, data, data_only=True)
 
         assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
 
@@ -266,15 +269,15 @@ class TestSendViaFCMv1(TestCase):
         FCMNotification.assert_called_once_with(
             service_account_info=json_loads.return_value
         )
-        push_service.single_device_data_message.assert_not_called()
-        push_service.notify_single_device.assert_called_once_with(
+        push_service.single_device_data_message.assert_called_once_with(
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'notification_type': NotificationType.VOICEMAIL_RECEIVED,
+                'items': '',
+            },
             time_to_live=0,
-            message_title='New voicemail',
-            message_body='From: 5555555555',
-            badge=1,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+            low_priority=False,
         )
 
     @patch('wazo_webhookd.services.mobile.plugin.json.loads')
@@ -286,12 +289,12 @@ class TestSendViaFCMv1(TestCase):
             'alias': s.chat_alias,
             'content': s.chat_content,
             'notification_type': NotificationType.MESSAGE_RECEIVED,
-            'items': '',
+            'items': {},
         }
         title = s.chat_alias
         body = s.chat_content
 
-        self.push_notification._send_via_fcm(title, body, data)  # type: ignore
+        self.push_notification._send_via_fcm(title, body, data, data_only=True)  # type: ignore
 
         assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
 
@@ -299,13 +302,15 @@ class TestSendViaFCMv1(TestCase):
         FCMNotification.assert_called_once_with(
             service_account_info=json_loads.return_value
         )
-        push_service.single_device_data_message.assert_not_called()
-        push_service.notify_single_device.assert_called_once_with(
+        push_service.single_device_data_message.assert_called_once_with(
             registration_token=s.token,
-            data_message=data,
+            data_message={
+                'alias': s.chat_alias,
+                'content': s.chat_content,
+                'notification_type': NotificationType.MESSAGE_RECEIVED,
+                'items': '',
+            },
             time_to_live=0,
-            message_title=s.chat_alias,
-            message_body=s.chat_content,
-            badge=1,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+            low_priority=False,
         )

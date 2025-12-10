@@ -569,6 +569,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                                     {
                                         'caller_id_number': '12221114455',
                                         'caller_id_name': 'John Doe',
+                                        'data_only': True,
                                     }
                                 ),
                                 'notification_type': 'missedCall',
@@ -1055,14 +1056,12 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         assert_that(
             request_body_json,
             has_entries(
-                notification=has_entries(
-                    title=instance_of(str),
-                    body=instance_of(str),
-                ),
+                priority='high',
                 data=has_entries(
                     items=has_entries(
                         caller_id_name='John Doe',
                         caller_id_number='12221114455',
+                        data_only=True,
                     ),
                     notification_type='missedCall',
                 ),
@@ -1160,10 +1159,6 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         assert_that(
             request_body_json,
             has_entries(
-                notification=has_entries(
-                    title='New voicemail',
-                    body='From: 1234567890',
-                ),
                 data=has_entries(
                     items=has_entries(
                         message=has_entries(
@@ -1171,6 +1166,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                             caller_id_name='Global Voicemail Caller',
                         ),
                         voicemail_id=42,
+                        data_only=True,
                     ),
                     notification_type='voicemailReceived',
                 ),
@@ -1379,12 +1375,14 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         with self.last_fcm_request() as request:
             assert_that(
                 request,
-                has_entry(
-                    'message',
-                    has_entry(
-                        'data',
-                        has_entries(
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(
                             notification_type='incomingCall', items=instance_of(str)
+                        ),
+                        android=has_entries(
+                            priority='high',
+                            ttl='0s',
                         ),
                     ),
                 ),
@@ -1565,12 +1563,6 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             request_body_json,
             has_entries(
                 message=has_entries(
-                    android=has_entries(
-                        notification=has_entries(
-                            title=instance_of(str),
-                            body=instance_of(str),
-                        )
-                    ),
                     data=has_entries(
                         items=instance_of(str),
                         notification_type='missedCall',
@@ -1690,10 +1682,8 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             has_entries(
                 message=has_entries(
                     android=has_entries(
-                        notification=has_entries(
-                            title='New voicemail',
-                            body='From: 1234567890',
-                        )
+                        priority='high',
+                        ttl='0s',
                     ),
                     data=has_entries(
                         items=instance_of(str),
@@ -1713,6 +1703,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                 ),
                 voicemail_id=42,
                 notification_timestamp=an_iso_timestamp(),
+                data_only=True,
             ),
         )
 
@@ -2160,6 +2151,30 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             ),
         )
 
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='New Message from sender-name',
+                    body='chat content',
+                ),
+            )
+
+            assert_that(
+                request,
+                has_entries(
+                    data=has_entries(
+                        notification_type='messageReceived',
+                        items=has_entries(
+                            alias='sender-name',
+                            content='chat content',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
         self.webhookd.subscriptions.delete(subscription["uuid"])
 
     def test_global_voicemail_message_created_notification(self):
@@ -2252,14 +2267,17 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request,
                 has_entries(
-                    notification_type='voicemailReceived',
-                    items=has_entries(
-                        message=has_entries(
-                            caller_id_num='1234567890',
-                            caller_id_name='Global Voicemail Caller',
+                    data=has_entries(
+                        notification_type='voicemailReceived',
+                        items=has_entries(
+                            message=has_entries(
+                                caller_id_num='1234567890',
+                                caller_id_name='Global Voicemail Caller',
+                            ),
+                            voicemail_id=42,
+                            notification_timestamp=an_iso_timestamp(),
+                            data_only=True,
                         ),
-                        voicemail_id=42,
-                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )
@@ -2271,8 +2289,8 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     badge=1,
                     sound='default',
                     alert=has_entries(
-                        title='New voicemail',
-                        body='From: 1234567890',
+                        title='New Voicemail',
+                        body='From: Global Voicemail Caller (1234567890)',
                     ),
                 ),
             )
@@ -2362,3 +2380,144 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 attempts=1,
             ),
         )
+
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='Missed Call',
+                    body='From: A Mctest (8001)',
+                ),
+            )
+            assert_that(
+                request,
+                has_entries(
+                    data=has_entries(
+                        notification_type='missedCall',
+                        items=has_entries(
+                            caller_id_name='A Mctest',
+                            caller_id_number='8001',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_voicemail_received_notification(self):
+        self.auth.set_external_auth(
+            {
+                'token': 'token-android',
+                'apns_token': 'token-ios',
+                'apns_notification_token': 'apns-notification-token',
+            }
+        )
+        # user logs in
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        message_uuid = uuid.uuid4()
+        self.apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': f'tracker-voicemail-{message_uuid}'},
+            statusCode=200,
+        )
+
+        # mobile user receives a voicemail
+        self.bus.publish(
+            {
+                'name': 'user_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'user_uuid': f'{USER_1_UUID}',
+                    'voicemail_id': 123,
+                    'message_id': str(message_uuid),
+                    'message': {
+                        'id': str(message_uuid),
+                        'caller_id_name': 'John Smith',
+                        'caller_id_num': '5551234567',
+                        'duration': 30,
+                        'timestamp': 1640995200,  # 2022-01-01 00:00:00 UTC
+                    },
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'user_voicemail_message_created',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+        def assert_apns_notification_posted():
+            try:
+                self.apns_third_party.verify(
+                    request={
+                        'path': '/3/device/apns-notification-token',
+                        'headers': [
+                            {
+                                'name': 'authorization',
+                                'values': [f'Bearer {JWT_TENANT_0}'],
+                            },
+                            {'name': 'user-agent', 'values': ['wazo-webhookd']},
+                        ],
+                    },
+                )
+            except Exception:
+                raise AssertionError()
+
+        until.assert_(assert_apns_notification_posted, timeout=10, interval=0.5)
+
+        def assert_subscription_logs():
+            assert self.webhookd.subscriptions.get_logs(subscription["uuid"])
+
+        until.assert_(assert_subscription_logs, timeout=10, interval=0.5)
+
+        logs = self.webhookd.subscriptions.get_logs(subscription["uuid"])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status="success",
+                detail=has_entry(
+                    'full_response',
+                    has_entry(
+                        'response_body',
+                        has_entry('tracker', f'tracker-voicemail-{message_uuid}'),
+                    ),
+                ),
+                attempts=1,
+            ),
+        )
+
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='New Voicemail',
+                    body='From: John Smith (5551234567)',
+                ),
+            )
+            assert_that(
+                request,
+                has_entries(
+                    data=has_entries(
+                        notification_type='voicemailReceived',
+                        items=has_entries(
+                            message=has_entries(
+                                id=str(message_uuid),
+                                caller_id_name='John Smith',
+                                caller_id_num='5551234567',
+                                duration=30,
+                                timestamp=1640995200,
+                            ),
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.webhookd.subscriptions.delete(subscription["uuid"])

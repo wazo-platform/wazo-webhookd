@@ -17,6 +17,7 @@ import httpx
 from celery import Task
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
+from wazo_bus.resources.voicemail.types import VoicemailMessageDict
 
 from wazo_webhookd.plugins.subscription.notifier import SubscriptionNotifier
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
@@ -75,10 +76,11 @@ EMPTY_EXTERNAL_CONFIG: ExternalConfigDict = {
 
 class BaseNotificationPayload(TypedDict):
     notification_type: str
-    items: str | dict
+    items: dict[str, Any]
 
 
-NotificationPayload = BaseNotificationPayload | dict[str, Any]
+class NotificationPayload(BaseNotificationPayload, total=False):
+    pass
 
 
 ApsContentDict = TypedDict(
@@ -86,7 +88,7 @@ ApsContentDict = TypedDict(
     {
         'badge': int,
         'sound': str,
-        'content-available': str,
+        'content-available': int,
         'alert': dict[str, str],
     },
 )
@@ -378,14 +380,12 @@ class PushNotification:
         payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
-            None,  # Message title
-            None,  # Message body
-            {'items': payload},
+            extra={'items': payload},
+            data_only=True,
         )
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
-
         return self.send_notification(
             NotificationType.INCOMING_CALL,
             'Incoming Call',
@@ -395,50 +395,80 @@ class PushNotification:
 
     def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
+        message = cast(VoicemailMessageDict, payload.get('message', {}))
+        caller_name = message.get('caller_id_name', 'Unknown')
+        caller_number = message.get('caller_id_num', '')
+
         return self.send_notification(
             NotificationType.VOICEMAIL_RECEIVED,
-            'New voicemail',
-            f'From: {data["message"]["caller_id_num"]}',
-            {'items': payload},
+            message_title='New Voicemail',
+            message_body=f'From: {caller_name} ({caller_number})',
+            extra={'items': payload},
+            data_only=True,
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
         payload = data | {'notification_timestamp': generate_timestamp()}
+        alias = payload.get('alias') or '[Unknown]'
+        content = payload.get('content') or ''
+        # Truncate long messages
+        body = content[:97] + '...' if len(content) > 100 else content
+
         return self.send_notification(
             NotificationType.MESSAGE_RECEIVED,
-            data['alias'],
-            data['content'],
-            {'items': payload},
+            message_title=f'New Message from {alias}',
+            message_body=body,
+            extra={'items': payload},
+            data_only=True,
         )
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        caller_name = data.get('caller_id_name')
+        caller_number = data.get('caller_id_number')
         payload = {
             'notification_timestamp': generate_timestamp(),
-            'caller_id_name': data['caller_id_name'],
-            'caller_id_number': data['caller_id_number'],
+            'caller_id_name': caller_name,
+            'caller_id_number': caller_number,
         }
 
+        display_name = caller_name or '<name unknown>'
+        display_number = caller_number or '<number unknown>'
         return self.send_notification(
             NotificationType.MISSED_CALL,
-            "Missed call",
-            f"Missed a call from: {data['caller_id_name']} (number {data['caller_id_number']})",
-            {'items': payload},
+            message_title='Missed Call',
+            message_body=f'From: {display_name} ({display_number})',
+            extra={'items': payload},
+            data_only=True,
         )
 
     def send_notification(
         self,
         notification_type: NotificationType | str,
-        message_title: str | None,
-        message_body: str | None,
-        extra: dict[str, Any],
+        message_title: str | None = None,
+        message_body: str | None = None,
+        extra: dict[str, Any] | None = None,
+        data_only: bool = False,
     ) -> NotificationSentStatusDict:
-        data: NotificationPayload = {
-            'notification_type': notification_type,
-            'items': extra.pop('items', {}),
-        } | extra
+        extra = extra or {}
+        data = cast(
+            NotificationPayload,
+            {
+                'notification_type': notification_type,
+                'items': extra.pop('items', {}),
+            }
+            | extra,
+        )
+
+        if data_only:
+            # provide explicit data_only flag in notification payload
+            # to help mobile app distinguish between data-only and normal notifications
+            data['items']['data_only'] = True
+
         if self._can_send_to_apn(self.external_tokens):
             with requests_automatic_hook_retry(self.task):
-                apn_response = self._send_via_apn(message_title, message_body, data)
+                apn_response = self._send_via_apn(
+                    message_title, message_body, data, data_only
+                )
                 return {
                     'success': True,  # error would be raised on failure
                     'protocol_used': 'apns',
@@ -446,7 +476,9 @@ class PushNotification:
                 }
         else:
             try:
-                fcm_response = self._send_via_fcm(message_title, message_body, data)
+                fcm_response = self._send_via_fcm(
+                    message_title, message_body, data, data_only
+                )
                 return {
                     'success': fcm_response['success'] >= 1,
                     'protocol_used': 'fcm',
@@ -470,11 +502,14 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         data: NotificationPayload,
+        data_only: bool,
     ) -> FcmResponseDict:
         logger.debug(
-            'Sending push notification to Android: %s, %s',
+            'Sending push notification through FCM(type=%s, title=%s, body=%s, data_only=%s)',
+            data['notification_type'],
             message_title,
             message_body,
+            data_only,
         )
         fcm_service_account_info: dict
         fcm_api_key: str
@@ -533,19 +568,22 @@ class PushNotification:
                 'time_to_live': 0,
             }
         else:
-            if data.get('items', None):
-                data['items'] = json.dumps(
-                    data['items'], separators=(',', ':'), sort_keys=True
+            data_ = dict(data)
+            # data payload must be serialized into a string
+            if data_payload := data.get('items', None):
+                data_['items'] = json.dumps(
+                    data_payload, separators=(',', ':'), sort_keys=True
                 )
             else:
-                data['items'] = ""
+                data_['items'] = ""
 
             notify_kwargs = {
                 'registration_token': self.external_tokens['token'],
-                'data_message': data,
+                'data_message': data_,
                 'time_to_live': 0,
             }
 
+        # special treatment of some notification types
         if notification_type == NotificationType.INCOMING_CALL:
             notification = push_service.notify_single_device(
                 low_priority=False,
@@ -557,16 +595,32 @@ class PushNotification:
                 **notify_kwargs,
             )
         else:
-            if message_title:
-                notify_kwargs['message_title'] = message_title
-            if message_body:
-                notify_kwargs['message_body'] = message_body
+            if data_only:
+                # data-only notification need high priority
+                # and do not include `android.notification` attributes
+                # TODO: remove android_channel_id
+                #  does not seem useful since `android.notification`
+                #  is not included in request for data messages
+                logger.debug(
+                    'push notification(type=%s) sent as data-only message',
+                    notification_type,
+                )
+                notify_kwargs['low_priority'] = False
+                notification = push_service.single_device_data_message(
+                    android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+                    **notify_kwargs,
+                )
+            else:
+                if message_title:
+                    notify_kwargs['message_title'] = message_title
+                if message_body:
+                    notify_kwargs['message_body'] = message_body
 
-            notification = push_service.notify_single_device(
-                android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
-                badge=1,
-                **notify_kwargs,
-            )
+                notification = push_service.notify_single_device(
+                    android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+                    badge=1,
+                    **notify_kwargs,
+                )
 
         if notification.get('failure') != 0:
             logger.error('Error sending push notification to FCM: %s', notification)
@@ -595,9 +649,10 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         data: NotificationPayload,
+        data_only: bool,
     ):
         headers, payload, token = self._create_apn_message(
-            message_title, message_body, data
+            message_title, message_body, data, data_only
         )
 
         use_sandbox = self.external_config.get('use_sandbox', False)
@@ -642,6 +697,7 @@ class PushNotification:
         message_title: str | None,
         message_body: str | None,
         data: NotificationPayload,
+        data_only: bool,
     ):
         apns_call_topic = self.config['mobile_apns_call_topic']
         apns_default_topic = self.config['mobile_apns_default_topic']
@@ -680,13 +736,19 @@ class PushNotification:
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
+            # For non-call notifications (messageReceived, voicemailReceived, missedCall),
+            # wrap custom fields under top-level "data" so that iOS receives them in
+            # notification.data and the mobile app can read items.data_only.
             payload = cast(
                 ApnsPayload,
                 {
                     'aps': {'badge': 1, 'sound': "default"},
-                    **data,
+                    'data': data,
                 },
             )
+
+            if data_only:
+                payload['aps']['content-available'] = 1
 
             if message_title or message_body:
                 alert = {}
