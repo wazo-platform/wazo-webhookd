@@ -27,3 +27,6 @@ per-file-ignores = """
 [tool.isort]
 profile = "black"
 py_version = 311
+
+[tool.pytest]
+testpaths = ["wazo_webhookd"]
