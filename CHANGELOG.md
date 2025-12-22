@@ -1,4 +1,13 @@
 # Changelog
+
+## 25.17
+
+* The following push notifications see a breaking change in behavior;
+  they are now "data-only" notifications for android applications (FCM) and "hybrid" notifications for iOS applications (APNS):
+  * `voicemailReceived`
+  * `messageReceived`
+  * `missedCall`
+
 ## 25.12
 
 * new wazo-bus events for subscription lifecycle:
