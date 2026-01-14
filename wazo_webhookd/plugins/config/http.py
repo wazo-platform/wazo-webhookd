@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ class ConfigResource(AuthResource):
     @required_master_tenant()
     @required_acl('webhookd.config.update')
     def patch(self) -> tuple[WebhookdConfigDict, int]:
-        config_patch = config_patch_schema.load(request.get_json(), many=True)
+        config_patch = config_patch_schema.load(request.get_json(force=True), many=True)
         config = self._config_service.get_config()
         patched_config = JsonPatch(config_patch).apply(config)
         self._config_service.update_config(patched_config)

@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that, calling, equal_to, has_entry, has_key, has_properties
@@ -79,3 +79,6 @@ class TestConfig(BaseIntegrationTest):
             webhookd = self.make_webhookd(MASTER_TOKEN)
             WebhookdStartedWaitStrategy().wait(webhookd)
             until.assert_(_returns_503, webhookd, timeout=START_TIMEOUT)
+
+    def test_that_empty_body_for_patch_config_returns_400(self):
+        self.assert_empty_body_returns_400([('patch', 'config')])
