@@ -1,7 +1,6 @@
 # Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import requests
 from hamcrest import assert_that, calling, equal_to, has_entry, has_key, has_properties
 from wazo_test_helpers import until
 from wazo_test_helpers.hamcrest.raises import raises
@@ -81,13 +80,5 @@ class TestConfig(BaseIntegrationTest):
             WebhookdStartedWaitStrategy().wait(webhookd)
             until.assert_(_returns_503, webhookd, timeout=START_TIMEOUT)
 
-    def test_that_empty_body_returns_400(self):
-        port = self.service_port(9300, 'webhookd')
-        url = f'http://127.0.0.1:{port}/1.0/config'
-        headers = {'X-Auth-Token': MASTER_TOKEN}
-
-        response = requests.patch(url, data='', headers=headers)
-        assert response.status_code == 400
-
-        response = requests.patch(url, json=None, headers=headers)
-        assert response.status_code == 400
+    def test_that_empty_body_for_patch_config_returns_400(self):
+        self.assert_empty_body_returns_400([('patch', 'config')])
