@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -154,7 +154,7 @@ def requests_automatic_detail(
     else:
         req_data = response.request.read()
     return {
-        "request_method": response.request.method,
+        "request_method": response.request.method or "",
         "request_url": str(response.request.url),
         "request_body": _decode(req_data),
         "request_headers": dict(response.request.headers),
