@@ -282,7 +282,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             cls.wait_strategy.wait(webhookd)
 
     def _make_http_request(
-        self, verb: str, endpoint: str, body: str | None, headers: dict = None
+        self, verb: str, endpoint: str, body: str | None, headers: dict | None = None
     ):
         port = self.service_port(9300, 'webhookd')
         base_url = f'http://127.0.0.1:{port}/1.0/'
