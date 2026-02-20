@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -155,14 +155,8 @@ class SubscriptionBusEventHandler:
         try:
             hook_uuid = str(uuid.uuid4())
 
-            # Stevedore now uses importlib.metadata.Entrypoint, which does not have a
-            # __str__ method for formatting, so we must build the name manually.
             entry_point: EntryPoint = service.entry_point
-            entry_point_name = (
-                f'{entry_point.name} = {entry_point.module}:{entry_point.attr}'
-            )
-            if extras := entry_point.extras:
-                entry_point_name += f' [{",".join(extras)}]'
+            entry_point_name = f'{entry_point.module}:{entry_point.attr}'
 
             task_args = (
                 hook_uuid,

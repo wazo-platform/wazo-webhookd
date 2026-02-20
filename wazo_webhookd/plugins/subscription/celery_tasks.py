@@ -1,14 +1,14 @@
-# Copyright 2019-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
 
 import datetime
 import logging
+from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 import celery
-from pkg_resources import EntryPoint
 
 from wazo_webhookd.bus import BusPublisher
 from wazo_webhookd.celery import app
@@ -59,7 +59,8 @@ def hook_runner_task(
     task.max_retries = config["hook_max_attempts"] - 1
     service = task.get_service(config)
 
-    hook = EntryPoint.parse(ep_name).resolve()
+    module_name, attr_name = ep_name.split(':', 1)
+    hook = getattr(import_module(module_name), attr_name)
     logger.info("running hook %s (%s) for event: %s", ep_name, hook_uuid, event)
 
     try:
