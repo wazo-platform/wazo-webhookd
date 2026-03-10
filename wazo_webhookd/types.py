@@ -1,4 +1,4 @@
-# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -67,6 +67,7 @@ class EnabledPluginConfigDict(TypedDict):
     services: bool
     status: bool
     subscriptions: bool
+    voicemail_transcription: bool
 
 
 class EnabledServiceConfigDict(TypedDict):
@@ -88,6 +89,18 @@ class ServiceDiscoveryConfigDict(TypedDict):
 class ConsulConfigDict(TypedDict):
     scheme: str
     port: int
+
+
+class ServiceConnectionConfigDict(TypedDict):
+    host: str
+    port: int
+    https: bool
+    verify_certificate: bool
+
+
+class VoicemailTranscriptionConfigDict(TypedDict):
+    service_url: str
+    max_poll_attempts: int
 
 
 class WebhookdConfigDict(TypedDict):
@@ -112,6 +125,9 @@ class WebhookdConfigDict(TypedDict):
     mobile_apns_host: str
     mobile_apns_port: int
     mobile_fcm_notification_end_point: str
+    confd: ServiceConnectionConfigDict
+    calld: ServiceConnectionConfigDict
+    voicemail_transcription: VoicemailTranscriptionConfigDict
     service_discovery: ServiceDiscoveryConfigDict
     uuid: str
 

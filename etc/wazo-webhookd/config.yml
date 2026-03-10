@@ -69,6 +69,7 @@ enabled_plugins:
   services: true
   status: true
   subscriptions: true
+  voicemail_transcription: true
 
 enabled_services:
   http: True
@@ -78,6 +79,25 @@ mobile_apns_call_topic: org.wazo-platform.voip
 mobile_apns_default_topic:  org.wazo-platform
 mobile_apns_host: api.push.apple.com
 mobile_apns_port: 443
+
+# wazo-confd connection settings
+confd:
+  host: localhost
+  port: 9486
+  https: false
+  verify_certificate: false
+
+# wazo-calld connection settings
+calld:
+  host: localhost
+  port: 9500
+  https: false
+  verify_certificate: false
+
+# Voicemail transcription settings
+voicemail_transcription:
+  service_url: http://localhost:8000
+  max_poll_attempts: 10
 
 service_discovery:
   enabled: false
