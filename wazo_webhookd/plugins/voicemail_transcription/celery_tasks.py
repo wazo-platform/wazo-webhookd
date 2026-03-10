@@ -44,18 +44,6 @@ def transcribe_voicemail_task(
 
     task.max_retries = max_poll_attempts
 
-    token = get_auth_token(config['auth'])
-
-    # License check for user voicemails
-    if require_license_check and user_uuid:
-        confd_config = config.get('confd', {})
-        if not user_has_uc_license(confd_config, user_uuid, token):
-            logger.info(
-                'User %s does not have UC license, skipping transcription',
-                user_uuid,
-            )
-            return
-
     # If we already have a job_id, we're polling for the result
     if job_id:
         result = get_transcription_result(service_url, job_id)
@@ -63,9 +51,10 @@ def transcribe_voicemail_task(
 
         if status == 'completed':
             logger.info(
-                'Transcription completed for voicemail %s, message %s',
+                'Transcription completed for voicemail %s, message %s: %s',
                 voicemail_id,
                 message_id,
+                result,
             )
             return
 
@@ -97,6 +86,18 @@ def transcribe_voicemail_task(
             },
             countdown=countdown,
         )
+
+    token = get_auth_token(config['auth'])
+
+    # License check for user voicemails
+    if require_license_check and user_uuid:
+        confd_config = config.get('confd', {})
+        if not user_has_uc_license(confd_config, user_uuid, token):
+            logger.info(
+                'User %s does not have UC license, skipping transcription',
+                user_uuid,
+            )
+            return
 
     # Fetch audio and submit transcription job
     calld_config = config.get('calld', {})

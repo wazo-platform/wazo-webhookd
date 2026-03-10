@@ -40,7 +40,7 @@ class VoicemailTranscriptionHandler:
         )
 
         transcribe_voicemail_task.delay(
-            self._config,
+            dict(self._config),
             voicemail_id,
             message_id,
             user_uuid=user_uuid,
@@ -67,7 +67,7 @@ class VoicemailTranscriptionHandler:
         )
 
         transcribe_voicemail_task.delay(
-            self._config,
+            dict(self._config),
             voicemail_id,
             message_id,
             user_uuid=None,
