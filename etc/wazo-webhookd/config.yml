@@ -87,6 +87,9 @@ mobile_apns_default_topic:  org.wazo-platform
 mobile_apns_host: api.push.apple.com
 mobile_apns_port: 443
 
+voicemail_transcription:
+  service_url: http://localhost:8000
+
 service_discovery:
   enabled: false
 

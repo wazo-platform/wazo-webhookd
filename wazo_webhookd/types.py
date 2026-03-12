@@ -94,6 +94,10 @@ class ServiceDiscoveryConfigDict(TypedDict):
     extra_tags: list[str]
 
 
+class VoicemailTranscriptionConfigDict(TypedDict):
+    service_url: str
+
+
 class ConsulConfigDict(TypedDict):
     scheme: str
     port: int
@@ -123,6 +127,7 @@ class WebhookdConfigDict(TypedDict):
     mobile_apns_port: int
     mobile_fcm_notification_end_point: str
     service_discovery: ServiceDiscoveryConfigDict
+    voicemail_transcription: VoicemailTranscriptionConfigDict
     uuid: str
 
 
