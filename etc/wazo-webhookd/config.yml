@@ -89,6 +89,7 @@ mobile_apns_port: 443
 
 voicemail_transcription:
   service_url: http://localhost:8000
+  max_poll_attempts: 10
 
 service_discovery:
   enabled: false

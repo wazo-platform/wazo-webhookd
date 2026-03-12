@@ -9,6 +9,11 @@ from typing import TYPE_CHECKING, Any
 import requests
 from wazo_calld_client import Client as CalldClient
 
+from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
+    _parse_countdown,
+    poll_transcription_job,
+)
+
 if TYPE_CHECKING:
     from wazo_auth_client.client import AuthClient
 
@@ -48,11 +53,24 @@ class VoicemailTranscriptionHandler:
         )
         response.raise_for_status()
         result = response.json()
+        job_id = result['job_id']
         logger.info(
             'Submitted transcription job %s for voicemail %s message %s',
-            result['job_id'],
+            job_id,
             voicemail_id,
             message_id,
+        )
+
+        countdown = _parse_countdown(result.get('estimated_completion_at'))
+        poll_transcription_job.apply_async(
+            kwargs={
+                'config': self._config,
+                'service_url': service_url,
+                'job_id': job_id,
+                'voicemail_id': voicemail_id,
+                'message_id': message_id,
+            },
+            countdown=countdown,
         )
 
     def on_user_voicemail_created(self, payload: dict[str, Any]) -> None:
