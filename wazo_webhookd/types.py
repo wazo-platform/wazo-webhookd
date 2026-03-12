@@ -28,6 +28,14 @@ class AuthConfigDict(TypedDict):
     key_file: str
 
 
+class CalldConfigDict(TypedDict):
+    host: str
+    port: int
+    prefix: str | None
+    https: bool
+    verify_certificate: bool
+
+
 class BusConfigDict(TypedDict):
     username: str
     password: str
@@ -99,6 +107,7 @@ class WebhookdConfigDict(TypedDict):
     log_level: str
     log_file: str
     auth: AuthConfigDict
+    calld: CalldConfigDict
     bus: BusConfigDict
     celery: CeleryConfigDict
     consul: ConsulConfigDict
