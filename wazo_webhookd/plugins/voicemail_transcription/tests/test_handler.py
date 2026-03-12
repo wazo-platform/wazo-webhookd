@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -29,16 +30,35 @@ def config() -> dict:
             'https': False,
             'verify_certificate': False,
         },
+        'voicemail_transcription': {
+            'service_url': 'http://scribed:1080',
+        },
     }
 
 
 @pytest.fixture
-def handler(config: dict, auth_client: Mock) -> VoicemailTranscriptionHandler:
+def mock_requests() -> Generator[Mock, None, None]:
+    with patch(
+        'wazo_webhookd.plugins.voicemail_transcription.handler.requests'
+    ) as mock_req:
+        mock_req.post.return_value = Mock(
+            status_code=202,
+            json=Mock(return_value={'job_id': 'job-abc', 'status': 'pending'}),
+        )
+        mock_req.post.return_value.raise_for_status = Mock()
+        yield mock_req
+
+
+@pytest.fixture
+def handler(
+    config: dict, auth_client: Mock, mock_requests: Mock
+) -> VoicemailTranscriptionHandler:
     with patch(
         'wazo_webhookd.plugins.voicemail_transcription.handler.CalldClient'
     ) as MockCalldClient:
         h = VoicemailTranscriptionHandler(config, auth_client)  # type: ignore[arg-type]
         h._calld_client = MockCalldClient.return_value
+        h._calld_client.voicemails.get_voicemail_recording.return_value = b'audio-data'
     return h
 
 
@@ -95,6 +115,28 @@ class TestOnUserVoicemailCreated:
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
 
+    def test_submits_recording_to_scribed(
+        self, handler: VoicemailTranscriptionHandler, mock_requests: Mock
+    ) -> None:
+        handler._calld_client.voicemails.get_voicemail_recording.return_value = (
+            b'user-audio'
+        )
+        payload = {
+            'data': {
+                'voicemail_id': 42,
+                'message_id': 'msg-123',
+                'user_uuid': 'user-uuid-1',
+            }
+        }
+
+        handler.on_user_voicemail_created(payload)
+
+        mock_requests.post.assert_called_once()
+        call_args = mock_requests.post.call_args
+        assert call_args[0][0] == 'http://scribed:1080/transcriptions/jobs'
+        assert 'files' in call_args[1]
+        assert call_args[1]['files']['audio'][1] == b'user-audio'
+
 
 class TestOnGlobalVoicemailCreated:
     def test_fetches_recording(
@@ -122,3 +164,23 @@ class TestOnGlobalVoicemailCreated:
         handler.on_global_voicemail_created(payload)
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
+
+    def test_submits_recording_to_scribed(
+        self, handler: VoicemailTranscriptionHandler, mock_requests: Mock
+    ) -> None:
+        handler._calld_client.voicemails.get_voicemail_recording.return_value = (
+            b'global-audio'
+        )
+        payload = {
+            'data': {
+                'voicemail_id': 99,
+                'message_id': 'msg-456',
+            }
+        }
+
+        handler.on_global_voicemail_created(payload)
+
+        mock_requests.post.assert_called_once()
+        call_args = mock_requests.post.call_args
+        assert call_args[0][0] == 'http://scribed:1080/transcriptions/jobs'
+        assert call_args[1]['files']['audio'][1] == b'global-audio'
