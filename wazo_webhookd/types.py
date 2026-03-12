@@ -96,6 +96,7 @@ class ServiceDiscoveryConfigDict(TypedDict):
 
 class VoicemailTranscriptionConfigDict(TypedDict):
     service_url: str
+    max_poll_attempts: int
 
 
 class ConsulConfigDict(TypedDict):
