@@ -47,6 +47,11 @@ services:
     ports:
       - "443"
 
+  scribed:
+    image: jamesdbloom/mockserver:mockserver-5.7.0
+    ports:
+      - "1080"
+
   postgres:
     image: wazoplatform/wazo-webhookd-db:local
     ports:
