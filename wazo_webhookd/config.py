@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -84,6 +84,7 @@ _DEFAULT_CONFIG = {
         'services': True,
         'status': True,
         'subscriptions': True,
+        'voicemail_transcription': True,
     },
     'enabled_services': {'http': True, 'mobile': True},
     'hook_max_attempts': 10,
