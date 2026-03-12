@@ -4,36 +4,36 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from wazo_bus.resources.voicemail.event import (
     GlobalVoicemailMessageCreatedEvent,
     UserVoicemailMessageCreatedEvent,
 )
 
+from wazo_webhookd.plugins.voicemail_transcription.handler import (
+    VoicemailTranscriptionHandler,
+)
+
 if TYPE_CHECKING:
-    from wazo_webhookd.bus import BusConsumer
     from wazo_webhookd.types import PluginDependencyDict
 
 logger = logging.getLogger(__name__)
 
 
 class Plugin:
-    _bus_consumer: BusConsumer
-
     def load(self, dependencies: PluginDependencyDict) -> None:
-        self._bus_consumer = dependencies['bus_consumer']
-        self._bus_consumer.subscribe(
+        bus_consumer = dependencies['bus_consumer']
+        config = dependencies['config']
+        auth_client = dependencies['auth_client']
+
+        handler = VoicemailTranscriptionHandler(config, auth_client)
+
+        bus_consumer.subscribe(
             UserVoicemailMessageCreatedEvent.name,
-            self._on_user_voicemail_created,
+            handler.on_user_voicemail_created,
         )
-        self._bus_consumer.subscribe(
+        bus_consumer.subscribe(
             GlobalVoicemailMessageCreatedEvent.name,
-            self._on_global_voicemail_created,
+            handler.on_global_voicemail_created,
         )
-
-    def _on_user_voicemail_created(self, event: dict[str, Any]) -> None:
-        logger.debug('Received user voicemail created event: %s', event)
-
-    def _on_global_voicemail_created(self, event: dict[str, Any]) -> None:
-        logger.debug('Received global voicemail created event: %s', event)
