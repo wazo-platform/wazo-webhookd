@@ -1,0 +1,291 @@
+# GitHub Action: Sync PRs to Notion Pull Requests DB
+#
+# Copy this file to your target repo at: .github/workflows/pr-notion-sync.yml
+# Required secret: NOTION_API_KEY (Notion integration token)
+#
+# When a PR title contains [PRODUCT-123], [BUG-45], [TASK-7], etc.,
+# this action creates/updates an entry in the Notion Pull Requests DB
+# linked to the correct Delivery Board item or Task.
+
+name: PR → Notion Sync
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, closed, synchronize, ready_for_review, converted_to_draft, assigned, unassigned, labeled, unlabeled, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued, milestoned, demilestoned]
+
+env:
+  PR_DB_ID: "321aeaae-6d2a-80e5-8036-d68235b43187"
+  DELIVERY_DB_ID: "2e6aeaae-6d2a-8007-8813-f4f3a76ad0d1"
+  FEATURES_DB_ID: "2e6aeaae-6d2a-8026-9293-cce09c48aee3"
+  BUGS_DB_ID: "2edaeaae-6d2a-80ae-8f74-fbb533bb106d"
+  TASK_DB_ID: "2e6aeaae-6d2a-80f9-8f39-cacb34b2fb3c"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Sync PR to Notion
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          node << 'SCRIPT'
+          import { readFileSync } from "node:fs";
+
+          const NOTION_API_KEY = process.env.NOTION_API_KEY;
+          if (!NOTION_API_KEY) {
+            console.error("NOTION_API_KEY secret is not set");
+            process.exit(1);
+          }
+
+          const PR_DB_ID = process.env.PR_DB_ID;
+          const DELIVERY_DB_ID = process.env.DELIVERY_DB_ID;
+          const FEATURES_DB_ID = process.env.FEATURES_DB_ID;
+          const BUGS_DB_ID = process.env.BUGS_DB_ID;
+          const TASK_DB_ID = process.env.TASK_DB_ID;
+
+          const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+          const pr = event.pull_request;
+          const title = pr.title;
+          const prUrl = pr.html_url;
+          const repo = process.env.GITHUB_REPOSITORY.split("/")[1];
+
+          // --- Helpers ---
+
+          const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          async function notionRequest(method, path, body) {
+            await delay(400); // Rate limit: 3 req/s max
+            const url = `https://api.notion.com/v1${path}`;
+            const options = {
+              method,
+              headers: {
+                Authorization: `Bearer ${NOTION_API_KEY}`,
+                "Notion-Version": "2022-06-28",
+                "Content-Type": "application/json",
+              },
+            };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(url, options);
+            if (!response.ok) {
+              const text = await response.text();
+              throw new Error(
+                `Notion API ${method} ${path} failed (${response.status}): ${text}`
+              );
+            }
+            return response.json();
+          }
+
+          async function queryDatabase(dbId, filter) {
+            return notionRequest("POST", `/databases/${dbId}/query`, {
+              filter,
+              page_size: 100,
+            });
+          }
+
+          // --- Parse Card IDs from PR title ---
+
+          const cardPattern = /\[([A-Z]+-\d+)\]/g;
+          const matches = [...title.matchAll(cardPattern)];
+          const cardIds = matches.map((m) => m[1]);
+
+          if (cardIds.length === 0) {
+            console.log("No card IDs found in PR title, skipping sync.");
+            process.exit(0);
+          }
+
+          console.log(`Found card IDs: ${cardIds.join(", ")}`);
+
+          // --- Resolve Card IDs to Notion relations ---
+
+          const deliveryBoardIds = [];
+          const taskIds = [];
+
+          for (const cardId of cardIds) {
+            const [prefix, numberStr] = cardId.split("-");
+            const number = parseInt(numberStr, 10);
+
+            try {
+              if (prefix === "TASK") {
+                const result = await queryDatabase(TASK_DB_ID, {
+                  property: "ID",
+                  unique_id: { equals: number },
+                });
+                if (result.results.length > 0) {
+                  const taskPage = result.results[0];
+                  const taskPageId = taskPage.id;
+                  taskIds.push(taskPageId);
+                  // Read Delivery Board relation directly from the Task page
+                  const dbRelation =
+                    taskPage.properties?.["Delivery Board"]?.relation || [];
+                  if (dbRelation.length > 0) {
+                    const deliveryPageId = dbRelation[0].id;
+                    deliveryBoardIds.push(deliveryPageId);
+                    console.log(
+                      `  ${cardId} → Task ${taskPageId} → Delivery ${deliveryPageId}`
+                    );
+                  } else {
+                    console.log(`  ${cardId} → Task ${taskPageId} (no parent Delivery Board)`);
+                  }
+                } else {
+                  console.warn(`  ${cardId} → no matching Task found`);
+                }
+              } else if (prefix === "BUG") {
+                const bugResult = await queryDatabase(BUGS_DB_ID, {
+                  property: "ID",
+                  unique_id: { equals: number },
+                });
+                if (bugResult.results.length > 0) {
+                  const bugPageId = bugResult.results[0].id;
+                  const deliveryResult = await queryDatabase(DELIVERY_DB_ID, {
+                    property: "Bug",
+                    relation: { contains: bugPageId },
+                  });
+                  if (deliveryResult.results.length > 0) {
+                    const deliveryPageId = deliveryResult.results[0].id;
+                    deliveryBoardIds.push(deliveryPageId);
+                    console.log(
+                      `  ${cardId} → Bug ${bugPageId} → Delivery ${deliveryPageId}`
+                    );
+                  } else {
+                    console.warn(
+                      `  ${cardId} → Bug ${bugPageId} found but no Delivery Board entry`
+                    );
+                  }
+                } else {
+                  console.warn(`  ${cardId} → no matching Bug found`);
+                }
+              } else if (
+                ["PRODUCT", "SCALING", "RUN", "ADISTA"].includes(prefix)
+              ) {
+                const featureResult = await queryDatabase(FEATURES_DB_ID, {
+                  property: "ID",
+                  unique_id: { equals: number },
+                });
+                if (featureResult.results.length > 0) {
+                  const featurePageId = featureResult.results[0].id;
+                  const deliveryResult = await queryDatabase(DELIVERY_DB_ID, {
+                    property: "Feature",
+                    relation: { contains: featurePageId },
+                  });
+                  if (deliveryResult.results.length > 0) {
+                    const deliveryPageId = deliveryResult.results[0].id;
+                    deliveryBoardIds.push(deliveryPageId);
+                    console.log(
+                      `  ${cardId} → Feature ${featurePageId} → Delivery ${deliveryPageId}`
+                    );
+                  } else {
+                    console.warn(
+                      `  ${cardId} → Feature ${featurePageId} found but no Delivery Board entry`
+                    );
+                  }
+                } else {
+                  console.warn(`  ${cardId} → no matching Feature found`);
+                }
+              } else {
+                console.warn(
+                  `  ${cardId} → unknown prefix "${prefix}", skipping`
+                );
+              }
+            } catch (err) {
+              console.warn(`  ${cardId} → error resolving: ${err.message}`);
+            }
+          }
+
+          // --- Compute PR status ---
+
+          let status;
+          if (pr.merged) {
+            status = "merged";
+          } else if (pr.draft) {
+            status = "draft";
+          } else if (pr.state === "closed") {
+            status = "closed";
+          } else {
+            status = "open";
+          }
+
+          // --- Build Notion properties ---
+
+          const reviewers = (pr.requested_reviewers || [])
+            .map((r) => r.login)
+            .join(", ");
+          const labels = (pr.labels || []).map((l) => ({ name: l.name }));
+
+          const properties = {
+            Name: {
+              title: [{ text: { content: title } }],
+            },
+            URL: { url: prUrl },
+            Status: { select: { name: status } },
+            Author: {
+              rich_text: [{ text: { content: pr.user.login } }],
+            },
+            Repo: { select: { name: repo } },
+            Reviewers: {
+              rich_text: [{ text: { content: reviewers } }],
+            },
+            Labels: { multi_select: labels },
+            "Created At": { date: { start: pr.created_at } },
+            "PR Number": { number: pr.number },
+          };
+
+          if (pr.merged_at) {
+            properties["Merged At"] = { date: { start: pr.merged_at } };
+          }
+
+          // Relations — fully replaced each sync (handles title edits removing card IDs)
+          properties["Delivery Board"] = {
+            relation: deliveryBoardIds.map((id) => ({ id })),
+          };
+          properties["Task"] = {
+            relation: taskIds.map((id) => ({ id })),
+          };
+
+          // --- Upsert: find existing entry by URL ---
+
+          let existingPageId = null;
+          try {
+            const existing = await queryDatabase(PR_DB_ID, {
+              property: "URL",
+              url: { equals: prUrl },
+            });
+            if (existing.results.length > 0) {
+              existingPageId = existing.results[0].id;
+            }
+          } catch (err) {
+            console.warn(`Error checking for existing PR entry: ${err.message}`);
+          }
+
+          if (existingPageId) {
+            console.log(`Updating existing entry ${existingPageId}...`);
+            await notionRequest("PATCH", `/pages/${existingPageId}`, {
+              properties,
+            });
+            console.log(`Updated PR entry: ${existingPageId}`);
+          } else {
+            console.log("Creating new PR entry...");
+            const created = await notionRequest("POST", "/pages", {
+              parent: { database_id: PR_DB_ID },
+              properties,
+            });
+            console.log(`Created PR entry: ${created.id}`);
+
+            // Add bookmark block as page content for rich GitHub preview
+            console.log("Adding GitHub bookmark preview...");
+            await notionRequest("PATCH", `/blocks/${created.id}/children`, {
+              children: [
+                {
+                  object: "block",
+                  type: "bookmark",
+                  bookmark: { url: prUrl },
+                },
+              ],
+            });
+          }
+          SCRIPT
