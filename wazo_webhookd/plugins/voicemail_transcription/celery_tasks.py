@@ -10,7 +10,10 @@ from typing import TYPE_CHECKING
 import requests
 from celery import Task
 
+from wazo_webhookd.bus import BusPublisher
 from wazo_webhookd.celery import app
+
+from .events import VoicemailTranscriptionFinishedEvent
 
 if TYPE_CHECKING:
     from wazo_webhookd.types import WebhookdConfigDict
@@ -58,6 +61,15 @@ def poll_transcription_job(
             voicemail_id,
             message_id,
         )
+        bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
+        event = VoicemailTranscriptionFinishedEvent(
+            {
+                'voicemail_id': voicemail_id,
+                'message_id': message_id,
+                **result,
+            }
+        )
+        bus_publisher.publish(event)
         return
 
     if status == 'failed':

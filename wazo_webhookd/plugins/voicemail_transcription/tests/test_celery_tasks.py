@@ -18,6 +18,15 @@ from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
 @pytest.fixture
 def config() -> dict:
     return {
+        'uuid': 'webhookd-uuid',
+        'bus': {
+            'username': 'guest',
+            'password': 'guest',
+            'host': 'localhost',
+            'port': 5672,
+            'exchange_name': 'wazo-headers',
+            'exchange_type': 'headers',
+        },
         'voicemail_transcription': {
             'service_url': 'http://scribed:1080',
             'max_poll_attempts': 10,
@@ -47,9 +56,10 @@ class TestParseCountdown:
 
 
 class TestPollTranscriptionJob:
+    @patch(f'{TASK_MODULE}.BusPublisher')
     @patch(f'{TASK_MODULE}.requests')
     def test_completed_job_does_not_retry(
-        self, mock_requests: Mock, config: dict
+        self, mock_requests: Mock, mock_bus_publisher_cls: Mock, config: dict
     ) -> None:
         mock_requests.get.return_value = Mock(
             status_code=200,
@@ -134,9 +144,10 @@ class TestPollTranscriptionJob:
             call_kwargs = mock_retry.call_args[1]
             assert call_kwargs['countdown'] == 5
 
+    @patch(f'{TASK_MODULE}.BusPublisher')
     @patch(f'{TASK_MODULE}.requests')
     def test_sets_max_retries_from_config(
-        self, mock_requests: Mock, config: dict
+        self, mock_requests: Mock, mock_bus_publisher_cls: Mock, config: dict
     ) -> None:
         mock_requests.get.return_value = Mock(
             status_code=200,
@@ -149,3 +160,53 @@ class TestPollTranscriptionJob:
         poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
 
         assert poll_transcription_job.max_retries == 7
+
+    @patch(f'{TASK_MODULE}.BusPublisher')
+    @patch(f'{TASK_MODULE}.requests')
+    def test_completed_job_publishes_bus_event(
+        self, mock_requests: Mock, mock_bus_publisher_cls: Mock, config: dict
+    ) -> None:
+        completed_result = {
+            'status': 'completed',
+            'job_id': 'job-1',
+            'transcription_items': [{'text': 'Hello world'}],
+        }
+        mock_requests.get.return_value = Mock(
+            status_code=200,
+            json=Mock(return_value=completed_result),
+        )
+        mock_requests.get.return_value.raise_for_status = Mock()
+        mock_publisher = mock_bus_publisher_cls.from_config.return_value
+
+        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+
+        mock_bus_publisher_cls.from_config.assert_called_once_with(
+            'webhookd-uuid', config['bus']
+        )
+        mock_publisher.publish.assert_called_once()
+        event = mock_publisher.publish.call_args[0][0]
+        assert event.name == 'voicemail_transcription_finished'
+        assert event.content['voicemail_id'] == 42
+        assert event.content['message_id'] == 'msg-1'
+        assert event.content['transcription_items'] == [{'text': 'Hello world'}]
+
+    @patch(f'{TASK_MODULE}.BusPublisher')
+    @patch(f'{TASK_MODULE}.requests')
+    def test_failed_job_does_not_publish(
+        self, mock_requests: Mock, mock_bus_publisher_cls: Mock, config: dict
+    ) -> None:
+        mock_requests.get.return_value = Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    'status': 'failed',
+                    'job_id': 'job-1',
+                    'error': {'message': 'decode error'},
+                }
+            ),
+        )
+        mock_requests.get.return_value.raise_for_status = Mock()
+
+        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+
+        mock_bus_publisher_cls.from_config.assert_not_called()
