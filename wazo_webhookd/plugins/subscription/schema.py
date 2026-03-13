@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import Any, Literal, TypedDict
@@ -191,7 +191,7 @@ class SubscriptionLogRequestSchema(ListSchema):
     sort_columns = ['started_at', 'ended_at', 'status', 'attempts', 'max_attempts']
     searchable_columns: list[str] = []
     default_direction = 'desc'
-    from_date = fields.DateTime()
+    from_date = fields.DateTime(load_default=None)
 
 
 subscription_schema = SubscriptionSchema()
