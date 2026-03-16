@@ -28,13 +28,7 @@ class VoicemailTranscriptionHandler:
         self._auth_client = auth_client
         self._calld_client = CalldClient(**config['calld'])
 
-    def _get_token(self) -> str:
-        token_data = self._auth_client.token.new('wazo_user', expiration=3600)
-        return token_data['token']
-
     def _process_voicemail(self, voicemail_id: int, message_id: str) -> None:
-        token = self._get_token()
-        self._calld_client.set_token(token)
         recording = self._calld_client.voicemails.get_voicemail_recording(
             voicemail_id, message_id
         )
@@ -64,7 +58,7 @@ class VoicemailTranscriptionHandler:
         countdown = _parse_countdown(result.get('estimated_completion_at'))
         poll_transcription_job.apply_async(
             kwargs={
-                'config': self._config,
+                'config': dict(self._config),
                 'service_url': service_url,
                 'job_id': job_id,
                 'voicemail_id': voicemail_id,
