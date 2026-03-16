@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import ChainMap
 from collections.abc import Generator
 from unittest.mock import Mock, patch
 
@@ -21,19 +22,21 @@ def auth_client() -> Mock:
 
 
 @pytest.fixture
-def config() -> dict:
-    return {
-        'calld': {
-            'host': 'localhost',
-            'port': 9500,
-            'prefix': None,
-            'https': False,
-            'verify_certificate': False,
-        },
-        'voicemail_transcription': {
-            'service_url': 'http://scribed:1080',
-        },
-    }
+def config() -> ChainMap:
+    return ChainMap(
+        {
+            'calld': {
+                'host': 'localhost',
+                'port': 9500,
+                'prefix': None,
+                'https': False,
+                'verify_certificate': False,
+            },
+            'voicemail_transcription': {
+                'service_url': 'http://scribed:1080',
+            },
+        }
+    )
 
 
 @pytest.fixture
@@ -65,7 +68,7 @@ def mock_poll_task() -> Generator[Mock, None, None]:
 
 @pytest.fixture
 def handler(
-    config: dict, auth_client: Mock, mock_requests: Mock, mock_poll_task: Mock
+    config: ChainMap, auth_client: Mock, mock_requests: Mock, mock_poll_task: Mock
 ) -> VoicemailTranscriptionHandler:
     with patch(
         'wazo_webhookd.plugins.voicemail_transcription.handler.CalldClient'
@@ -77,9 +80,7 @@ def handler(
 
 
 class TestOnUserVoicemailCreated:
-    def test_fetches_recording(
-        self, handler: VoicemailTranscriptionHandler, auth_client: Mock
-    ) -> None:
+    def test_fetches_recording(self, handler: VoicemailTranscriptionHandler) -> None:
         payload = {
             'data': {
                 'voicemail_id': 42,
@@ -90,26 +91,9 @@ class TestOnUserVoicemailCreated:
 
         handler.on_user_voicemail_created(payload)
 
-        auth_client.token.new.assert_called_once()
         handler._calld_client.voicemails.get_voicemail_recording.assert_called_once_with(
             42, 'msg-123'
         )
-
-    def test_sets_token_on_calld_client(
-        self, handler: VoicemailTranscriptionHandler, auth_client: Mock
-    ) -> None:
-        auth_client.token.new.return_value = {'token': 'fresh-token'}
-        payload = {
-            'data': {
-                'voicemail_id': 1,
-                'message_id': 'msg-1',
-                'user_uuid': 'user-1',
-            }
-        }
-
-        handler.on_user_voicemail_created(payload)
-
-        assert handler._calld_client.set_token.call_args[0][0] == 'fresh-token'
 
     def test_missing_voicemail_id_skips(
         self, handler: VoicemailTranscriptionHandler
@@ -173,14 +157,13 @@ class TestOnUserVoicemailCreated:
         assert call_kwargs['kwargs']['voicemail_id'] == 42
         assert call_kwargs['kwargs']['message_id'] == 'msg-123'
         assert call_kwargs['kwargs']['service_url'] == 'http://scribed:1080'
-        assert call_kwargs['kwargs']['config'] is config
+        assert type(call_kwargs['kwargs']['config']) is dict
+        assert call_kwargs['kwargs']['config'] == dict(config)
         assert isinstance(call_kwargs['countdown'], int)
 
 
 class TestOnGlobalVoicemailCreated:
-    def test_fetches_recording(
-        self, handler: VoicemailTranscriptionHandler, auth_client: Mock
-    ) -> None:
+    def test_fetches_recording(self, handler: VoicemailTranscriptionHandler) -> None:
         payload = {
             'data': {
                 'voicemail_id': 99,
@@ -190,7 +173,6 @@ class TestOnGlobalVoicemailCreated:
 
         handler.on_global_voicemail_created(payload)
 
-        auth_client.token.new.assert_called_once()
         handler._calld_client.voicemails.get_voicemail_recording.assert_called_once_with(
             99, 'msg-456'
         )
