@@ -108,6 +108,10 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         return AuthClient('127.0.0.1', cls.service_port(9497, 'auth'))
 
     @classmethod
+    def make_calld_mock(cls) -> MockServerClient:
+        return MockServerClient(f'http://127.0.0.1:{cls.service_port(9500, "calld")}')
+
+    @classmethod
     def make_scribed_mock(cls) -> MockServerClient:
         return MockServerClient(f'http://127.0.0.1:{cls.service_port(1080, "scribed")}')
 
