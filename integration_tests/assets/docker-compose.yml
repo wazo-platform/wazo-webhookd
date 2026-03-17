@@ -47,6 +47,12 @@ services:
     ports:
       - "443"
 
+  calld:
+    image: jamesdbloom/mockserver:mockserver-5.7.0
+    command: ["-serverPort", "9500"]
+    ports:
+      - "9500"
+
   scribed:
     image: jamesdbloom/mockserver:mockserver-5.7.0
     ports:
