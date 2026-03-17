@@ -80,6 +80,22 @@ def handler(
 
 
 class TestOnUserVoicemailCreated:
+    def test_sets_calld_token_before_fetching_recording(
+        self, handler: VoicemailTranscriptionHandler, auth_client: Mock
+    ) -> None:
+        payload = {
+            'data': {
+                'voicemail_id': 42,
+                'message_id': 'msg-123',
+                'user_uuid': 'user-uuid-1',
+            }
+        }
+
+        handler.on_user_voicemail_created(payload)
+
+        auth_client.token.new.assert_called_once_with()
+        handler._calld_client.set_token.assert_called_once_with('some-token')
+
     def test_fetches_recording(self, handler: VoicemailTranscriptionHandler) -> None:
         payload = {
             'data': {

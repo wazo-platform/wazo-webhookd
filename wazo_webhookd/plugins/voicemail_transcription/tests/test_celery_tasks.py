@@ -159,7 +159,7 @@ class TestPollTranscriptionJob:
 
         poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
 
-        assert poll_transcription_job.max_retries == 7
+        assert poll_transcription_job.max_retries == 6
 
     @patch(f'{TASK_MODULE}.BusPublisher')
     @patch(f'{TASK_MODULE}.requests')

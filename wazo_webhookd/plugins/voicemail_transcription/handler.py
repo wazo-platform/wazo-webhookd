@@ -28,7 +28,12 @@ class VoicemailTranscriptionHandler:
         self._auth_client = auth_client
         self._calld_client = CalldClient(**config['calld'])
 
+    def _set_calld_token(self) -> None:
+        token = self._auth_client.token.new()
+        self._calld_client.set_token(token['token'])
+
     def _process_voicemail(self, voicemail_id: int, message_id: str) -> None:
+        self._set_calld_token()
         recording = self._calld_client.voicemails.get_voicemail_recording(
             voicemail_id, message_id
         )
