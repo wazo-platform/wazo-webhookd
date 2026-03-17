@@ -28,7 +28,7 @@ def config() -> dict:
             'exchange_type': 'headers',
         },
         'voicemail_transcription': {
-            'service_url': 'http://scribed:1080',
+            'service_url': 'https://scribed:1080',
             'max_poll_attempts': 10,
         },
     }
@@ -67,10 +67,10 @@ class TestPollTranscriptionJob:
         )
         mock_requests.get.return_value.raise_for_status = Mock()
 
-        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+        poll_transcription_job(config, 'https://scribed:1080', 'job-1', 42, 'msg-1')
 
         mock_requests.get.assert_called_once_with(
-            'http://scribed:1080/transcriptions/jobs/job-1'
+            'https://scribed:1080/transcriptions/jobs/job-1'
         )
 
     @patch(f'{TASK_MODULE}.requests')
@@ -87,7 +87,7 @@ class TestPollTranscriptionJob:
         )
         mock_requests.get.return_value.raise_for_status = Mock()
 
-        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+        poll_transcription_job(config, 'https://scribed:1080', 'job-1', 42, 'msg-1')
 
     @patch(f'{TASK_MODULE}.requests')
     def test_pending_job_retries_with_countdown(
@@ -111,7 +111,7 @@ class TestPollTranscriptionJob:
         ) as mock_retry:
             with pytest.raises(Retry):
                 poll_transcription_job(
-                    config, 'http://scribed:1080', 'job-1', 42, 'msg-1'
+                    config, 'https://scribed:1080', 'job-1', 42, 'msg-1'
                 )
 
             mock_retry.assert_called_once()
@@ -138,7 +138,7 @@ class TestPollTranscriptionJob:
         ) as mock_retry:
             with pytest.raises(Retry):
                 poll_transcription_job(
-                    config, 'http://scribed:1080', 'job-1', 42, 'msg-1'
+                    config, 'https://scribed:1080', 'job-1', 42, 'msg-1'
                 )
 
             call_kwargs = mock_retry.call_args[1]
@@ -157,7 +157,7 @@ class TestPollTranscriptionJob:
 
         config['voicemail_transcription']['max_poll_attempts'] = 7
 
-        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+        poll_transcription_job(config, 'https://scribed:1080', 'job-1', 42, 'msg-1')
 
         assert poll_transcription_job.max_retries == 7
 
@@ -178,7 +178,7 @@ class TestPollTranscriptionJob:
         mock_requests.get.return_value.raise_for_status = Mock()
         mock_publisher = mock_bus_publisher_cls.from_config.return_value
 
-        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+        poll_transcription_job(config, 'https://scribed:1080', 'job-1', 42, 'msg-1')
 
         mock_bus_publisher_cls.from_config.assert_called_once_with(
             'webhookd-uuid', config['bus']
@@ -207,6 +207,6 @@ class TestPollTranscriptionJob:
         )
         mock_requests.get.return_value.raise_for_status = Mock()
 
-        poll_transcription_job(config, 'http://scribed:1080', 'job-1', 42, 'msg-1')
+        poll_transcription_job(config, 'https://scribed:1080', 'job-1', 42, 'msg-1')
 
         mock_bus_publisher_cls.from_config.assert_not_called()
