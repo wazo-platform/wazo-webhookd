@@ -33,7 +33,7 @@ def config() -> ChainMap:
                 'verify_certificate': False,
             },
             'voicemail_transcription': {
-                'service_url': 'http://scribed:1080',
+                'service_url': 'https://scribed:1080',
             },
         }
     )
@@ -131,7 +131,7 @@ class TestOnUserVoicemailCreated:
 
         mock_requests.post.assert_called_once()
         call_args = mock_requests.post.call_args
-        assert call_args[0][0] == 'http://scribed:1080/transcriptions/jobs'
+        assert call_args[0][0] == 'https://scribed:1080/transcriptions/jobs'
         assert 'files' in call_args[1]
         assert call_args[1]['files']['audio'][1] == b'user-audio'
 
@@ -156,7 +156,7 @@ class TestOnUserVoicemailCreated:
         assert call_kwargs['kwargs']['job_id'] == 'job-abc'
         assert call_kwargs['kwargs']['voicemail_id'] == 42
         assert call_kwargs['kwargs']['message_id'] == 'msg-123'
-        assert call_kwargs['kwargs']['service_url'] == 'http://scribed:1080'
+        assert call_kwargs['kwargs']['service_url'] == 'https://scribed:1080'
         assert type(call_kwargs['kwargs']['config']) is dict
         assert call_kwargs['kwargs']['config'] == dict(config)
         assert isinstance(call_kwargs['countdown'], int)
@@ -203,5 +203,5 @@ class TestOnGlobalVoicemailCreated:
 
         mock_requests.post.assert_called_once()
         call_args = mock_requests.post.call_args
-        assert call_args[0][0] == 'http://scribed:1080/transcriptions/jobs'
+        assert call_args[0][0] == 'https://scribed:1080/transcriptions/jobs'
         assert call_args[1]['files']['audio'][1] == b'global-audio'
