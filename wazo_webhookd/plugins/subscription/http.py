@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -165,7 +165,15 @@ class SubscriptionLogsResource(SubscriptionsAuthResource):
         self._service.get(subscription_uuid, self.visible_tenants())
 
         filter_parameters = SubscriptionLogRequestSchema().load(request.args)
-        results = self._service.get_logs(subscription_uuid, **filter_parameters)
+        results = self._service.get_logs(
+            subscription_uuid,
+            from_date=filter_parameters['from_date'],
+            limit=filter_parameters['limit'],
+            offset=filter_parameters['offset'],
+            order=filter_parameters['order'],
+            direction=filter_parameters['direction'],
+            search=filter_parameters['search'],
+        )
         return {
             'items': subscription_log_schema.dump(results, many=True),
             'total': len(results),
