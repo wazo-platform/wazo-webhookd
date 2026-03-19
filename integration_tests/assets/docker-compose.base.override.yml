@@ -6,8 +6,10 @@ services:
       - rabbitmq
       - third-party-http
       - webhookd
+      - calld
+      - scribed
       - oauth2.googleapis.com
       - fcm.googleapis.com
       - api.push.apple.com
     environment:
-        TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497 oauth2.googleapis.com:443 fcm.googleapis.com:443 api.push.apple.com:443"
+        TARGETS: "third-party-http:1080 postgres:5432 rabbitmq:5672 webhookd:9300 auth:9497 calld:9500 scribed:1080 oauth2.googleapis.com:443 fcm.googleapis.com:443 api.push.apple.com:443"
