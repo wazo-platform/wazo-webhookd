@@ -408,6 +408,10 @@ class PushNotification:
         )
 
     def voicemailReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        logger.info(
+            'Processing voicemailReceived push notification (push_trace_uuid=%s)',
+            data.get('push_trace_uuid'),
+        )
         payload = data | {'notification_timestamp': generate_timestamp()}
         message = cast(VoicemailMessageDict, payload.get('message', {}))
         caller_name = message.get('caller_id_name', 'Unknown')
@@ -422,6 +426,10 @@ class PushNotification:
         )
 
     def messageReceived(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        logger.info(
+            'Processing messageReceived push notification (push_trace_uuid=%s)',
+            data.get('push_trace_uuid'),
+        )
         payload = data | {'notification_timestamp': generate_timestamp()}
         alias = payload.get('alias') or '[Unknown]'
         content = payload.get('content') or ''
@@ -437,13 +445,13 @@ class PushNotification:
         )
 
     def missedCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
-        caller_name = data.get('caller_id_name')
-        caller_number = data.get('caller_id_number')
-        payload = {
-            'notification_timestamp': generate_timestamp(),
-            'caller_id_name': caller_name,
-            'caller_id_number': caller_number,
-        }
+        logger.info(
+            'Processing missedCall push notification (push_trace_uuid=%s)',
+            data.get('push_trace_uuid'),
+        )
+        payload = data | {'notification_timestamp': generate_timestamp()}
+        caller_name = payload.get('caller_id_name')
+        caller_number = payload.get('caller_id_number')
 
         display_name = caller_name or '<name unknown>'
         display_number = caller_number or '<number unknown>'
@@ -690,6 +698,8 @@ class PushNotification:
         url = f"https://{host}:{self.config['mobile_apns_port']}/3/device/{token}"
 
         push_trace_uuid = data.get('items', {}).get('push_trace_uuid')
+        if push_trace_uuid:
+            headers['x-push-trace-uuid'] = str(push_trace_uuid)
         with self._certificate_filename(
             apn_certificate, apn_private
         ) as apn_cert_filename:
