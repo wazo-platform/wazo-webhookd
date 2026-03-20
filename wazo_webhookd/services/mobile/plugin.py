@@ -346,7 +346,13 @@ class Service:
         data = event.get('data')
         name = event.get('name')
 
-        logger.debug('received event type %s with payload: %s', name, data)
+        push_trace_uuid = (data or {}).get('push_trace_uuid')
+        logger.debug(
+            'received event type %s with payload: %s (push_trace_uuid=%s)',
+            name,
+            data,
+            push_trace_uuid,
+        )
         if notification_type := MAP_NAME_TO_NOTIFICATION_TYPE.get(name):
             logger.debug(
                 'notification_type %s identified from event %s', notification_type, name
@@ -377,6 +383,10 @@ class PushNotification:
         self.jwt = jwt
 
     def cancelIncomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        logger.info(
+            'Processing cancelIncomingCall push notification (push_trace_uuid=%s)',
+            data.get('push_trace_uuid'),
+        )
         payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.CANCEL_INCOMING_CALL,
@@ -385,6 +395,10 @@ class PushNotification:
         )
 
     def incomingCall(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        logger.info(
+            'Processing incomingCall push notification (push_trace_uuid=%s)',
+            data.get('push_trace_uuid'),
+        )
         payload = data | {'notification_timestamp': generate_timestamp()}
         return self.send_notification(
             NotificationType.INCOMING_CALL,
@@ -504,12 +518,15 @@ class PushNotification:
         data: NotificationPayload,
         data_only: bool,
     ) -> FcmResponseDict:
+        push_trace_uuid = data.get('items', {}).get('push_trace_uuid')
         logger.debug(
-            'Sending push notification through FCM(type=%s, title=%s, body=%s, data_only=%s)',
+            'Sending push notification through FCM'
+            '(type=%s, title=%s, body=%s, data_only=%s, push_trace_uuid=%s)',
             data['notification_type'],
             message_title,
             message_body,
             data_only,
+            push_trace_uuid,
         )
         fcm_service_account_info: dict
         fcm_api_key: str
@@ -672,16 +689,18 @@ class PushNotification:
 
         url = f"https://{host}:{self.config['mobile_apns_port']}/3/device/{token}"
 
+        push_trace_uuid = data.get('items', {}).get('push_trace_uuid')
         with self._certificate_filename(
             apn_certificate, apn_private
         ) as apn_cert_filename:
             logger.debug(
                 'Sending push notification to APNS: POST %s, headers: %s,'
-                'certificate: %s, payload: %s',
+                'certificate: %s, payload: %s, push_trace_uuid: %s',
                 url,
                 headers,
                 apn_cert_filename,
                 payload,
+                push_trace_uuid,
             )
             with self._apn_push_client(cert=apn_cert_filename) as client:
                 response = client.post(
