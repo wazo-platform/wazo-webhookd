@@ -77,6 +77,17 @@ _DEFAULT_CONFIG = {
         'retry_interval': 2,
         'extra_tags': [],
     },
+    'calld': {
+        'host': 'localhost',
+        'port': 9500,
+        'prefix': None,
+        'https': False,
+        'verify_certificate': False,
+    },
+    'voicemail_transcription': {
+        'service_url': 'http://localhost:8000',
+        'max_poll_attempts': 10,
+    },
     'enabled_plugins': {
         'api': True,
         'config': True,
