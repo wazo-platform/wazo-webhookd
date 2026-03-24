@@ -5,6 +5,14 @@ from unittest.mock import Mock, patch
 
 from wazo_webhookd.plugins.voicemail_transcription.plugin import Plugin
 
+CALLD_CONFIG = {
+    'host': 'localhost',
+    'port': 9500,
+    'prefix': None,
+    'https': False,
+    'verify_certificate': False,
+}
+
 
 class TestPlugin:
     def _make_dependencies(self) -> dict:
@@ -14,34 +22,34 @@ class TestPlugin:
             'bus_consumer': Mock(),
             'bus_publisher': Mock(),
             'config': {
-                'calld': {
-                    'host': 'localhost',
-                    'port': 9500,
-                    'prefix': None,
-                    'https': False,
-                    'verify_certificate': False,
-                },
+                'calld': CALLD_CONFIG,
             },
             'service_manager': Mock(),
             'next_token_change_subscribe': Mock(),
         }
 
+    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.CalldClient')
     @patch(
         'wazo_webhookd.plugins.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
     )
-    def test_load_creates_handler_with_config_and_auth(self, MockHandler: Mock) -> None:
+    def test_load_subscribes_calld_client_to_token_renewal(
+        self, MockHandler: Mock, MockCalldClient: Mock
+    ) -> None:
         plugin = Plugin()
         deps = self._make_dependencies()
 
         plugin.load(deps)  # type: ignore[arg-type]
 
-        MockHandler.assert_called_once_with(deps['config'], deps['auth_client'])
+        deps['next_token_change_subscribe'].assert_called_once_with(
+            MockCalldClient.return_value.set_token
+        )
 
+    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.CalldClient')
     @patch(
         'wazo_webhookd.plugins.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
     )
     def test_load_subscribes_handler_to_voicemail_events(
-        self, MockHandler: Mock
+        self, MockHandler: Mock, MockCalldClient: Mock
     ) -> None:
         plugin = Plugin()
         deps = self._make_dependencies()

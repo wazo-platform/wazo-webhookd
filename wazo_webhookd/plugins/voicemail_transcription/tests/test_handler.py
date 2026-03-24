@@ -15,9 +15,9 @@ from wazo_webhookd.plugins.voicemail_transcription.handler import (
 
 
 @pytest.fixture
-def auth_client() -> Mock:
+def calld_client() -> Mock:
     client = Mock()
-    client.token.new.return_value = {'token': 'some-token'}
+    client.voicemails.get_voicemail_recording.return_value = b'audio-data'
     return client
 
 
@@ -68,15 +68,9 @@ def mock_poll_task() -> Generator[Mock, None, None]:
 
 @pytest.fixture
 def handler(
-    config: ChainMap, auth_client: Mock, mock_requests: Mock, mock_poll_task: Mock
+    config: ChainMap, calld_client: Mock, mock_requests: Mock, mock_poll_task: Mock
 ) -> VoicemailTranscriptionHandler:
-    with patch(
-        'wazo_webhookd.plugins.voicemail_transcription.handler.CalldClient'
-    ) as MockCalldClient:
-        h = VoicemailTranscriptionHandler(config, auth_client)  # type: ignore[arg-type]
-        h._calld_client = MockCalldClient.return_value
-        h._calld_client.voicemails.get_voicemail_recording.return_value = b'audio-data'
-    return h
+    return VoicemailTranscriptionHandler(config, calld_client)  # type: ignore[arg-type]
 
 
 class TestOnUserVoicemailCreated:

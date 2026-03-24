@@ -7,7 +7,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import requests
-from wazo_calld_client import Client as CalldClient
 
 from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
     _parse_countdown,
@@ -15,7 +14,7 @@ from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
 )
 
 if TYPE_CHECKING:
-    from wazo_auth_client.client import AuthClient
+    from wazo_calld_client import Client as CalldClient
 
     from wazo_webhookd.types import WebhookdConfigDict
 
@@ -23,10 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class VoicemailTranscriptionHandler:
-    def __init__(self, config: WebhookdConfigDict, auth_client: AuthClient) -> None:
+    def __init__(self, config: WebhookdConfigDict, calld_client: CalldClient) -> None:
         self._config = config
-        self._auth_client = auth_client
-        self._calld_client = CalldClient(**config['calld'])
+        self._calld_client = calld_client
 
     def _process_voicemail(self, voicemail_id: int, message_id: str) -> None:
         recording = self._calld_client.voicemails.get_voicemail_recording(
