@@ -67,7 +67,7 @@ class VoicemailTranscriptionHandler:
             countdown=countdown,
         )
 
-    def on_user_voicemail_created(self, payload: dict[str, Any]) -> None:
+    def _handle_voicemail_event(self, payload: dict[str, Any]) -> None:
         data = payload.get('data', {})
         voicemail_id = data.get('voicemail_id')
         message_id = data.get('message_id')
@@ -79,16 +79,9 @@ class VoicemailTranscriptionHandler:
             return
 
         self._process_voicemail(voicemail_id, message_id)
+
+    def on_user_voicemail_created(self, payload: dict[str, Any]) -> None:
+        self._handle_voicemail_event(payload)
 
     def on_global_voicemail_created(self, payload: dict[str, Any]) -> None:
-        data = payload.get('data', {})
-        voicemail_id = data.get('voicemail_id')
-        message_id = data.get('message_id')
-
-        if not all([voicemail_id, message_id]):
-            logger.warning(
-                'Missing voicemail_id or message_id in event payload: %s', data
-            )
-            return
-
-        self._process_voicemail(voicemail_id, message_id)
+        self._handle_voicemail_event(payload)
