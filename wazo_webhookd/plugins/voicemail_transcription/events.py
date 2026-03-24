@@ -7,5 +7,5 @@ from wazo_bus.resources.common.event import ServiceEvent
 
 
 class VoicemailTranscriptionFinishedEvent(ServiceEvent):
-    name = 'voicemail_transcription_finished'
-    routing_key_fmt = 'voicemail.transcription.finished'
+    name = 'voicemail_transcription_completed'
+    routing_key_fmt = 'voicemail.transcription.completed'
