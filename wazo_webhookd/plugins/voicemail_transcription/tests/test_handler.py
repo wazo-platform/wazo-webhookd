@@ -13,11 +13,20 @@ from wazo_webhookd.plugins.voicemail_transcription.handler import (
     VoicemailTranscriptionHandler,
 )
 
+TENANT_UUID = 'tenant-uuid-1'
+
 
 @pytest.fixture
 def calld_client() -> Mock:
     client = Mock()
     client.voicemails.get_voicemail_recording.return_value = b'audio-data'
+    return client
+
+
+@pytest.fixture
+def confd_client() -> Mock:
+    client = Mock()
+    client.voicemail_transcription.get.return_value = {'enabled': True}
     return client
 
 
@@ -68,9 +77,15 @@ def mock_poll_task() -> Generator[Mock, None, None]:
 
 @pytest.fixture
 def handler(
-    config: ChainMap, calld_client: Mock, mock_requests: Mock, mock_poll_task: Mock
+    config: ChainMap,
+    calld_client: Mock,
+    confd_client: Mock,
+    mock_requests: Mock,
+    mock_poll_task: Mock,
 ) -> VoicemailTranscriptionHandler:
-    return VoicemailTranscriptionHandler(config, calld_client)  # type: ignore[arg-type]
+    return VoicemailTranscriptionHandler(
+        config, calld_client, confd_client  # type: ignore[arg-type]
+    )
 
 
 class TestOnUserVoicemailCreated:
@@ -82,8 +97,9 @@ class TestOnUserVoicemailCreated:
                 'user_uuid': 'user-uuid-1',
             }
         }
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_user_voicemail_created(payload)
+        handler.on_user_voicemail_created(payload, headers)
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_called_once_with(
             42, 'msg-123'
@@ -93,8 +109,9 @@ class TestOnUserVoicemailCreated:
         self, handler: VoicemailTranscriptionHandler
     ) -> None:
         payload = {'data': {'message_id': 'msg-1', 'user_uuid': 'user-1'}}
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_user_voicemail_created(payload)
+        handler.on_user_voicemail_created(payload, headers)
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
 
@@ -102,8 +119,9 @@ class TestOnUserVoicemailCreated:
         self, handler: VoicemailTranscriptionHandler
     ) -> None:
         payload = {'data': {'voicemail_id': 42, 'user_uuid': 'user-1'}}
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_user_voicemail_created(payload)
+        handler.on_user_voicemail_created(payload, headers)
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
 
@@ -120,8 +138,9 @@ class TestOnUserVoicemailCreated:
                 'user_uuid': 'user-uuid-1',
             }
         }
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_user_voicemail_created(payload)
+        handler.on_user_voicemail_created(payload, headers)
 
         mock_requests.post.assert_called_once()
         call_args = mock_requests.post.call_args
@@ -142,8 +161,9 @@ class TestOnUserVoicemailCreated:
                 'user_uuid': 'user-uuid-1',
             }
         }
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_user_voicemail_created(payload)
+        handler.on_user_voicemail_created(payload, headers)
 
         mock_poll_task.apply_async.assert_called_once()
         call_kwargs = mock_poll_task.apply_async.call_args[1]
@@ -155,6 +175,57 @@ class TestOnUserVoicemailCreated:
         assert call_kwargs['kwargs']['config'] == dict(config)
         assert isinstance(call_kwargs['countdown'], int)
 
+    def test_skips_when_transcription_not_enabled(
+        self, handler: VoicemailTranscriptionHandler, confd_client: Mock
+    ) -> None:
+        confd_client.voicemail_transcription.get.return_value = {'enabled': False}
+        payload = {
+            'data': {
+                'voicemail_id': 42,
+                'message_id': 'msg-123',
+                'user_uuid': 'user-uuid-1',
+            }
+        }
+        headers = {'tenant_uuid': TENANT_UUID}
+
+        handler.on_user_voicemail_created(payload, headers)
+
+        handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
+
+    def test_skips_when_tenant_uuid_missing_from_headers(
+        self, handler: VoicemailTranscriptionHandler
+    ) -> None:
+        payload = {
+            'data': {
+                'voicemail_id': 42,
+                'message_id': 'msg-123',
+                'user_uuid': 'user-uuid-1',
+            }
+        }
+        headers: dict = {}
+
+        handler.on_user_voicemail_created(payload, headers)
+
+        handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
+
+    def test_checks_tenant_permission_via_confd(
+        self, handler: VoicemailTranscriptionHandler, confd_client: Mock
+    ) -> None:
+        payload = {
+            'data': {
+                'voicemail_id': 42,
+                'message_id': 'msg-123',
+                'user_uuid': 'user-uuid-1',
+            }
+        }
+        headers = {'tenant_uuid': TENANT_UUID}
+
+        handler.on_user_voicemail_created(payload, headers)
+
+        confd_client.voicemail_transcription.get.assert_called_once_with(
+            tenant_uuid=TENANT_UUID
+        )
+
 
 class TestOnGlobalVoicemailCreated:
     def test_fetches_recording(self, handler: VoicemailTranscriptionHandler) -> None:
@@ -164,8 +235,9 @@ class TestOnGlobalVoicemailCreated:
                 'message_id': 'msg-456',
             }
         }
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_global_voicemail_created(payload)
+        handler.on_global_voicemail_created(payload, headers)
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_called_once_with(
             99, 'msg-456'
@@ -175,8 +247,9 @@ class TestOnGlobalVoicemailCreated:
         self, handler: VoicemailTranscriptionHandler
     ) -> None:
         payload = {'data': {'message_id': 'msg-1'}}
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_global_voicemail_created(payload)
+        handler.on_global_voicemail_created(payload, headers)
 
         handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()
 
@@ -192,10 +265,27 @@ class TestOnGlobalVoicemailCreated:
                 'message_id': 'msg-456',
             }
         }
+        headers = {'tenant_uuid': TENANT_UUID}
 
-        handler.on_global_voicemail_created(payload)
+        handler.on_global_voicemail_created(payload, headers)
 
         mock_requests.post.assert_called_once()
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == 'https://scribed:1080/transcriptions/jobs'
         assert call_args[1]['files']['audio'][1] == b'global-audio'
+
+    def test_skips_when_transcription_not_enabled(
+        self, handler: VoicemailTranscriptionHandler, confd_client: Mock
+    ) -> None:
+        confd_client.voicemail_transcription.get.return_value = {'enabled': False}
+        payload = {
+            'data': {
+                'voicemail_id': 99,
+                'message_id': 'msg-456',
+            }
+        }
+        headers = {'tenant_uuid': TENANT_UUID}
+
+        handler.on_global_voicemail_created(payload, headers)
+
+        handler._calld_client.voicemails.get_voicemail_recording.assert_not_called()

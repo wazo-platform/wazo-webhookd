@@ -15,6 +15,7 @@ from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
 
 if TYPE_CHECKING:
     from wazo_calld_client import Client as CalldClient
+    from wazo_confd_client import Client as ConfdClient
 
     from wazo_webhookd.types import WebhookdConfigDict
 
@@ -22,9 +23,19 @@ logger = logging.getLogger(__name__)
 
 
 class VoicemailTranscriptionHandler:
-    def __init__(self, config: WebhookdConfigDict, calld_client: CalldClient) -> None:
+    def __init__(
+        self,
+        config: WebhookdConfigDict,
+        calld_client: CalldClient,
+        confd_client: ConfdClient,
+    ) -> None:
         self._config = config
         self._calld_client = calld_client
+        self._confd_client = confd_client
+
+    def _is_transcription_enabled(self, tenant_uuid: str) -> bool:
+        result = self._confd_client.voicemail_transcription.get(tenant_uuid=tenant_uuid)
+        return result['enabled']
 
     def _process_voicemail(self, voicemail_id: int, message_id: str) -> None:
         recording = self._calld_client.voicemails.get_voicemail_recording(
@@ -65,7 +76,20 @@ class VoicemailTranscriptionHandler:
             countdown=countdown,
         )
 
-    def _handle_voicemail_event(self, payload: dict[str, Any]) -> None:
+    def _handle_voicemail_event(
+        self, payload: dict[str, Any], headers: dict[str, Any]
+    ) -> None:
+        tenant_uuid = headers.get('tenant_uuid')
+        if not tenant_uuid:
+            logger.debug('Missing tenant_uuid in event headers, skipping transcription')
+            return
+
+        if not self._is_transcription_enabled(tenant_uuid):
+            logger.debug(
+                'Transcription not enabled for tenant %s, skipping', tenant_uuid
+            )
+            return
+
         data = payload.get('data', {})
         voicemail_id = data.get('voicemail_id')
         message_id = data.get('message_id')
@@ -78,8 +102,12 @@ class VoicemailTranscriptionHandler:
 
         self._process_voicemail(voicemail_id, message_id)
 
-    def on_user_voicemail_created(self, payload: dict[str, Any]) -> None:
-        self._handle_voicemail_event(payload)
+    def on_user_voicemail_created(
+        self, payload: dict[str, Any], headers: dict[str, Any]
+    ) -> None:
+        self._handle_voicemail_event(payload, headers)
 
-    def on_global_voicemail_created(self, payload: dict[str, Any]) -> None:
-        self._handle_voicemail_event(payload)
+    def on_global_voicemail_created(
+        self, payload: dict[str, Any], headers: dict[str, Any]
+    ) -> None:
+        self._handle_voicemail_event(payload, headers)

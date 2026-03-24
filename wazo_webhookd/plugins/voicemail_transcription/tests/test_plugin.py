@@ -1,13 +1,21 @@
 # Copyright 2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from wazo_webhookd.plugins.voicemail_transcription.plugin import Plugin
 
 CALLD_CONFIG = {
     'host': 'localhost',
     'port': 9500,
+    'prefix': None,
+    'https': False,
+    'verify_certificate': False,
+}
+
+CONFD_CONFIG = {
+    'host': 'localhost',
+    'port': 9486,
     'prefix': None,
     'https': False,
     'verify_certificate': False,
@@ -23,33 +31,40 @@ class TestPlugin:
             'bus_publisher': Mock(),
             'config': {
                 'calld': CALLD_CONFIG,
+                'confd': CONFD_CONFIG,
             },
             'service_manager': Mock(),
             'next_token_change_subscribe': Mock(),
         }
 
+    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.ConfdClient')
     @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.CalldClient')
     @patch(
         'wazo_webhookd.plugins.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
     )
-    def test_load_subscribes_calld_client_to_token_renewal(
-        self, MockHandler: Mock, MockCalldClient: Mock
+    def test_load_subscribes_clients_to_token_renewal(
+        self, MockHandler: Mock, MockCalldClient: Mock, MockConfdClient: Mock
     ) -> None:
         plugin = Plugin()
         deps = self._make_dependencies()
 
         plugin.load(deps)  # type: ignore[arg-type]
 
-        deps['next_token_change_subscribe'].assert_called_once_with(
-            MockCalldClient.return_value.set_token
+        deps['next_token_change_subscribe'].assert_has_calls(
+            [
+                call(MockCalldClient.return_value.set_token),
+                call(MockConfdClient.return_value.set_token),
+            ],
+            any_order=True,
         )
 
+    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.ConfdClient')
     @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.CalldClient')
     @patch(
         'wazo_webhookd.plugins.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
     )
     def test_load_subscribes_handler_to_voicemail_events(
-        self, MockHandler: Mock, MockCalldClient: Mock
+        self, MockHandler: Mock, MockCalldClient: Mock, MockConfdClient: Mock
     ) -> None:
         plugin = Plugin()
         deps = self._make_dependencies()

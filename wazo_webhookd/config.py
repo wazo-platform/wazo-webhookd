@@ -84,6 +84,13 @@ _DEFAULT_CONFIG = {
         'https': False,
         'verify_certificate': False,
     },
+    'confd': {
+        'host': 'localhost',
+        'port': 9486,
+        'prefix': None,
+        'https': False,
+        'verify_certificate': False,
+    },
     'voicemail_transcription': {
         'service_url': 'http://localhost:8000',
         'max_poll_attempts': 10,

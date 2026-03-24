@@ -11,6 +11,7 @@ from wazo_bus.resources.voicemail.event import (
     UserVoicemailMessageCreatedEvent,
 )
 from wazo_calld_client import Client as CalldClient
+from wazo_confd_client import Client as ConfdClient
 
 from wazo_webhookd.plugins.voicemail_transcription.handler import (
     VoicemailTranscriptionHandler,
@@ -31,7 +32,10 @@ class Plugin:
         calld_client = CalldClient(**config['calld'])
         next_token_change_subscribe(calld_client.set_token)
 
-        handler = VoicemailTranscriptionHandler(config, calld_client)
+        confd_client = ConfdClient(**config['confd'])
+        next_token_change_subscribe(confd_client.set_token)
+
+        handler = VoicemailTranscriptionHandler(config, calld_client, confd_client)
 
         bus_consumer.subscribe(
             UserVoicemailMessageCreatedEvent.name,

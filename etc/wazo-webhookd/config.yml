@@ -25,6 +25,14 @@ calld:
   https: false
   verify_certificate: false
 
+# wazo-confd connection settings
+confd:
+  host: localhost
+  port: 9486
+  prefix: null
+  https: false
+  verify_certificate: false
+
 # Event bus (AMQP) connection settings
 bus:
   username: guest

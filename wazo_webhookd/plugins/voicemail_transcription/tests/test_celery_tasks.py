@@ -185,7 +185,7 @@ class TestPollTranscriptionJob:
         )
         mock_publisher.publish.assert_called_once()
         event = mock_publisher.publish.call_args[0][0]
-        assert event.name == 'voicemail_transcription_finished'
+        assert event.name == 'voicemail_transcription_completed'
         assert event.content['voicemail_id'] == 42
         assert event.content['message_id'] == 'msg-1'
         assert event.content['transcription_items'] == [{'text': 'Hello world'}]
