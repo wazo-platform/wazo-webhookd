@@ -17,6 +17,12 @@ calld:
   prefix: null
   https: false
   verify_certificate: false
+confd:
+  host: confd
+  port: 9486
+  prefix: null
+  https: false
+  verify_certificate: false
 voicemail_transcription:
   service_url: http://scribed:1080
 hook_max_attempts: 5

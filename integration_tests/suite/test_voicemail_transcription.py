@@ -9,13 +9,13 @@ from datetime import datetime, timedelta, timezone
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
-from .helpers.base import MASTER_TOKEN, BaseIntegrationTest
+from .helpers.base import MASTER_TENANT, MASTER_TOKEN, BaseIntegrationTest
 from .helpers.wait_strategy import ConnectedWaitStrategy
 
 VOICEMAIL_ID = 42
 MESSAGE_ID = 'msg-123'
 USER_UUID = 'user-uuid-1'
-TENANT_UUID = '00000000-0000-4000-8000-000000000201'
+TENANT_UUID = MASTER_TENANT
 
 FAKE_AUDIO = b'\x00\x01\x02\x03'
 
@@ -148,6 +148,26 @@ def _scribed_poll_expectation(
     }
 
 
+def _confd_transcription_enabled_expectation(enabled: bool = True) -> dict:
+    return {
+        'httpRequest': {
+            'method': 'GET',
+            'path': '/1.1/voicemails/transcription',
+        },
+        'httpResponse': {
+            'statusCode': 200,
+            'headers': [
+                {
+                    'name': 'Content-Type',
+                    'values': ['application/json; charset=utf-8'],
+                },
+            ],
+            'body': json.dumps({'enabled': enabled}),
+        },
+        'times': {'unlimited': True},
+    }
+
+
 class TestVoicemailTranscription(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
@@ -156,10 +176,13 @@ class TestVoicemailTranscription(BaseIntegrationTest):
         super().setUp()
         self.calld_mock = self.make_calld_mock()
         self.calld_mock.reset()
+        self.confd_mock = self.make_confd_mock()
+        self.confd_mock.reset()
         self.scribed_mock = self.make_scribed_mock()
         self.scribed_mock.reset()
         self.bus = self.make_bus()
         until.true(self.bus.is_up, timeout=30, message='bus not ready')
+        self.confd_mock.mock_any_response(_confd_transcription_enabled_expectation())
 
     def _publish_user_voicemail_event(
         self,
@@ -176,7 +199,10 @@ class TestVoicemailTranscription(BaseIntegrationTest):
         }
         self.bus.publish(
             event,
-            headers={'name': 'user_voicemail_message_created'},
+            headers={
+                'name': 'user_voicemail_message_created',
+                'tenant_uuid': TENANT_UUID,
+            },
         )
 
     def _publish_global_voicemail_event(
@@ -193,7 +219,10 @@ class TestVoicemailTranscription(BaseIntegrationTest):
         }
         self.bus.publish(
             event,
-            headers={'name': 'global_voicemail_message_created'},
+            headers={
+                'name': 'global_voicemail_message_created',
+                'tenant_uuid': TENANT_UUID,
+            },
         )
 
     def _assert_mock_verified(
