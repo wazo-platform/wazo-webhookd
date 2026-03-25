@@ -103,6 +103,7 @@ def _scribed_poll_expectation(
                         'text': 'Hello world',
                         'language': 'en',
                         'duration': 3.5,
+                        'provider_id': 'test-provider',
                     },
                     'completed_at': completed_at,
                     'processing_time_ms': 8000,
