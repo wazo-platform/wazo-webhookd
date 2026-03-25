@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+REQUEST_TIMEOUTS = 30
+
 
 class VoicemailTranscriptionHandler:
     def __init__(
@@ -53,6 +55,7 @@ class VoicemailTranscriptionHandler:
         response = requests.post(
             url,
             files={'audio': ('voicemail.wav', recording, 'audio/wav')},
+            timeout=REQUEST_TIMEOUTS,
         )
         response.raise_for_status()
         result = response.json()
