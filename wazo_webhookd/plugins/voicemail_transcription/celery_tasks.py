@@ -9,11 +9,14 @@ from typing import TYPE_CHECKING
 
 import requests
 from celery import Task
+from wazo_bus.resources.voicemail.event import (
+    GlobalVoicemailTranscriptionCreatedEvent,
+    UserVoicemailTranscriptionCreatedEvent,
+)
+from wazo_bus.resources.voicemail.types import VoicemailTranscriptionCalldDataDict
 
 from wazo_webhookd.bus import BusPublisher
 from wazo_webhookd.celery import app
-
-from .events import VoicemailTranscriptionFinishedEvent
 
 if TYPE_CHECKING:
     from wazo_webhookd.types import WebhookdConfigDict
@@ -37,6 +40,26 @@ def _parse_countdown(estimated_completion_at: str | None) -> int:
         return DEFAULT_POLL_COUNTDOWN
 
 
+def _build_transcription_data(
+    result: dict,
+    voicemail_id: int,
+    message_id: str,
+    tenant_uuid: str,
+) -> VoicemailTranscriptionCalldDataDict:
+    item = result['transcriptions_items'][0]
+    transcription = item['transcription']
+    return VoicemailTranscriptionCalldDataDict(
+        message_id=message_id,
+        tenant_uuid=tenant_uuid,
+        voicemail_id=voicemail_id,
+        transcription_text=transcription['text'],
+        provider_id=transcription['provider_id'],
+        language=transcription['language'],
+        duration=transcription['duration'],
+        created_at=item['completed_at'],
+    )
+
+
 @app.task(bind=True)
 def poll_transcription_job(
     self: Task,
@@ -45,6 +68,8 @@ def poll_transcription_job(
     job_id: str,
     voicemail_id: int,
     message_id: str,
+    tenant_uuid: str,
+    user_uuid: str | None,
 ) -> None:
     max_poll_attempts = config['voicemail_transcription'].get('max_poll_attempts', 10)
     self.max_retries = max_poll_attempts
@@ -62,14 +87,16 @@ def poll_transcription_job(
             voicemail_id,
             message_id,
         )
-        bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
-        event = VoicemailTranscriptionFinishedEvent(
-            {
-                'voicemail_id': voicemail_id,
-                'message_id': message_id,
-                **result,
-            }
+        transcription = _build_transcription_data(
+            result, voicemail_id, message_id, tenant_uuid
         )
+        bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
+        if user_uuid:
+            event = UserVoicemailTranscriptionCreatedEvent(
+                transcription, tenant_uuid, user_uuid
+            )
+        else:
+            event = GlobalVoicemailTranscriptionCreatedEvent(transcription, tenant_uuid)
         bus_publisher.publish(event)
         return
 
@@ -97,6 +124,8 @@ def poll_transcription_job(
             'job_id': job_id,
             'voicemail_id': voicemail_id,
             'message_id': message_id,
+            'tenant_uuid': tenant_uuid,
+            'user_uuid': user_uuid,
         },
         countdown=countdown,
     )

@@ -171,6 +171,8 @@ class TestOnUserVoicemailCreated:
         assert call_kwargs['kwargs']['voicemail_id'] == 42
         assert call_kwargs['kwargs']['message_id'] == 'msg-123'
         assert call_kwargs['kwargs']['service_url'] == 'https://scribed:1080'
+        assert call_kwargs['kwargs']['tenant_uuid'] == TENANT_UUID
+        assert call_kwargs['kwargs']['user_uuid'] == 'user-uuid-1'
         assert type(call_kwargs['kwargs']['config']) is dict
         assert call_kwargs['kwargs']['config'] == dict(config)
         assert isinstance(call_kwargs['countdown'], int)
@@ -273,6 +275,25 @@ class TestOnGlobalVoicemailCreated:
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == 'https://scribed:1080/transcriptions/jobs'
         assert call_args[1]['files']['audio'][1] == b'global-audio'
+
+    def test_dispatches_poll_task_with_no_user_uuid(
+        self,
+        handler: VoicemailTranscriptionHandler,
+        mock_poll_task: Mock,
+    ) -> None:
+        payload = {
+            'data': {
+                'voicemail_id': 99,
+                'message_id': 'msg-456',
+            }
+        }
+        headers = {'tenant_uuid': TENANT_UUID}
+
+        handler.on_global_voicemail_created(payload, headers)
+
+        call_kwargs = mock_poll_task.apply_async.call_args[1]
+        assert call_kwargs['kwargs']['tenant_uuid'] == TENANT_UUID
+        assert call_kwargs['kwargs']['user_uuid'] is None
 
     def test_skips_when_transcription_not_enabled(
         self, handler: VoicemailTranscriptionHandler, confd_client: Mock

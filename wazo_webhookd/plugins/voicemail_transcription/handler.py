@@ -39,7 +39,13 @@ class VoicemailTranscriptionHandler:
         result = self._confd_client.voicemail_transcription.get(tenant_uuid=tenant_uuid)
         return result['enabled']
 
-    def _process_voicemail(self, voicemail_id: int, message_id: str) -> None:
+    def _process_voicemail(
+        self,
+        voicemail_id: int,
+        message_id: str,
+        tenant_uuid: str,
+        user_uuid: str | None,
+    ) -> None:
         recording = self._calld_client.voicemails.get_voicemail_recording(
             voicemail_id, message_id
         )
@@ -75,6 +81,8 @@ class VoicemailTranscriptionHandler:
                 'job_id': job_id,
                 'voicemail_id': voicemail_id,
                 'message_id': message_id,
+                'tenant_uuid': tenant_uuid,
+                'user_uuid': user_uuid,
             },
             countdown=countdown,
         )
@@ -96,6 +104,7 @@ class VoicemailTranscriptionHandler:
         data = payload.get('data', {})
         voicemail_id = data.get('voicemail_id')
         message_id = data.get('message_id')
+        user_uuid = data.get('user_uuid')
 
         if not all([voicemail_id, message_id]):
             logger.warning(
@@ -103,7 +112,7 @@ class VoicemailTranscriptionHandler:
             )
             return
 
-        self._process_voicemail(voicemail_id, message_id)
+        self._process_voicemail(voicemail_id, message_id, tenant_uuid, user_uuid)
 
     def on_user_voicemail_created(
         self, payload: dict[str, Any], headers: dict[str, Any]
