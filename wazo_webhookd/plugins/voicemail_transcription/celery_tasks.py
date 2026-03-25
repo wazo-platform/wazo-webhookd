@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_POLL_COUNTDOWN = 5
+REQUEST_TIMEOUTS = 30
 
 
 def _parse_countdown(estimated_completion_at: str | None) -> int:
@@ -49,7 +50,7 @@ def poll_transcription_job(
     self.max_retries = max_poll_attempts
 
     url = f'{service_url}/transcriptions/jobs/{job_id}'
-    response = requests.get(url)
+    response = requests.get(url, timeout=REQUEST_TIMEOUTS)
     response.raise_for_status()
     result = response.json()
     status = result.get('status')
