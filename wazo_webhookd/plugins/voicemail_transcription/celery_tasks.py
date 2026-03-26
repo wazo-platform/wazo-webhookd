@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_POLL_COUNTDOWN = 5
+DEFAULT_POLL_ATTEMPTS = 10
 REQUEST_TIMEOUTS = 30
 
 
@@ -71,7 +72,9 @@ def poll_transcription_job(
     tenant_uuid: str,
     user_uuid: str | None,
 ) -> None:
-    max_poll_attempts = config['voicemail_transcription'].get('max_poll_attempts', 10)
+    max_poll_attempts = config['voicemail_transcription'].get(
+        'max_poll_attempts', DEFAULT_POLL_ATTEMPTS
+    )
     self.max_retries = max_poll_attempts
 
     url = f'{service_url}/transcriptions/jobs/{job_id}'
