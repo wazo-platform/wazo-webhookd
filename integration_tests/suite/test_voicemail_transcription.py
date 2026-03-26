@@ -334,6 +334,9 @@ class TestVoicemailTranscription(BaseIntegrationTest):
         )
 
         # Verify webhookd is still healthy
-        webhookd = self.make_webhookd(MASTER_TOKEN)
-        status = webhookd.status.get()
-        assert status['bus_consumer']['status'] == 'ok'
+        def _webhookd_is_healthy():
+            webhookd = self.make_webhookd(MASTER_TOKEN)
+            status = webhookd.status.get()
+            assert status['bus_consumer']['status'] == 'ok'
+
+        until.assert_(_webhookd_is_healthy, timeout=REQUEST_TIMEOUT, interval=1)
