@@ -38,6 +38,10 @@ def _parse_countdown(estimated_completion_at: str | None) -> int:
         delta = (estimated - now).total_seconds()
         return max(int(delta), 1)
     except (ValueError, TypeError):
+        logger.warning(
+            f'Failed to parse the estimated completion time, got {estimated_completion_at}'
+        )
+        logger.warning(f'Defaulting to {DEFAULT_POLL_COUNTDOWN}')
         return DEFAULT_POLL_COUNTDOWN
 
 
