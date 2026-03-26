@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 
+from hamcrest import assert_that, has_entries, has_length
 from mockserver import MockServerClient
 from wazo_test_helpers import until
 
@@ -340,3 +341,42 @@ class TestVoicemailTranscription(BaseIntegrationTest):
             assert status['bus_consumer']['status'] == 'ok'
 
         until.assert_(_webhookd_is_healthy, timeout=REQUEST_TIMEOUT, interval=1)
+
+    def test_user_voicemail_transcription_publishes_event(self) -> None:
+        accumulator = self.bus.accumulator(
+            headers={'name': 'user_voicemail_transcription_created'},
+        )
+
+        self.calld_mock.mock_any_response(
+            _calld_recording_expectation(VOICEMAIL_ID, MESSAGE_ID)
+        )
+        self.scribed_mock.mock_any_response(_scribed_job_creation_expectation())
+        self.scribed_mock.mock_any_response(_scribed_poll_expectation())
+
+        self._publish_user_voicemail_event()
+
+        def _assert_event_received() -> None:
+            events = accumulator.accumulate(with_headers=True)
+            assert_that(events, has_length(1))
+            assert_that(
+                events[0],
+                has_entries(
+                    message=has_entries(
+                        data=has_entries(
+                            user_uuid=USER_UUID,
+                            voicemail_id=VOICEMAIL_ID,
+                            message_id=MESSAGE_ID,
+                            transcription_text='Hello world',
+                            language='en',
+                            duration=3.5,
+                            provider_id='test-provider',
+                        ),
+                    ),
+                    headers=has_entries(
+                        name='user_voicemail_transcription_created',
+                        tenant_uuid=TENANT_UUID,
+                    ),
+                ),
+            )
+
+        until.assert_(_assert_event_received, timeout=REQUEST_TIMEOUT, interval=1)
