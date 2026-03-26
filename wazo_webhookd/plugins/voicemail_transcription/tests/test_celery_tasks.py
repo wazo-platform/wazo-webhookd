@@ -226,7 +226,11 @@ class TestPollTranscriptionJob:
             json=Mock(return_value=COMPLETED_SCRIBE_RESULT),
         )
         mock_requests.get.return_value.raise_for_status = Mock()
-        mock_publisher = mock_bus_publisher_cls.from_config.return_value
+        # BusPublisher is used as a context manager; __enter__ returns the
+        # instance that publish() is called on.
+        mock_publisher = (
+            mock_bus_publisher_cls.from_config.return_value.__enter__.return_value
+        )
 
         poll_transcription_job(
             config,
@@ -259,7 +263,11 @@ class TestPollTranscriptionJob:
             json=Mock(return_value=COMPLETED_SCRIBE_RESULT),
         )
         mock_requests.get.return_value.raise_for_status = Mock()
-        mock_publisher = mock_bus_publisher_cls.from_config.return_value
+        # BusPublisher is used as a context manager; __enter__ returns the
+        # instance that publish() is called on.
+        mock_publisher = (
+            mock_bus_publisher_cls.from_config.return_value.__enter__.return_value
+        )
 
         poll_transcription_job(
             config,

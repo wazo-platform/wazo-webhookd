@@ -97,15 +97,17 @@ def poll_transcription_job(
         transcription = _build_transcription_data(
             result, voicemail_id, message_id, tenant_uuid
         )
-        bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
-        if user_uuid:
-            event = UserVoicemailTranscriptionCreatedEvent(
-                transcription, tenant_uuid, user_uuid
-            )
-        else:
-            event = GlobalVoicemailTranscriptionCreatedEvent(transcription, tenant_uuid)
-        bus_publisher.publish(event)
-        return
+        with BusPublisher.from_config(config['uuid'], config['bus']) as bus_publisher:
+            if user_uuid:
+                event = UserVoicemailTranscriptionCreatedEvent(
+                    transcription, tenant_uuid, user_uuid
+                )
+            else:
+                event = GlobalVoicemailTranscriptionCreatedEvent(
+                    transcription, tenant_uuid
+                )
+            bus_publisher.publish(event)
+            return
 
     if status == 'failed':
         logger.error(
