@@ -147,6 +147,7 @@ class ServicePluginDependencyDict(TypedDict):
     bus_consumer: BusConsumer
     bus_publisher: BusPublisher
     config: WebhookdConfigDict
+    token_change_subscribe: Callable[[TokenRenewalCallback], None]
 
 
 class PluginDependencyDict(ServicePluginDependencyDict):

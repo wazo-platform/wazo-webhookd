@@ -33,8 +33,7 @@ class TestPlugin:
                 'calld': CALLD_CONFIG,
                 'confd': CONFD_CONFIG,
             },
-            'service_manager': Mock(),
-            'next_token_change_subscribe': Mock(),
+            'token_change_subscribe': Mock(),
         }
 
     @patch('wazo_webhookd.services.voicemail_transcription.plugin.ConfdClient')
@@ -50,7 +49,7 @@ class TestPlugin:
 
         plugin.load(deps)  # type: ignore[arg-type]
 
-        deps['next_token_change_subscribe'].assert_has_calls(
+        deps['token_change_subscribe'].assert_has_calls(
             [
                 call(MockCalldClient.return_value.set_token),
                 call(MockConfdClient.return_value.set_token),

@@ -18,22 +18,22 @@ from wazo_webhookd.services.voicemail_transcription.handler import (
 )
 
 if TYPE_CHECKING:
-    from wazo_webhookd.types import PluginDependencyDict
+    from wazo_webhookd.types import ServicePluginDependencyDict
 
 logger = logging.getLogger(__name__)
 
 
 class Plugin:
-    def load(self, dependencies: PluginDependencyDict) -> None:
+    def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
         config = dependencies['config']
-        next_token_change_subscribe = dependencies['next_token_change_subscribe']
+        token_change_subscribe = dependencies['token_change_subscribe']
 
         calld_client = CalldClient(**config['calld'])
-        next_token_change_subscribe(calld_client.set_token)
+        token_change_subscribe(calld_client.set_token)
 
         confd_client = ConfdClient(**config['confd'])
-        next_token_change_subscribe(confd_client.set_token)
+        token_change_subscribe(confd_client.set_token)
 
         handler = VoicemailTranscriptionHandler(config, calld_client, confd_client)
 
