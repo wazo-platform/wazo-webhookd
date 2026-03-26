@@ -13,7 +13,7 @@ from wazo_bus.resources.voicemail.event import (
 from wazo_calld_client import Client as CalldClient
 from wazo_confd_client import Client as ConfdClient
 
-from wazo_webhookd.plugins.voicemail_transcription.handler import (
+from wazo_webhookd.services.voicemail_transcription.handler import (
     VoicemailTranscriptionHandler,
 )
 

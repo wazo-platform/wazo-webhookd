@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import requests
 
-from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
+from wazo_webhookd.services.voicemail_transcription.celery_tasks import (
     _parse_countdown,
     poll_transcription_job,
 )

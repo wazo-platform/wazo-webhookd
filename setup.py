@@ -26,12 +26,12 @@ setup(
             'mobile = wazo_webhookd.plugins.mobile.plugin:Plugin',
             'status = wazo_webhookd.plugins.status.plugin:Plugin',
             'subscriptions = wazo_webhookd.plugins.subscription.plugin:Plugin',
-            'voicemail_transcription = wazo_webhookd.plugins.voicemail_transcription.plugin:Plugin',  # noqa: E501
             'services = wazo_webhookd.plugins.services.plugin:Plugin',
         ],
         'wazo_webhookd.services': [
             'http = wazo_webhookd.services.http.plugin:Service',
             'mobile = wazo_webhookd.services.mobile.plugin:Service',
+            'voicemail_transcription = wazo_webhookd.services.voicemail_transcription.plugin:Plugin',  # noqa: E501
         ],
         'wazo_purge_db.purgers': [
             'webhookd-logs = wazo_webhookd.database.purger:SubscriptionLogsPurger'

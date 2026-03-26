@@ -83,12 +83,12 @@ class EnabledPluginConfigDict(TypedDict):
     services: bool
     status: bool
     subscriptions: bool
-    voicemail_transcription: bool
 
 
 class EnabledServiceConfigDict(TypedDict):
     http: bool
     mobile: bool
+    voicemail_transcription: bool
 
 
 class ServiceDiscoveryConfigDict(TypedDict):

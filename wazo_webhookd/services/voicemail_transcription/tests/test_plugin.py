@@ -3,7 +3,7 @@
 
 from unittest.mock import Mock, call, patch
 
-from wazo_webhookd.plugins.voicemail_transcription.plugin import Plugin
+from wazo_webhookd.services.voicemail_transcription.plugin import Plugin
 
 CALLD_CONFIG = {
     'host': 'localhost',
@@ -37,10 +37,10 @@ class TestPlugin:
             'next_token_change_subscribe': Mock(),
         }
 
-    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.ConfdClient')
-    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.CalldClient')
+    @patch('wazo_webhookd.services.voicemail_transcription.plugin.ConfdClient')
+    @patch('wazo_webhookd.services.voicemail_transcription.plugin.CalldClient')
     @patch(
-        'wazo_webhookd.plugins.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
+        'wazo_webhookd.services.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
     )
     def test_load_subscribes_clients_to_token_renewal(
         self, MockHandler: Mock, MockCalldClient: Mock, MockConfdClient: Mock
@@ -58,10 +58,10 @@ class TestPlugin:
             any_order=True,
         )
 
-    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.ConfdClient')
-    @patch('wazo_webhookd.plugins.voicemail_transcription.plugin.CalldClient')
+    @patch('wazo_webhookd.services.voicemail_transcription.plugin.ConfdClient')
+    @patch('wazo_webhookd.services.voicemail_transcription.plugin.CalldClient')
     @patch(
-        'wazo_webhookd.plugins.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
+        'wazo_webhookd.services.voicemail_transcription.plugin.VoicemailTranscriptionHandler'
     )
     def test_load_subscribes_handler_to_voicemail_events(
         self, MockHandler: Mock, MockCalldClient: Mock, MockConfdClient: Mock

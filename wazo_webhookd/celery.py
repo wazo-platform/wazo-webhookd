@@ -78,4 +78,4 @@ def spawn_workers(config: WebhookdConfigDict) -> multiprocessing.Process:
 # load the whole plugin, just this task. We don't care about the rest.
 import wazo_webhookd.plugins.mobile.celery_tasks  # noqa
 import wazo_webhookd.plugins.subscription.celery_tasks  # noqa
-import wazo_webhookd.plugins.voicemail_transcription.celery_tasks  # noqa
+import wazo_webhookd.services.voicemail_transcription.celery_tasks  # noqa

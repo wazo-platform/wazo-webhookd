@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 import pytest
 from celery.exceptions import Retry
 
-from wazo_webhookd.plugins.voicemail_transcription.celery_tasks import (
+from wazo_webhookd.services.voicemail_transcription.celery_tasks import (
     _parse_countdown,
     poll_transcription_job,
 )
@@ -34,7 +34,7 @@ def config() -> dict:
     }
 
 
-TASK_MODULE = 'wazo_webhookd.plugins.voicemail_transcription.celery_tasks'
+TASK_MODULE = 'wazo_webhookd.services.voicemail_transcription.celery_tasks'
 TENANT_UUID = 'tenant-uuid-1'
 USER_UUID = 'user-uuid-1'
 

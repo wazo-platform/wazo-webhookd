@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from wazo_webhookd.plugins.voicemail_transcription.handler import (
+from wazo_webhookd.services.voicemail_transcription.handler import (
     VoicemailTranscriptionHandler,
 )
 
@@ -51,7 +51,7 @@ def config() -> ChainMap:
 @pytest.fixture
 def mock_requests() -> Generator[Mock, None, None]:
     with patch(
-        'wazo_webhookd.plugins.voicemail_transcription.handler.requests'
+        'wazo_webhookd.services.voicemail_transcription.handler.requests'
     ) as mock_req:
         mock_req.post.return_value = Mock(
             status_code=202,
@@ -70,7 +70,7 @@ def mock_requests() -> Generator[Mock, None, None]:
 @pytest.fixture
 def mock_poll_task() -> Generator[Mock, None, None]:
     with patch(
-        'wazo_webhookd.plugins.voicemail_transcription.handler.poll_transcription_job'
+        'wazo_webhookd.services.voicemail_transcription.handler.poll_transcription_job'
     ) as mock_task:
         yield mock_task
 
