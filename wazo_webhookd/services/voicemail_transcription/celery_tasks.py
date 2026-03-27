@@ -9,11 +9,12 @@ from typing import TYPE_CHECKING
 
 import requests
 from celery import Task
-from wazo_bus.resources.voicemail.event import (
-    GlobalVoicemailTranscriptionCreatedEvent,
-    UserVoicemailTranscriptionCreatedEvent,
+from wazo_bus.resources.voicemail_transcription.event import (
+    VoicemailTranscriptionCompletedEvent,
 )
-from wazo_bus.resources.voicemail.types import VoicemailTranscriptionCalldDataDict
+from wazo_bus.resources.voicemail_transcription.types import (
+    TranscriptionCompletedPayload,
+)
 
 from wazo_webhookd.bus import BusPublisher
 from wazo_webhookd.celery import app
@@ -50,10 +51,10 @@ def _build_transcription_data(
     voicemail_id: int,
     message_id: str,
     tenant_uuid: str,
-) -> VoicemailTranscriptionCalldDataDict:
+) -> TranscriptionCompletedPayload:
     item = result['transcriptions_items'][0]
     transcription = item['transcription']
-    return VoicemailTranscriptionCalldDataDict(
+    return TranscriptionCompletedPayload(
         message_id=message_id,
         tenant_uuid=tenant_uuid,
         voicemail_id=voicemail_id,
@@ -61,7 +62,7 @@ def _build_transcription_data(
         provider_id=transcription['provider_id'],
         language=transcription['language'],
         duration=transcription['duration'],
-        created_at=item['completed_at'],
+        completed_at=item['completed_at'],
     )
 
 
@@ -74,7 +75,6 @@ def poll_transcription_job(
     voicemail_id: int,
     message_id: str,
     tenant_uuid: str,
-    user_uuid: str | None,
 ) -> None:
     max_poll_attempts = config['voicemail_transcription'].get(
         'max_poll_attempts', DEFAULT_POLL_ATTEMPTS
@@ -98,14 +98,7 @@ def poll_transcription_job(
             result, voicemail_id, message_id, tenant_uuid
         )
         with BusPublisher.from_config(config['uuid'], config['bus']) as bus_publisher:
-            if user_uuid:
-                event = UserVoicemailTranscriptionCreatedEvent(
-                    transcription, tenant_uuid, user_uuid
-                )
-            else:
-                event = GlobalVoicemailTranscriptionCreatedEvent(
-                    transcription, tenant_uuid
-                )
+            event = VoicemailTranscriptionCompletedEvent(transcription, tenant_uuid)
             bus_publisher.publish(event)
             return
 
@@ -134,7 +127,6 @@ def poll_transcription_job(
             'voicemail_id': voicemail_id,
             'message_id': message_id,
             'tenant_uuid': tenant_uuid,
-            'user_uuid': user_uuid,
         },
         countdown=countdown,
     )

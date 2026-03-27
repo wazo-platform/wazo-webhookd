@@ -342,9 +342,9 @@ class TestVoicemailTranscription(BaseIntegrationTest):
 
         until.assert_(_webhookd_is_healthy, timeout=REQUEST_TIMEOUT, interval=1)
 
-    def test_user_voicemail_transcription_publishes_event(self) -> None:
+    def test_voicemail_transcription_publishes_event(self) -> None:
         accumulator = self.bus.accumulator(
-            headers={'name': 'user_voicemail_transcription_created'},
+            headers={'name': 'voicemail_transcription_completed'},
         )
 
         self.calld_mock.mock_any_response(
@@ -363,7 +363,6 @@ class TestVoicemailTranscription(BaseIntegrationTest):
                 has_entries(
                     message=has_entries(
                         data=has_entries(
-                            user_uuid=USER_UUID,
                             voicemail_id=VOICEMAIL_ID,
                             message_id=MESSAGE_ID,
                             transcription_text='Hello world',
@@ -373,7 +372,7 @@ class TestVoicemailTranscription(BaseIntegrationTest):
                         ),
                     ),
                     headers=has_entries(
-                        name='user_voicemail_transcription_created',
+                        name='voicemail_transcription_completed',
                         tenant_uuid=TENANT_UUID,
                     ),
                 ),

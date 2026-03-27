@@ -36,7 +36,6 @@ def config() -> dict:
 
 TASK_MODULE = 'wazo_webhookd.services.voicemail_transcription.celery_tasks'
 TENANT_UUID = 'tenant-uuid-1'
-USER_UUID = 'user-uuid-1'
 
 COMPLETED_SCRIBE_RESULT = {
     'status': 'completed',
@@ -92,7 +91,6 @@ class TestPollTranscriptionJob:
             42,
             'msg-1',
             TENANT_UUID,
-            USER_UUID,
         )
 
         mock_requests.get.assert_called_once_with(
@@ -121,7 +119,6 @@ class TestPollTranscriptionJob:
             42,
             'msg-1',
             TENANT_UUID,
-            None,
         )
 
     @patch(f'{TASK_MODULE}.requests')
@@ -152,7 +149,6 @@ class TestPollTranscriptionJob:
                     42,
                     'msg-1',
                     TENANT_UUID,
-                    USER_UUID,
                 )
 
             mock_retry.assert_called_once()
@@ -185,7 +181,6 @@ class TestPollTranscriptionJob:
                     42,
                     'msg-1',
                     TENANT_UUID,
-                    USER_UUID,
                 )
 
             call_kwargs = mock_retry.call_args[1]
@@ -211,14 +206,13 @@ class TestPollTranscriptionJob:
             42,
             'msg-1',
             TENANT_UUID,
-            USER_UUID,
         )
 
         assert poll_transcription_job.max_retries == 7
 
     @patch(f'{TASK_MODULE}.BusPublisher')
     @patch(f'{TASK_MODULE}.requests')
-    def test_completed_job_publishes_user_event(
+    def test_completed_job_publishes_event(
         self, mock_requests: Mock, mock_bus_publisher_cls: Mock, config: dict
     ) -> None:
         mock_requests.get.return_value = Mock(
@@ -239,7 +233,6 @@ class TestPollTranscriptionJob:
             42,
             'msg-1',
             TENANT_UUID,
-            USER_UUID,
         )
 
         mock_bus_publisher_cls.from_config.assert_called_once_with(
@@ -247,41 +240,7 @@ class TestPollTranscriptionJob:
         )
         mock_publisher.publish.assert_called_once()
         event = mock_publisher.publish.call_args[0][0]
-        assert event.name == 'user_voicemail_transcription_created'
-        assert event.content['voicemail_id'] == 42
-        assert event.content['message_id'] == 'msg-1'
-        assert event.content['transcription_text'] == 'Hello world'
-        assert event.content['user_uuid'] == USER_UUID
-
-    @patch(f'{TASK_MODULE}.BusPublisher')
-    @patch(f'{TASK_MODULE}.requests')
-    def test_completed_job_publishes_global_event_when_no_user(
-        self, mock_requests: Mock, mock_bus_publisher_cls: Mock, config: dict
-    ) -> None:
-        mock_requests.get.return_value = Mock(
-            status_code=200,
-            json=Mock(return_value=COMPLETED_SCRIBE_RESULT),
-        )
-        mock_requests.get.return_value.raise_for_status = Mock()
-        # BusPublisher is used as a context manager; __enter__ returns the
-        # instance that publish() is called on.
-        mock_publisher = (
-            mock_bus_publisher_cls.from_config.return_value.__enter__.return_value
-        )
-
-        poll_transcription_job(
-            config,
-            'https://scribed:1080',
-            'job-1',
-            42,
-            'msg-1',
-            TENANT_UUID,
-            None,
-        )
-
-        mock_publisher.publish.assert_called_once()
-        event = mock_publisher.publish.call_args[0][0]
-        assert event.name == 'global_voicemail_transcription_created'
+        assert event.name == 'voicemail_transcription_completed'
         assert event.content['voicemail_id'] == 42
         assert event.content['message_id'] == 'msg-1'
         assert event.content['transcription_text'] == 'Hello world'
@@ -310,7 +269,6 @@ class TestPollTranscriptionJob:
             42,
             'msg-1',
             TENANT_UUID,
-            USER_UUID,
         )
 
         mock_bus_publisher_cls.from_config.assert_not_called()
