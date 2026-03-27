@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -78,3 +78,4 @@ def spawn_workers(config: WebhookdConfigDict) -> multiprocessing.Process:
 # load the whole plugin, just this task. We don't care about the rest.
 import wazo_webhookd.plugins.mobile.celery_tasks  # noqa
 import wazo_webhookd.plugins.subscription.celery_tasks  # noqa
+import wazo_webhookd.services.voicemail_transcription.celery_tasks  # noqa

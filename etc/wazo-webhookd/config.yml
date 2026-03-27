@@ -17,6 +17,22 @@ auth:
   https: false
   key_file: /var/lib/wazo-auth-keys/wazo-webhookd-key.yml
 
+# wazo-calld connection settings
+calld:
+  host: localhost
+  port: 9500
+  prefix: null
+  https: false
+  verify_certificate: false
+
+# wazo-confd connection settings
+confd:
+  host: localhost
+  port: 9486
+  prefix: null
+  https: false
+  verify_certificate: false
+
 # Event bus (AMQP) connection settings
 bus:
   username: guest
@@ -78,6 +94,10 @@ mobile_apns_call_topic: org.wazo-platform.voip
 mobile_apns_default_topic:  org.wazo-platform
 mobile_apns_host: api.push.apple.com
 mobile_apns_port: 443
+
+voicemail_transcription:
+  service_url: http://localhost:8000
+  max_poll_attempts: 10
 
 service_discovery:
   enabled: false

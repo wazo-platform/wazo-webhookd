@@ -1,4 +1,4 @@
-# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -26,6 +26,22 @@ class AuthConfigDict(TypedDict):
     prefix: str | None
     https: bool
     key_file: str
+
+
+class CalldConfigDict(TypedDict):
+    host: str
+    port: int
+    prefix: str | None
+    https: bool
+    verify_certificate: bool
+
+
+class ConfdConfigDict(TypedDict):
+    host: str
+    port: int
+    prefix: str | None
+    https: bool
+    verify_certificate: bool
 
 
 class BusConfigDict(TypedDict):
@@ -72,6 +88,7 @@ class EnabledPluginConfigDict(TypedDict):
 class EnabledServiceConfigDict(TypedDict):
     http: bool
     mobile: bool
+    voicemail_transcription: bool
 
 
 class ServiceDiscoveryConfigDict(TypedDict):
@@ -83,6 +100,11 @@ class ServiceDiscoveryConfigDict(TypedDict):
     refresh_interval: int
     retry_interval: int
     extra_tags: list[str]
+
+
+class VoicemailTranscriptionConfigDict(TypedDict):
+    service_url: str
+    max_poll_attempts: int
 
 
 class ConsulConfigDict(TypedDict):
@@ -98,6 +120,8 @@ class WebhookdConfigDict(TypedDict):
     log_level: str
     log_file: str
     auth: AuthConfigDict
+    calld: CalldConfigDict
+    confd: ConfdConfigDict
     bus: BusConfigDict
     celery: CeleryConfigDict
     consul: ConsulConfigDict
@@ -113,6 +137,7 @@ class WebhookdConfigDict(TypedDict):
     mobile_apns_port: int
     mobile_fcm_notification_end_point: str
     service_discovery: ServiceDiscoveryConfigDict
+    voicemail_transcription: VoicemailTranscriptionConfigDict
     uuid: str
 
 
@@ -122,6 +147,7 @@ class ServicePluginDependencyDict(TypedDict):
     bus_consumer: BusConsumer
     bus_publisher: BusPublisher
     config: WebhookdConfigDict
+    token_change_subscribe: Callable[[TokenRenewalCallback], None]
 
 
 class PluginDependencyDict(ServicePluginDependencyDict):

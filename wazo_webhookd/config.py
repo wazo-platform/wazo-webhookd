@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -77,6 +77,24 @@ _DEFAULT_CONFIG = {
         'retry_interval': 2,
         'extra_tags': [],
     },
+    'calld': {
+        'host': 'localhost',
+        'port': 9500,
+        'prefix': None,
+        'https': False,
+        'verify_certificate': False,
+    },
+    'confd': {
+        'host': 'localhost',
+        'port': 9486,
+        'prefix': None,
+        'https': False,
+        'verify_certificate': False,
+    },
+    'voicemail_transcription': {
+        'service_url': 'http://localhost:8000',
+        'max_poll_attempts': 10,
+    },
     'enabled_plugins': {
         'api': True,
         'config': True,
@@ -85,7 +103,7 @@ _DEFAULT_CONFIG = {
         'status': True,
         'subscriptions': True,
     },
-    'enabled_services': {'http': True, 'mobile': True},
+    'enabled_services': {'http': True, 'mobile': True, 'voicemail_transcription': True},
     'hook_max_attempts': 10,
     'hook_http_retry_countdown_factor': 2,
     'mobile_apns_host': 'api.push.apple.com',
