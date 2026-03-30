@@ -208,7 +208,7 @@ class TestPollTranscriptionJob:
             TENANT_UUID,
         )
 
-        assert poll_transcription_job.max_retries == 7
+        assert poll_transcription_job.max_retries == 6
 
     @patch(f'{TASK_MODULE}.BusPublisher')
     @patch(f'{TASK_MODULE}.requests')
