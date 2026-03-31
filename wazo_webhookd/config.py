@@ -85,6 +85,10 @@ _DEFAULT_CONFIG = {
         'status': True,
         'subscriptions': True,
     },
+    'enabled_celery_tasks': {
+        'subscription': True,
+        'mobile': True,
+    },
     'enabled_services': {'http': True, 'mobile': True},
     'hook_max_attempts': 10,
     'hook_http_retry_countdown_factor': 2,

@@ -34,6 +34,7 @@ class Controller:
         # we don't fork the process after some database/rabbitmq connection
         # have been established
         celery.configure(config)
+        celery.load_celery_tasks(config)
         self._celery_process = celery.spawn_workers(config)
 
         self._service_discovery_args = [

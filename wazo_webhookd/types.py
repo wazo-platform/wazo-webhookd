@@ -69,6 +69,11 @@ class EnabledPluginConfigDict(TypedDict):
     subscriptions: bool
 
 
+class EnabledCeleryTasksConfigDict(TypedDict):
+    subscription: bool
+    mobile: bool
+
+
 class EnabledServiceConfigDict(TypedDict):
     http: bool
     mobile: bool
@@ -105,6 +110,7 @@ class WebhookdConfigDict(TypedDict):
     hook_max_attempts: int
     hook_http_retry_countdown_factor: int
     rest_api: RestApiConfigDict
+    enabled_celery_tasks: EnabledCeleryTasksConfigDict
     enabled_plugins: EnabledPluginConfigDict
     enabled_services: EnabledServiceConfigDict
     mobile_apns_call_topic: str
