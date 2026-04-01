@@ -11,5 +11,7 @@ celery:
   broker: amqp://guest:guest@rabbitmq:5672
 enabled_plugins:
   sentinel: True
+enabled_celery_tasks:
+  celery_task_sentinel: True
 hook_max_attempts: 5
 hook_http_retry_countdown_factor: 1
