@@ -79,7 +79,7 @@ def poll_transcription_job(
     max_poll_attempts = config['voicemail_transcription'].get(
         'max_poll_attempts', DEFAULT_POLL_ATTEMPTS
     )
-    self.max_retries = max_poll_attempts - 1
+    self.max_retries = max_poll_attempts
 
     url = f'{service_url}/transcriptions/jobs/{job_id}'
     response = requests.get(url, timeout=REQUEST_TIMEOUTS)
