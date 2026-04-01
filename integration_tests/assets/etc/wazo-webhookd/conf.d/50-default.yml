@@ -11,19 +11,5 @@ celery:
   broker: amqp://guest:guest@rabbitmq:5672
 enabled_plugins:
   sentinel: True
-calld:
-  host: calld
-  port: 9500
-  prefix: null
-  https: false
-  verify_certificate: false
-confd:
-  host: confd
-  port: 9486
-  prefix: null
-  https: false
-  verify_certificate: false
-voicemail_transcription:
-  service_url: http://scribed:1080
 hook_max_attempts: 5
 hook_http_retry_countdown_factor: 1

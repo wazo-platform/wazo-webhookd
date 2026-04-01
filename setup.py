@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from setuptools import find_packages, setup
@@ -31,7 +31,6 @@ setup(
         'wazo_webhookd.services': [
             'http = wazo_webhookd.services.http.plugin:Service',
             'mobile = wazo_webhookd.services.mobile.plugin:Service',
-            'voicemail_transcription = wazo_webhookd.services.voicemail_transcription.plugin:Plugin',  # noqa: E501
         ],
         'wazo_purge_db.purgers': [
             'webhookd-logs = wazo_webhookd.database.purger:SubscriptionLogsPurger'
