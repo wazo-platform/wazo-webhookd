@@ -38,12 +38,13 @@ class TestCeleryTaskPlugin(BaseIntegrationTest):
     asset = 'base'
     wait_strategy = ConnectedWaitStrategy()
 
-    def setUp(self) -> None:
-        super().setUp()
+    def tearDown(self) -> None:
         self.docker_exec(['rm', '-f', MARKER_FILE])
+        super().tearDown()
 
     def test_external_celery_task_is_executed(self) -> None:
-        # see celery_task_plugin implementation
+        # celery_task_sentinel plugin dispatches a task on load(),
+        # which writes a marker file when the celery worker executes it
         def check_marker_exists() -> None:
             output = self.docker_exec(['cat', MARKER_FILE]).decode().strip()
             assert_that(output, equal_to('ok'))
