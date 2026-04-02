@@ -14,5 +14,8 @@ setup(
         'wazo_webhookd.celery_tasks': [
             'celery_task_sentinel = wazo_webhookd_celery_task_sentinel.celery_tasks',
         ],
+        'wazo_webhookd.plugins': [
+            'celery_task_sentinel = wazo_webhookd_celery_task_sentinel.plugin:Plugin',
+        ],
     },
 )

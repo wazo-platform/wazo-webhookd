@@ -2,15 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
-import textwrap
 
-from hamcrest import assert_that, equal_to, has_item
+from hamcrest import assert_that, equal_to
 from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.wait_strategy import NoWaitStrategy
+from .helpers.wait_strategy import ConnectedWaitStrategy, NoWaitStrategy
 
-SENTINEL_TASK = 'wazo_webhookd_celery_task_sentinel.celery_tasks.celery_task_sentinel'
+MARKER_FILE = '/tmp/celery_task_sentinel_executed'
 
 
 class TestCeleryWorks(BaseIntegrationTest):
@@ -34,24 +33,22 @@ class TestCeleryWorks(BaseIntegrationTest):
 
         until.assert_(check_ps, timeout=10, interval=0.5)
 
-    def test_external_celery_task_plugin_is_registered(self) -> None:
-        def check_task_registered() -> None:
-            output = self.docker_exec(
-                [
-                    'python3',
-                    '-c',
-                    textwrap.dedent(
-                        """
-                    from wazo_webhookd.celery import app, load_celery_tasks;
-                    load_celery_tasks({
-                      "enabled_celery_tasks": {"celery_task_sentinel": True}
-                    });
-                    print("\\n".join(app.tasks.keys()))
-                    """
-                    ),
-                ]
-            ).decode()
-            tasks = output.strip().split('\n')
-            assert_that(tasks, has_item(SENTINEL_TASK))
 
-        until.assert_(check_task_registered, timeout=10, interval=0.5)
+class TestCeleryTaskPlugin(BaseIntegrationTest):
+    asset = 'base'
+    wait_strategy = ConnectedWaitStrategy()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.docker_exec(['rm', '-f', MARKER_FILE])
+
+    def test_external_celery_task_is_executed(self) -> None:
+        """An external celery task plugin (installed as a separate package)
+        is discovered via stevedore, its task is dispatched by the plugin's
+        load() method, and the celery worker executes it."""
+
+        def check_marker_exists() -> None:
+            output = self.docker_exec(['cat', MARKER_FILE]).decode().strip()
+            assert_that(output, equal_to('ok'))
+
+        until.assert_(check_marker_exists, timeout=15, interval=0.5)
