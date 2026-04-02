@@ -8,7 +8,6 @@ from contextlib import contextmanager
 
 import requests
 import yaml
-from mockserver import MockServerClient
 from wazo_test_helpers import until
 from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
 from wazo_test_helpers.auth import AuthClient, MockCredentials, MockUserToken
@@ -106,18 +105,6 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     @classmethod
     def make_auth(cls):
         return AuthClient('127.0.0.1', cls.service_port(9497, 'auth'))
-
-    @classmethod
-    def make_calld_mock(cls) -> MockServerClient:
-        return MockServerClient(f'http://127.0.0.1:{cls.service_port(9500, "calld")}')
-
-    @classmethod
-    def make_confd_mock(cls) -> MockServerClient:
-        return MockServerClient(f'http://127.0.0.1:{cls.service_port(9486, "confd")}')
-
-    @classmethod
-    def make_scribed_mock(cls) -> MockServerClient:
-        return MockServerClient(f'http://127.0.0.1:{cls.service_port(1080, "scribed")}')
 
     @classmethod
     def configured_wazo_auth(cls):
