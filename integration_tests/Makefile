@@ -6,6 +6,7 @@ test:
 egg-info:
 	cd .. && python setup.py egg_info
 	cd plugins/sentinel && python setup.py egg_info
+	cd plugins/celery_task_plugin && python setup.py egg_info
 
 webhookd:
 	docker build --pull -t wazoplatform/wazo-webhookd ..

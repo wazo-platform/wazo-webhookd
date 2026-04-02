@@ -5,9 +5,12 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
+from functools import partial
 from typing import TYPE_CHECKING
 
 from celery import Celery
+from stevedore.named import NamedExtensionManager
+from xivo.plugin_helpers import enabled_names, on_load_failure, on_missing_entrypoints
 
 if TYPE_CHECKING:
     from wazo_webhookd.types import WebhookdConfigDict
@@ -73,8 +76,30 @@ def spawn_workers(config: WebhookdConfigDict) -> multiprocessing.Process:
     return process
 
 
-# NOTE(sileht): This defeats the point of using stevedore, but the celery worker process
-# needs all tasks to be loaded when we create the Celery() app. Also, we don't want to
-# load the whole plugin, just this task. We don't care about the rest.
-import wazo_webhookd.plugins.mobile.celery_tasks  # noqa
-import wazo_webhookd.plugins.subscription.celery_tasks  # noqa
+CELERY_TASKS_NAMESPACE = 'wazo_webhookd.celery_tasks'
+
+
+def load_celery_tasks(config: WebhookdConfigDict) -> None:
+    """Load celery task modules via stevedore entry points.
+
+    Must be called after configure() and before spawn_workers(),
+    so that all @app.task-decorated functions are registered
+    before the worker process is forked.
+
+    Entry points reference modules (not classes). Importing the module
+    is sufficient to register tasks via @app.task decorators.
+    """
+    names = enabled_names(config['enabled_celery_tasks'])
+    if not names:
+        logger.info('No celery task modules enabled')
+        return
+
+    NamedExtensionManager(
+        CELERY_TASKS_NAMESPACE,
+        names,
+        on_load_failure_callback=on_load_failure,
+        on_missing_entrypoints_callback=partial(
+            on_missing_entrypoints, CELERY_TASKS_NAMESPACE
+        ),
+        invoke_on_load=False,
+    )

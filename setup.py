@@ -32,6 +32,10 @@ setup(
             'http = wazo_webhookd.services.http.plugin:Service',
             'mobile = wazo_webhookd.services.mobile.plugin:Service',
         ],
+        'wazo_webhookd.celery_tasks': [
+            'subscription = wazo_webhookd.plugins.subscription.celery_tasks',
+            'mobile = wazo_webhookd.plugins.mobile.celery_tasks',
+        ],
         'wazo_purge_db.purgers': [
             'webhookd-logs = wazo_webhookd.database.purger:SubscriptionLogsPurger'
         ],
