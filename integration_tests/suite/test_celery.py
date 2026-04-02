@@ -43,10 +43,7 @@ class TestCeleryTaskPlugin(BaseIntegrationTest):
         self.docker_exec(['rm', '-f', MARKER_FILE])
 
     def test_external_celery_task_is_executed(self) -> None:
-        """An external celery task plugin (installed as a separate package)
-        is discovered via stevedore, its task is dispatched by the plugin's
-        load() method, and the celery worker executes it."""
-
+        # see celery_task_plugin implementation
         def check_marker_exists() -> None:
             output = self.docker_exec(['cat', MARKER_FILE]).decode().strip()
             assert_that(output, equal_to('ok'))
