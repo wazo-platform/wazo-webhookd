@@ -122,16 +122,19 @@ class WebhookdConfigDict(TypedDict):
     uuid: str
 
 
-class ServicePluginDependencyDict(TypedDict):
+class _BaseDependencyDict(TypedDict):
     api: Api
     auth_client: AuthClient
     bus_consumer: BusConsumer
     bus_publisher: BusPublisher
     config: WebhookdConfigDict
+
+
+class ServicePluginDependencyDict(_BaseDependencyDict):
     token_change_subscribe: Callable[[TokenRenewalCallback], None]
 
 
-class PluginDependencyDict(ServicePluginDependencyDict):
+class PluginDependencyDict(_BaseDependencyDict):
     service_manager: NamedExtensionManager
     next_token_change_subscribe: Callable[[TokenRenewalCallback], None]
 
