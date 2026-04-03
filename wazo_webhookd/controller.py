@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -65,6 +65,7 @@ class Controller:
                 'bus_publisher': self._bus_publisher,
                 'config': config,
                 'auth_client': self._auth_client,
+                'token_change_subscribe': self._token_renewer.subscribe_to_token_change,
             },
         )
         plugin_helpers.load(
