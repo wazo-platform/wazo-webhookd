@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol, TypedDict
 from flask_restful import Api
 from stevedore.named import NamedExtensionManager
 from wazo_auth_client.client import AuthClient
+from xivo.status import StatusAggregator
 
 from .bus import BusConsumer, BusPublisher
 
@@ -128,6 +129,7 @@ class _BaseDependencyDict(TypedDict):
     bus_consumer: BusConsumer
     bus_publisher: BusPublisher
     config: WebhookdConfigDict
+    status_aggregator: StatusAggregator
 
 
 class ServicePluginDependencyDict(_BaseDependencyDict):

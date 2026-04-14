@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from wazo_auth_client import Client as AuthClient
 from xivo import plugin_helpers
 from xivo.consul_helpers import ServiceCatalogRegistration
+from xivo.status import StatusAggregator
 from xivo.token_renewer import TokenRenewer
 
 from wazo_webhookd import celery
@@ -56,6 +57,7 @@ class Controller:
         self._bus_consumer = BusConsumer.from_config(config['bus'])
         self._bus_publisher = BusPublisher.from_config(config['uuid'], config['bus'])
         self.rest_api = CoreRestApi(config)
+        self.status_aggregator = StatusAggregator()
         self._service_manager = plugin_helpers.load(
             namespace='wazo_webhookd.services',
             names=config['enabled_services'],
@@ -65,6 +67,7 @@ class Controller:
                 'bus_publisher': self._bus_publisher,
                 'config': config,
                 'auth_client': self._auth_client,
+                'status_aggregator': self.status_aggregator,
                 'token_change_subscribe': self._token_renewer.subscribe_to_token_change,
             },
         )
@@ -77,6 +80,7 @@ class Controller:
                 'bus_consumer': self._bus_consumer,
                 'bus_publisher': self._bus_publisher,
                 'config': config,
+                'status_aggregator': self.status_aggregator,
                 'service_manager': self._service_manager,
                 'next_token_change_subscribe': self._token_renewer.subscribe_to_next_token_change,
             },
