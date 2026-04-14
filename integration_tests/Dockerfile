@@ -15,6 +15,9 @@ RUN python3 -m pip install -e .
 WORKDIR /usr/src/wazo-webhookd/integration_tests/plugins/celery_task_plugin
 RUN python3 -m pip install -e .
 
+WORKDIR /usr/src/wazo-webhookd/integration_tests/plugins/status_sentinel
+RUN python3 -m pip install -e .
+
 RUN cat /usr/src/wazo-webhookd/integration_tests/assets/ssl/mockserver/mockserver.crt >> /opt/venv/lib/python3.11/site-packages/certifi/cacert.pem
 RUN cat /usr/src/wazo-webhookd/integration_tests/assets/fake-apple-ca/certs/server.crt >> /opt/venv/lib/python3.11/site-packages/certifi/cacert.pem
 

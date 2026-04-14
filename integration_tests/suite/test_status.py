@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from hamcrest import assert_that, equal_to, has_entries
@@ -52,6 +52,24 @@ class TestStatusAllOK(BaseIntegrationTest):
             )
 
         until.assert_(all_connections_ok, timeout=20)
+
+
+class TestStatusPluginProvider(BaseIntegrationTest):
+    asset = 'base'
+    wait_strategy = EverythingOkWaitStrategy()
+
+    def test_plugin_status_provider_appears_in_response(self):
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        result = webhookd.status.get()
+        assert_that(
+            result,
+            has_entries(
+                bus_consumer=has_entries(status='ok'),
+                master_tenant=has_entries(status='ok'),
+                test_component=has_entries(status='ok'),
+            ),
+        )
 
 
 class TestStatusNoMasterTenant(BaseIntegrationTest):

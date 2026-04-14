@@ -12,6 +12,7 @@ celery:
 enabled_plugins:
   sentinel: True
   celery_task_sentinel: True
+  status_sentinel: True
 enabled_celery_tasks:
   celery_task_sentinel: True
 hook_max_attempts: 5
