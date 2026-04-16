@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from xivo.status import Status
 
-from ... import auth
+from wazo_webhookd import auth
 from .http import StatusResource
 
 if TYPE_CHECKING:
