@@ -18,6 +18,8 @@ definitions:
         $ref: '#/definitions/ComponentWithStatus'
       master_tenant:
         $ref: '#/definitions/ComponentWithStatus'
+    additionalProperties:
+      $ref: '#/definitions/ComponentWithStatus'
   ComponentWithStatus:
     type: object
     properties:
