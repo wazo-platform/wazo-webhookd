@@ -11,7 +11,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 import httpx
 from celery import Task
@@ -51,6 +51,8 @@ class ExternalMobileDict(TypedDict):
     apns_token: str
     apns_voip_token: str
     apns_notification_token: str
+    apns_call_topic: NotRequired[str]
+    apns_default_topic: NotRequired[str]
 
 
 class ExternalConfigDict(TypedDict):
@@ -699,8 +701,17 @@ class PushNotification:
         data: NotificationPayload,
         data_only: bool,
     ):
-        apns_call_topic = self.config['mobile_apns_call_topic']
-        apns_default_topic = self.config['mobile_apns_default_topic']
+        token_call_topic = self.external_tokens.get('apns_call_topic')
+        token_default_topic = self.external_tokens.get('apns_default_topic')
+        apns_call_topic = token_call_topic or self.config['mobile_apns_call_topic']
+        apns_default_topic = token_default_topic or self.config['mobile_apns_default_topic']
+        logger.debug(
+            'APNS topics resolved: call_topic=%s (source=%s), default_topic=%s (source=%s)',
+            apns_call_topic,
+            'token' if token_call_topic else 'config',
+            apns_default_topic,
+            'token' if token_default_topic else 'config',
+        )
 
         if (
             notification_type := data['notification_type']
