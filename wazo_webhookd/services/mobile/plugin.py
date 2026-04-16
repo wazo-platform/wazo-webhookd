@@ -704,7 +704,9 @@ class PushNotification:
         token_call_topic = self.external_tokens.get('apns_call_topic')
         token_default_topic = self.external_tokens.get('apns_default_topic')
         apns_call_topic = token_call_topic or self.config['mobile_apns_call_topic']
-        apns_default_topic = token_default_topic or self.config['mobile_apns_default_topic']
+        apns_default_topic = (
+            token_default_topic or self.config['mobile_apns_default_topic']
+        )
         logger.debug(
             'APNS topics resolved: call_topic=%s (source=%s), default_topic=%s (source=%s)',
             apns_call_topic,
