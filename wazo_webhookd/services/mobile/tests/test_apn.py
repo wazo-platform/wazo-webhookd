@@ -229,9 +229,7 @@ class TestAPNWithPerTokenTopics(TestCase):
             'items': {},
         }
 
-        headers, payload, token = self._push._create_apn_message(
-            None, None, data, True
-        )
+        headers, payload, token = self._push._create_apn_message(None, None, data, True)
 
         assert_that(
             headers,
