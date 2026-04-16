@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -13,10 +13,12 @@ import kombu
 from wazo_bus.base import Base
 from wazo_bus.mixins import ConsumerMixin, ThreadableMixin
 from wazo_bus.publisher import BusPublisher as BasePublisher
+from xivo.status import Status
 
 if TYPE_CHECKING:
     from amqp import Message
     from kombu.transport.base import StdChannel
+    from xivo.status import StatusDict
 
     Payload = dict[str, Any]
     Headers = dict[str, Any]
@@ -165,6 +167,11 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             callback, events, _ = self._handlers.pop(uuid)
         for event in events:
             self.unsubscribe(event, callback)
+
+    def provide_status(self, status: StatusDict) -> None:
+        status['bus_consumer']['status'] = (
+            Status.ok if self.consumer_connected() else Status.fail
+        )
 
     @classmethod
     def from_config(cls, bus_config):
