@@ -1,4 +1,4 @@
-# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import json
@@ -224,6 +224,66 @@ class TestNotifications(BaseIntegrationTest):
                     'type': 'string',
                     'string': json.dumps(test),
                 },
+            },
+        )
+        until.return_(verify_called, timeout=15, interval=0.5)
+
+    def test_ios_notification_uses_per_token_apns_topic(self) -> None:
+        with open(self.assets_root + "/fake-apple-ca/certs/client.crt") as f:
+            ios_apn_certificate = f.read()
+
+        with open(self.assets_root + "/fake-apple-ca/certs/client.key") as f:
+            ios_apn_key = f.read()
+
+        self.auth.reset_external_auth()
+        self.auth.set_external_auth(
+            {
+                'token': 'token-android',
+                'apns_token': 'apns-voip-token',
+                'apns_voip_token': 'apns-voip-token',
+                'apns_notification_token': 'apns-notification-token',
+                'apns_call_topic': 'com.custom.app.voip',
+                'apns_default_topic': 'com.custom.app',
+            }
+        )
+        self.auth.set_external_config(
+            {
+                'mobile': {
+                    'fcm_api_key': '',
+                    'ios_apn_certificate': ios_apn_certificate,
+                    'ios_apn_private': ios_apn_key,
+                    'is_sandbox': False,
+                }
+            }
+        )
+        apns_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
+        )
+        apns_third_party.reset()
+        apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': 'tracker-notification'},
+            statusCode=200,
+        )
+
+        webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
+        webhookd.mobile_notifications.send(
+            {
+                'notification_type': "plugin",
+                'user_uuid': USER_1_UUID,
+                'title': 'test title',
+                'body': 'test message',
+                'extra': {'plugin': {"id": "test"}},
+            }
+        )
+
+        verify_called = partial(
+            apns_third_party.verify,
+            request={
+                'path': '/3/device/apns-notification-token',
+                'headers': [
+                    {'name': 'apns-topic', 'values': ['com.custom.app']},
+                ],
             },
         )
         until.return_(verify_called, timeout=15, interval=0.5)
