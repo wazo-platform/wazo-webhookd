@@ -1,4 +1,4 @@
-# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from typing import Any
@@ -265,3 +265,20 @@ class TestAPNWithPerTokenTopics(TestCase):
         }
         headers, _, _ = push._create_apn_message(None, None, cancel_data, False)
         assert_that(headers['apns-topic'], equal_to('org.wazo-platform'))
+
+    def test_null_apns_call_topic_falls_back_to_config(self):
+        self.external_tokens['apns_call_topic'] = None
+        push = PushNotification(
+            self.task,
+            self.config,  # type: ignore
+            self.external_tokens,  # type: ignore
+            self.external_config,  # type: ignore
+            self.jwt,
+        )
+
+        data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
+        headers, _, _ = push._create_apn_message(None, None, data, False)
+        assert_that(headers['apns-topic'], equal_to('org.wazo-platform.voip'))
