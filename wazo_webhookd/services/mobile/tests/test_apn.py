@@ -154,3 +154,114 @@ class TestAPN(TestCase):
             ),
         )
         assert_that(token, equal_to(s.apns_notification_token))
+
+
+class TestAPNWithPerTokenTopics(TestCase):
+    def setUp(self):
+        self.task = Mock()
+        self.config = {
+            'mobile_apns_host': 'api.push.apple.com',
+            'mobile_apns_port': 443,
+            'mobile_apns_call_topic': 'org.wazo-platform.voip',
+            'mobile_apns_default_topic': 'org.wazo-platform',
+        }
+        self.external_tokens = {
+            'apns_voip_token': s.apns_voip_token,
+            'apns_notification_token': s.apns_notification_token,
+            'apns_call_topic': 'com.custom.app.voip',
+            'apns_default_topic': 'com.custom.app',
+        }
+        self.external_config: dict[str, Any] = {}
+        self.jwt = ''
+        self._push = PushNotification(
+            self.task,
+            self.config,  # type: ignore
+            self.external_tokens,  # type: ignore
+            self.external_config,  # type: ignore
+            self.jwt,
+        )
+
+    def test_per_token_call_topic_overrides_config(self):
+        data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
+
+        headers, payload, token = self._push._create_apn_message(
+            None, None, data, False
+        )
+
+        assert_that(
+            headers,
+            equal_to(
+                {
+                    'apns-topic': 'com.custom.app.voip',
+                    'apns-push-type': 'voip',
+                    'apns-priority': '10',
+                }
+            ),
+        )
+
+    def test_per_token_default_topic_overrides_config_for_cancel(self):
+        data: NotificationPayload = {
+            'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+            'items': {},
+        }
+
+        headers, payload, token = self._push._create_apn_message(
+            None, None, data, False
+        )
+
+        assert_that(
+            headers,
+            equal_to(
+                {
+                    'apns-topic': 'com.custom.app',
+                    'apns-push-type': 'alert',
+                    'apns-priority': '5',
+                }
+            ),
+        )
+
+    def test_per_token_default_topic_overrides_config_for_message(self):
+        data: NotificationPayload = {
+            'notification_type': NotificationType.MESSAGE_RECEIVED,
+            'items': {},
+        }
+
+        headers, payload, token = self._push._create_apn_message(None, None, data, True)
+
+        assert_that(
+            headers,
+            equal_to(
+                {
+                    'apns-topic': 'com.custom.app',
+                    'apns-push-type': 'alert',
+                    'apns-priority': '5',
+                }
+            ),
+        )
+
+    def test_mixed_topics_only_call_topic_from_token(self):
+        self.external_tokens.pop('apns_default_topic')
+        push = PushNotification(
+            self.task,
+            self.config,  # type: ignore
+            self.external_tokens,  # type: ignore
+            self.external_config,  # type: ignore
+            self.jwt,
+        )
+
+        call_data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
+        headers, _, _ = push._create_apn_message(None, None, call_data, False)
+        assert_that(headers['apns-topic'], equal_to('com.custom.app.voip'))
+
+        cancel_data: NotificationPayload = {
+            'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+            'items': {},
+        }
+        headers, _, _ = push._create_apn_message(None, None, cancel_data, False)
+        assert_that(headers['apns-topic'], equal_to('org.wazo-platform'))
