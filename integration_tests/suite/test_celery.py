@@ -7,7 +7,7 @@ from hamcrest import assert_that, equal_to
 from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.wait_strategy import ConnectedWaitStrategy, NoWaitStrategy
+from .helpers.wait_strategy import TestComponentConnectedWaitStrategy, NoWaitStrategy
 
 MARKER_FILE = '/tmp/celery_task_sentinel_executed'
 
@@ -36,7 +36,7 @@ class TestCeleryWorks(BaseIntegrationTest):
 
 class TestCeleryTaskPlugin(BaseIntegrationTest):
     asset = 'base'
-    wait_strategy = ConnectedWaitStrategy()
+    wait_strategy = TestComponentConnectedWaitStrategy()
 
     def tearDown(self) -> None:
         self.docker_exec(['rm', '-f', MARKER_FILE])
