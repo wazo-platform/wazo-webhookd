@@ -7,7 +7,7 @@ from hamcrest import assert_that, equal_to
 from wazo_test_helpers import until
 
 from .helpers.base import BaseIntegrationTest
-from .helpers.wait_strategy import TestComponentConnectedWaitStrategy, NoWaitStrategy
+from .helpers.wait_strategy import NoWaitStrategy, TestComponentConnectedWaitStrategy
 
 MARKER_FILE = '/tmp/celery_task_sentinel_executed'
 
