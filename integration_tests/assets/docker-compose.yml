@@ -53,7 +53,7 @@ services:
       - "5432"
 
   rabbitmq:
-    image: rabbitmq:4.2.6
+    image: rabbitmq:3
     ports:
       - "5672"
 
