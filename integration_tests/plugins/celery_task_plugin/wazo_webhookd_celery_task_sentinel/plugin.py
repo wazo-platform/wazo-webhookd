@@ -10,4 +10,12 @@ class Plugin:
     def load(self, dependencies: dict[str, Any]) -> None:
         from .celery_tasks import celery_task_sentinel
 
-        celery_task_sentinel.delay()
+        celery_task_sentinel.apply_async(
+            retry=True,
+            retry_policy={
+                'max_retries': 30,
+                'interval_start': 0,
+                'interval_step': 1.0,
+                'interval_max': 2.0,
+            },
+        )
