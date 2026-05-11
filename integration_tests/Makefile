@@ -9,7 +9,7 @@ egg-info:
 	cd plugins/celery_task_plugin && python setup.py egg_info
 
 webhookd:
-	docker build --pull -t wazoplatform/wazo-webhookd ..
+	docker build --pull --no-cache -t wazoplatform/wazo-webhookd ..
 
 webhookd-test: webhookd egg-info
 	docker build --no-cache -t wazo-webhookd-test -f Dockerfile ..
