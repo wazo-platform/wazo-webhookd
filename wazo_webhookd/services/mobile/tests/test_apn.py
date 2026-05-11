@@ -110,7 +110,7 @@ class TestAPN(TestCase):
                 }
             ),
         )
-        assert_that(token, equal_to(s.apns_notification_token))
+        assert_that(token, equal_to(s.apns_voip_token))
 
     def test_wazo_message_received(self):
         data: NotificationPayload = {
