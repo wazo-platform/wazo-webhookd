@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -2036,7 +2036,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 detail=has_entry(
                     'full_response',
                     has_entries(
-                        response_body=has_entries(tracker='tracker-notification'),
+                        response_body=has_entries(tracker='tracker-voip'),
                     ),
                 ),
                 event=has_entries(name='call_cancel_push_notification'),
@@ -2044,7 +2044,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             ),
         )
 
-        with self.last_apns_request(token='apns-notification-token') as request:
+        with self.last_apns_request(token='apns-voip-token') as request:
             assert_that(
                 request,
                 has_entries(
@@ -2059,7 +2059,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         # Test error reason is visible in the logs
         self.apns_third_party.reset()
         self.apns_third_party.mock_simple_response(
-            path='/3/device/apns-notification-token',
+            path='/3/device/apns-voip-token',
             responseBody={'tracker': 'tracker-error'},
             statusCode=400,
         )

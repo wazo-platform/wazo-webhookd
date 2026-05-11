@@ -774,7 +774,10 @@ class PushNotification:
                     alert['body'] = message_body
                 payload['aps']['alert'] = alert
 
-        if notification_type == NotificationType.INCOMING_CALL:
+        if notification_type in (
+            NotificationType.INCOMING_CALL,
+            NotificationType.CANCEL_INCOMING_CALL,
+        ):
             # TODO(pc-m): The apns_voip_token was added in 20.05
             # the `or self.external_tokens["apns_token"]` should be removed when we stop
             # supporting wazo 20.XX
