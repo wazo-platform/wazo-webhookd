@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import operator
@@ -64,6 +64,16 @@ TEST_SUBSCRIPTION_BODY_TEMPLATE = {
         'url': 'http://third-party-http:1080/test',
         'method': 'get',
         'body': '{{ event_name }} {{ event["variable"] }}',
+    },
+    'events': ['trigger'],
+}
+TEST_SUBSCRIPTION_BODY_TEMPLATE_SANDBOX_ESCAPE = {
+    'name': 'test',
+    'service': 'http',
+    'config': {
+        'url': 'http://third-party-http:1080/test',
+        'method': 'post',
+        'body': "{{ lipsum.__globals__['os'].popen('id').read() }}",
     },
     'events': ['trigger'],
 }
@@ -588,6 +598,42 @@ class TestHTTPCallback(BaseIntegrationTest):
                     attempts=1,
                 )
             ),
+        )
+
+    @subscription(TEST_SUBSCRIPTION_BODY_TEMPLATE_SANDBOX_ESCAPE)
+    def test_given_http_subscription_with_body_template_sandbox_escape_then_callback_rejected(  # noqa: E501
+        self, subscription
+    ):
+        self.bus.publish(
+            trigger_event(),
+            routing_key=SOME_ROUTING_KEY,
+            headers={'name': TRIGGER_EVENT_NAME},
+        )
+
+        webhookd = self.make_webhookd(MASTER_TOKEN)
+
+        def callback_rejected_and_logged():
+            logs = webhookd.subscriptions.get_logs(subscription["uuid"])
+            assert_that(logs['total'], equal_to(1))
+            assert_that(
+                logs['items'],
+                contains_exactly(
+                    has_entries(
+                        status="error",
+                        detail=has_entries(
+                            error=contains_string("__globals__"),
+                        ),
+                        attempts=1,
+                    )
+                ),
+            )
+
+        until.assert_(callback_rejected_and_logged, timeout=10, interval=0.5)
+
+        # The third-party endpoint must never have been hit: sandbox should
+        # reject the template render before any HTTP request is issued.
+        self.third_party.verify(
+            request={'method': 'POST', 'path': '/test'}, count=0, exact=True
         )
 
     @subscription(TEST_SUBSCRIPTION_VERIFY)
