@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import requests
 from celery import Task
-from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment
 
 from wazo_webhookd.services.helpers import (
     RequestDetailsDict,
@@ -78,7 +78,7 @@ class Service:
             'wazo_uuid': event['origin_uuid'],
         }
 
-        url = Environment().from_string(options['url']).render(values)
+        url = SandboxedEnvironment().from_string(options['url']).render(values)
 
         if subscription['owner_user_uuid'] and cls.url_is_localhost(url):
             # some services only listen on 127.0.0.1 and should not be accessible to users
@@ -95,7 +95,7 @@ class Service:
             content_type = options.get('content_type', 'text/plain')
             ct_mimetype, ct_options = parse_content_type(content_type)
             ct_options.setdefault('charset', 'utf-8')
-            _data = Environment().from_string(body).render(values)
+            _data = SandboxedEnvironment().from_string(body).render(values)
         else:
             ct_mimetype = 'application/json'
             ct_options = {'charset': 'utf-8'}
