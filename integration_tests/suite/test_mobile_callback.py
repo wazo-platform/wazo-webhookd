@@ -1908,6 +1908,12 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             }
         )
 
+        # voip-token is used by both INCOMING_CALL and CANCEL_INCOMING_CALL
+        self.apns_third_party.mock_simple_response(
+            path='/3/device/apns-voip-token',
+            responseBody={'tracker': 'tracker-voip'},
+            statusCode=200,
+        )
         self.apns_third_party.mock_simple_response(
             path='/3/device/apns-voip-token',
             responseBody={'tracker': 'tracker-voip'},
