@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from __future__ import annotations
@@ -592,8 +592,10 @@ class PushNotification:
                 **notify_kwargs,
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
+            # need same priority parameters as INCOMING_CALL
             notification = push_service.single_device_data_message(
                 android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+                low_priority=False,
                 **notify_kwargs,
             )
         else:
@@ -731,10 +733,11 @@ class PushNotification:
                 },
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
+            # need same priority as INCOMING_CALL
             headers = {
-                'apns-topic': apns_default_topic,
-                'apns-push-type': 'alert',
-                'apns-priority': '5',
+                'apns-topic': apns_call_topic,
+                'apns-push-type': 'voip',
+                'apns-priority': '10',
             }
             payload = cast(
                 ApnsPayload,
@@ -771,7 +774,10 @@ class PushNotification:
                     alert['body'] = message_body
                 payload['aps']['alert'] = alert
 
-        if notification_type == NotificationType.INCOMING_CALL:
+        if notification_type in (
+            NotificationType.INCOMING_CALL,
+            NotificationType.CANCEL_INCOMING_CALL,
+        ):
             # TODO(pc-m): The apns_voip_token was added in 20.05
             # the `or self.external_tokens["apns_token"]` should be removed when we stop
             # supporting wazo 20.XX
