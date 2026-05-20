@@ -1,4 +1,4 @@
-# Copyright 2023-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -44,3 +44,22 @@ def test_schema_valid() -> None:
     }
     validated = notification_schema.loads(json.dumps(input_data))
     assert validated == input_data
+
+
+def test_schema_app_logout_is_reserved() -> None:
+    data = {
+        'notification_type': NotificationType.APP_LOGOUT,
+        'user_uuid': str(uuid.uuid4()),
+        'title': 'Signed out',
+        'body': 'You have been signed out.',
+        'extra': {},
+    }
+    with pytest.raises(ValidationError) as exec_info:
+        notification_schema.loads(json.dumps(data))
+
+    error: ValidationError = exec_info.value
+    assert error.messages == {
+        'notification_type': [
+            f'The type "{NotificationType.APP_LOGOUT}" is a reserved type.'
+        ],
+    }

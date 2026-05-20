@@ -1,4 +1,4 @@
-# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from unittest import TestCase
@@ -125,6 +125,32 @@ class TestSendViaFcmLegacy(TestCase):
             data_message=data,
             time_to_live=0,
             low_priority=False,
+            android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+        )
+
+    @patch('wazo_webhookd.services.mobile.plugin.FCMNotificationLegacy')
+    def test_send_app_logout(self, FCMNotificationLegacy):
+        push_service = FCMNotificationLegacy.return_value
+
+        title = 'Signed out'
+        body = "You have been signed out."
+        data: NotificationPayload = {
+            'notification_type': NotificationType.APP_LOGOUT,
+            'items': {},
+        }
+
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
+
+        assert push_service.FCM_END_POINT == FCMNotificationLegacy.FCM_END_POINT
+        FCMNotificationLegacy.assert_called_once_with(api_key=s.fcm_api_key)
+        push_service.single_device_data_message.assert_not_called()
+        push_service.notify_single_device.assert_called_once_with(
+            registration_id=s.token,
+            data_message=data,
+            time_to_live=0,
+            message_title=title,
+            message_body=body,
+            badge=1,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
         )
 
@@ -313,4 +339,38 @@ class TestSendViaFCMv1(TestCase):
             time_to_live=0,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
             low_priority=False,
+        )
+
+    @patch('wazo_webhookd.services.mobile.plugin.json.loads')
+    @patch('wazo_webhookd.services.mobile.plugin.FCMNotification')
+    def test_send_app_logout(self, FCMNotification, json_loads):
+        push_service = FCMNotification.return_value
+
+        title = 'Signed out'
+        body = "You have been signed out."
+        data: NotificationPayload = {
+            'notification_type': NotificationType.APP_LOGOUT,
+            'items': {},
+        }
+
+        self.push_notification._send_via_fcm(title, body, data, data_only=False)
+
+        assert push_service.FCM_END_POINT == FCMNotification.FCM_END_POINT
+
+        json_loads.assert_called_once_with(s.fcm_service_account_info)
+        FCMNotification.assert_called_once_with(
+            service_account_info=json_loads.return_value
+        )
+        push_service.single_device_data_message.assert_not_called()
+        push_service.notify_single_device.assert_called_once_with(
+            registration_token=s.token,
+            data_message={
+                'notification_type': NotificationType.APP_LOGOUT,
+                'items': '',
+            },
+            time_to_live=0,
+            message_title=title,
+            message_body=body,
+            badge=1,
+            android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
         )

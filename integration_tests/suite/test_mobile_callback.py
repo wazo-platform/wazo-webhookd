@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -243,6 +243,38 @@ class BaseMobileCallbackIntegrationTest(BaseIntegrationTest):
             },
         )
 
+    def _publish_auth_refresh_token_deleted(
+        self,
+        user_uuid: str,
+        client_id: str = 'mobile-client-id',
+        is_mobile: bool = True,
+        tenant_uuid: str = USERS_TENANT,
+        origin_uuid: str = 'my-origin-uuid',
+    ):
+        """
+        Publish an auth_refresh_token_deleted event.
+        Equivalent to the wazo-bus RefreshTokenDeletedEvent.
+        """
+        self.bus.publish(
+            {
+                'name': 'auth_refresh_token_deleted',
+                'origin_uuid': origin_uuid,
+                'data': {
+                    'client_id': client_id,
+                    'mobile': is_mobile,
+                    'user_uuid': user_uuid,
+                    'tenant_uuid': tenant_uuid,
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'auth_refresh_token_deleted',
+                'origin_uuid': origin_uuid,
+                'tenant_uuid': tenant_uuid,
+                f'user_uuid:{user_uuid}': True,
+            },
+        )
+
 
 class TestMobileEvents(BaseMobileCallbackIntegrationTest):
     asset = 'proxy'
@@ -277,6 +309,7 @@ class TestMobileEvents(BaseMobileCallbackIntegrationTest):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_1_UUID,
@@ -324,6 +357,7 @@ class TestMobileEvents(BaseMobileCallbackIntegrationTest):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_1_UUID,
@@ -373,6 +407,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_1_UUID,
@@ -737,6 +772,117 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                 ),
             )
 
+    def test_refresh_token_deleted_mobile_sends_logout_push(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        assert 'auth_refresh_token_deleted' in subscription['events']
+
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {
+                            'data': {'notification_type': 'appLogout'},
+                        },
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-app-logout'}),
+                },
+            }
+        )
+
+        self._publish_auth_refresh_token_deleted(
+            USER_1_UUID, client_id='mobile_client', is_mobile=True
+        )
+
+        self._wait_items(
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription['uuid']
+            )
+        )
+
+        logs = self.webhookd.subscriptions.get_logs(subscription['uuid'])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status='success',
+                event=has_entries(name='auth_refresh_token_deleted'),
+                attempts=1,
+            ),
+        )
+
+        with self.last_fcm_request() as request:
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='appLogout',
+                        items=has_entries(
+                            client_id='mobile_client',
+                            reason='session_revoked',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+    def test_refresh_token_deleted_non_mobile_does_not_send(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        assert 'auth_refresh_token_deleted' in subscription['events']
+
+        self._publish_auth_refresh_token_deleted(
+            USER_1_UUID, client_id='cli-client', is_mobile=False
+        )
+
+        self._wait_items(
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription['uuid']
+            )
+        )
+
+        logs = self.webhookd.subscriptions.get_logs(subscription['uuid'])
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status='success',
+                event=has_entries(name='auth_refresh_token_deleted'),
+                detail=equal_to({}),
+            ),
+        )
+
+        self.fcm_third_party.assert_verify(
+            request={'path': '/fcm/send'}, count=0, exact=True
+        )
+
+    def test_refresh_token_deleted_after_external_auth_deleted_does_not_send(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self._publish_auth_user_external_auth_deleted(USER_1_UUID)
+
+        def assert_subscription_gone():
+            current = self.webhookd.subscriptions.list(recurse=True)
+            assert all(
+                item['uuid'] != subscription['uuid'] for item in current['items']
+            )
+
+        until.assert_(assert_subscription_gone, timeout=10, interval=0.5)
+
+        self._publish_auth_refresh_token_deleted(
+            USER_1_UUID, client_id='mobile_client', is_mobile=True
+        )
+
+        time.sleep(1.0)
+
+        self.fcm_third_party.assert_verify(
+            request={'path': '/fcm/send'}, count=0, exact=True
+        )
+
 
 class TestMobileCallback(BaseMobileCallbackIntegrationTest):
     asset = 'base'
@@ -826,6 +972,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_1_UUID,
@@ -1175,6 +1322,67 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
             ),
         )
 
+    def test_app_logout_notification(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/fcm/send',
+                    'body': {
+                        'type': 'JSON',
+                        'json': {'data': {'notification_type': 'appLogout'}},
+                        'matchType': 'ONLY_MATCHING_FIELDS',
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'message_id': 'message-id-app-logout'}),
+                },
+            }
+        )
+
+        self._publish_auth_refresh_token_deleted(
+            USER_1_UUID, client_id='mobile_client', is_mobile=True
+        )
+
+        self._wait_items(
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription['uuid']
+            )
+        )
+
+        logs = self.webhookd.subscriptions.get_logs(subscription['uuid'])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status='success',
+                event=has_entries(name='auth_refresh_token_deleted'),
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-app-logout'),
+                ),
+                attempts=1,
+            ),
+        )
+
+        with self.last_fcm_request() as request:
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='appLogout',
+                        items=has_entries(
+                            client_id='mobile_client',
+                            reason='session_revoked',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
 
 class TestMobileCallbackFCMv1(TestMobileCallback):
     def setUp(self):
@@ -1324,6 +1532,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_1_UUID,
@@ -1711,6 +1920,75 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
             ),
         )
 
+    def test_app_logout_notification(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self.fcm_third_party.mock_any_response(
+            {
+                'httpRequest': {
+                    'path': '/v1/projects/project-123/messages:send',
+                    'headers': {
+                        'Authorization': [
+                            f'Bearer {self.oauth2_token["access_token"]}'
+                        ],
+                    },
+                },
+                'httpResponse': {
+                    'statusCode': 200,
+                    'body': json.dumps({'name': 'message-id-app-logout'}),
+                },
+            }
+        )
+
+        self._publish_auth_refresh_token_deleted(
+            USER_1_UUID, client_id='mobile_client', is_mobile=True
+        )
+
+        self._wait_items(
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription['uuid']
+            )
+        )
+
+        logs = self.webhookd.subscriptions.get_logs(subscription['uuid'])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status='success',
+                event=has_entries(name='auth_refresh_token_deleted'),
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-app-logout'),
+                ),
+                attempts=1,
+            ),
+        )
+
+        with self.last_fcm_request() as request:
+            assert_that(
+                request,
+                has_entry(
+                    'message',
+                    has_entry(
+                        'data',
+                        has_entries(
+                            notification_type='appLogout',
+                            items=instance_of(str),
+                        ),
+                    ),
+                ),
+            )
+            items_data = json.loads(request['message']['data']['items'])
+            assert_that(
+                items_data,
+                has_entries(
+                    client_id='mobile_client',
+                    reason='session_revoked',
+                    notification_timestamp=an_iso_timestamp(),
+                ),
+            )
+
 
 class TestMobileCallbackAPNS(TestMobileCallback):
     def setUp(self):
@@ -1790,6 +2068,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_2_UUID,
@@ -1936,6 +2215,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                     'user_voicemail_message_created',
                     'global_voicemail_message_created',
                     'user_missed_call',
+                    'auth_refresh_token_deleted',
                 ),
                 owner_tenant_uuid=USERS_TENANT,
                 owner_user_uuid=USER_2_UUID,
@@ -2527,3 +2807,89 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             )
 
         self.webhookd.subscriptions.delete(subscription["uuid"])
+
+    def test_app_logout_notification(self):
+        self.auth.set_external_auth(
+            {
+                'token': 'token-android',
+                'apns_token': 'token-ios',
+                'apns_notification_token': 'apns-notification-token',
+            }
+        )
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+
+        self.apns_third_party.mock_simple_response(
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': 'tracker-app-logout'},
+            statusCode=200,
+        )
+
+        self._publish_auth_refresh_token_deleted(
+            USER_1_UUID, client_id='mobile_client', is_mobile=True
+        )
+
+        def assert_apns_notification_posted():
+            self.apns_third_party.assert_verify(
+                request={
+                    'path': '/3/device/apns-notification-token',
+                    'headers': [
+                        {
+                            'name': 'authorization',
+                            'values': [f'Bearer {JWT_TENANT_0}'],
+                        },
+                        {'name': 'user-agent', 'values': ['wazo-webhookd']},
+                    ],
+                },
+            )
+
+        until.assert_(assert_apns_notification_posted, timeout=10, interval=0.5)
+
+        self._wait_items(
+            functools.partial(
+                self.webhookd.subscriptions.get_logs, subscription['uuid']
+            )
+        )
+
+        logs = self.webhookd.subscriptions.get_logs(subscription['uuid'])
+        assert_that(logs['total'], equal_to(1))
+        assert_that(
+            logs['items'][0],
+            has_entries(
+                status='success',
+                event=has_entries(name='auth_refresh_token_deleted'),
+                detail=has_entry(
+                    'full_response',
+                    has_entry(
+                        'response_body',
+                        has_entry('tracker', 'tracker-app-logout'),
+                    ),
+                ),
+                attempts=1,
+            ),
+        )
+
+        with self.last_apns_request(token='apns-notification-token') as request:
+            assert 'aps' in request and 'alert' in request['aps']
+            assert_that(
+                request['aps']['alert'],
+                has_entries(
+                    title='Signed out',
+                    body=contains_string('signed out'),
+                ),
+            )
+            assert_that(
+                request,
+                has_entry(
+                    'data',
+                    has_entries(
+                        notification_type='appLogout',
+                        items=has_entries(
+                            client_id='mobile_client',
+                            reason='session_revoked',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
+                    ),
+                ),
+            )
+
+        self.webhookd.subscriptions.delete(subscription['uuid'])
