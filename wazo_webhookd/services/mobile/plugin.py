@@ -241,7 +241,6 @@ class Service:
 
     def _ensure_mobile_subscription(self, user_uuid: str, tenant_uuid: str) -> None:
         """Create or update mobile subscription for a user, ensuring only one exists."""
-        # Delete any existing mobile subscriptions for this user
         subscriptions = self.subscription_service.list(
             owner_user_uuid=user_uuid,
             owner_tenant_uuids=[tenant_uuid],
