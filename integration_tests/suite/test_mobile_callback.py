@@ -1908,15 +1908,15 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             }
         )
 
-        # voip-token is used by both INCOMING_CALL and CANCEL_INCOMING_CALL
         self.apns_third_party.mock_simple_response(
             path='/3/device/apns-voip-token',
             responseBody={'tracker': 'tracker-voip'},
             statusCode=200,
         )
+        # cancel uses the notification token, not the voip token
         self.apns_third_party.mock_simple_response(
-            path='/3/device/apns-voip-token',
-            responseBody={'tracker': 'tracker-voip'},
+            path='/3/device/apns-notification-token',
+            responseBody={'tracker': 'tracker-notification'},
             statusCode=200,
         )
         self.apns_third_party.mock_simple_response(
@@ -2042,7 +2042,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
                 detail=has_entry(
                     'full_response',
                     has_entries(
-                        response_body=has_entries(tracker='tracker-voip'),
+                        response_body=has_entries(tracker='tracker-notification'),
                     ),
                 ),
                 event=has_entries(name='call_cancel_push_notification'),
@@ -2050,14 +2050,16 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             ),
         )
 
-        with self.last_apns_request(token='apns-voip-token') as request:
+        with self.last_apns_request(token='apns-notification-token') as request:
             assert_that(
                 request,
                 has_entries(
-                    notification_type='cancelIncomingCall',
-                    items=has_entries(
-                        peer_caller_id_number='caller-id',
-                        notification_timestamp=an_iso_timestamp(),
+                    data=has_entries(
+                        notification_type='cancelIncomingCall',
+                        items=has_entries(
+                            peer_caller_id_number='caller-id',
+                            notification_timestamp=an_iso_timestamp(),
+                        ),
                     ),
                 ),
             )
@@ -2065,7 +2067,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         # Test error reason is visible in the logs
         self.apns_third_party.reset()
         self.apns_third_party.mock_simple_response(
-            path='/3/device/apns-voip-token',
+            path='/3/device/apns-notification-token',
             responseBody={'tracker': 'tracker-error'},
             statusCode=400,
         )

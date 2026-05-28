@@ -832,17 +832,19 @@ class PushNotification:
                 },
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
-            # need same priority as INCOMING_CALL
+            # Must NOT use voip push type: Apple requires every VoIP push to
+            # result in a CallKit call report, which a cancel cannot satisfy.
+            # https://developer.apple.com/documentation/pushkit/responding-to-voip-notifications-from-pushkit
             headers = {
-                'apns-topic': apns_call_topic,
-                'apns-push-type': 'voip',
+                'apns-topic': apns_default_topic,
+                'apns-push-type': 'background',
                 'apns-priority': '10',
             }
             payload = cast(
                 ApnsPayload,
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
-                    **data,
+                    'aps': {'content-available': 1},
+                    'data': data,
                 },
             )
         else:
@@ -873,10 +875,7 @@ class PushNotification:
                     alert['body'] = message_body
                 payload['aps']['alert'] = alert
 
-        if notification_type in (
-            NotificationType.INCOMING_CALL,
-            NotificationType.CANCEL_INCOMING_CALL,
-        ):
+        if notification_type == NotificationType.INCOMING_CALL:
             # TODO(pc-m): The apns_voip_token was added in 20.05
             # the `or self.external_tokens["apns_token"]` should be removed when we stop
             # supporting wazo 20.XX

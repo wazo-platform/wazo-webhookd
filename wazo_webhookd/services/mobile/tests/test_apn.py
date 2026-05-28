@@ -94,8 +94,8 @@ class TestAPN(TestCase):
             headers,
             equal_to(
                 {
-                    'apns-topic': 'org.wazo-platform.voip',
-                    'apns-push-type': 'voip',
+                    'apns-topic': 'org.wazo-platform',
+                    'apns-push-type': 'background',
                     'apns-priority': '10',
                 }
             ),
@@ -104,13 +104,12 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
-                    'notification_type': NotificationType.CANCEL_INCOMING_CALL,
-                    'items': {},
+                    'aps': {'content-available': 1},
+                    'data': data,
                 }
             ),
         )
-        assert_that(token, equal_to(s.apns_voip_token))
+        assert_that(token, equal_to(s.apns_notification_token))
 
     def test_wazo_message_received(self):
         data: NotificationPayload = {
@@ -202,7 +201,7 @@ class TestAPNWithPerTokenTopics(TestCase):
             ),
         )
 
-    def test_per_token_call_topic_overrides_config_for_cancel(self):
+    def test_per_token_default_topic_overrides_config_for_cancel(self):
         data: NotificationPayload = {
             'notification_type': NotificationType.CANCEL_INCOMING_CALL,
             'items': {},
@@ -216,8 +215,8 @@ class TestAPNWithPerTokenTopics(TestCase):
             headers,
             equal_to(
                 {
-                    'apns-topic': 'com.custom.app.voip',
-                    'apns-push-type': 'voip',
+                    'apns-topic': 'com.custom.app',
+                    'apns-push-type': 'background',
                     'apns-priority': '10',
                 }
             ),
@@ -264,4 +263,4 @@ class TestAPNWithPerTokenTopics(TestCase):
             'items': {},
         }
         headers, _, _ = push._create_apn_message(None, None, cancel_data, False)
-        assert_that(headers['apns-topic'], equal_to('com.custom.app.voip'))
+        assert_that(headers['apns-topic'], equal_to('org.wazo-platform'))
