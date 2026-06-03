@@ -1919,11 +1919,6 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             responseBody={'tracker': 'tracker-notification'},
             statusCode=200,
         )
-        self.apns_third_party.mock_simple_response(
-            path='/3/device/apns-notification-token',
-            responseBody={'tracker': 'tracker-notification'},
-            statusCode=200,
-        )
         self._publish_auth_user_external_auth_added(USER_2_UUID)
 
         self._wait_items(
