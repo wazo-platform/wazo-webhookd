@@ -777,7 +777,8 @@ class PushNotification:
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
-            # For non-call notifications (messageReceived, voicemailReceived, missedCall),
+            # For non-call notifications
+            # (messageReceived, voicemailReceived, missedCall, appLogout),
             # wrap custom fields under top-level "data" so that iOS receives them in
             # notification.data and the mobile app can read items.data_only.
             payload = cast(
