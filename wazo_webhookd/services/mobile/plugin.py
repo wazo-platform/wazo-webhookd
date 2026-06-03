@@ -465,9 +465,10 @@ class PushNotification:
             message_title='Signed out',
             message_body=(
                 "You have been signed out. "
-                "Calls and notifications won't arrive on this application."
+                "Calls and notifications won't be received by this application."
             ),
             extra={'items': payload},
+            data_only=True,
         )
 
     def send_notification(
