@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from __future__ import annotations
@@ -137,6 +137,7 @@ class NotificationType(StrEnum):
     CANCEL_INCOMING_CALL = 'cancelIncomingCall'
     PLUGIN = 'plugin'
     MISSED_CALL = 'missedCall'
+    APP_LOGOUT = 'appLogout'
 
 
 RESERVED_NOTIFICATION_TYPES = (
@@ -145,7 +146,18 @@ RESERVED_NOTIFICATION_TYPES = (
     NotificationType.INCOMING_CALL,
     NotificationType.CANCEL_INCOMING_CALL,
     NotificationType.MISSED_CALL,
+    NotificationType.APP_LOGOUT,
 )
+
+MOBILE_SUBSCRIPTION_EVENTS = [
+    'chatd_user_room_message_created',
+    'call_push_notification',
+    'call_cancel_push_notification',
+    'user_voicemail_message_created',
+    'global_voicemail_message_created',
+    'user_missed_call',
+    'auth_refresh_token_deleted',
+]
 
 MAP_NAME_TO_NOTIFICATION_TYPE = {
     'user_voicemail_message_created': NotificationType.VOICEMAIL_RECEIVED,
@@ -154,6 +166,7 @@ MAP_NAME_TO_NOTIFICATION_TYPE = {
     'call_cancel_push_notification': NotificationType.CANCEL_INCOMING_CALL,
     'chatd_user_room_message_created': NotificationType.MESSAGE_RECEIVED,
     'user_missed_call': NotificationType.MISSED_CALL,
+    'auth_refresh_token_deleted': NotificationType.APP_LOGOUT,
 }
 
 
@@ -228,7 +241,6 @@ class Service:
 
     def _ensure_mobile_subscription(self, user_uuid: str, tenant_uuid: str) -> None:
         """Create or update mobile subscription for a user, ensuring only one exists."""
-        # Delete any existing mobile subscriptions for this user
         subscriptions = self.subscription_service.list(
             owner_user_uuid=user_uuid,
             owner_tenant_uuids=[tenant_uuid],
@@ -273,14 +285,7 @@ class Service:
                         f'{tenant_uuid}/{user_uuid}'
                     ),
                     'service': 'mobile',
-                    'events': [
-                        'chatd_user_room_message_created',
-                        'call_push_notification',
-                        'call_cancel_push_notification',
-                        'user_voicemail_message_created',
-                        'global_voicemail_message_created',
-                        'user_missed_call',
-                    ],
+                    'events': list(MOBILE_SUBSCRIPTION_EVENTS),
                     'events_user_uuid': user_uuid,
                     # 'events_tenant_uuid': tenant_uuid,
                     'owner_user_uuid': user_uuid,
@@ -339,6 +344,12 @@ class Service:
             event['data'].get('user_uuid') == user_uuid
             # and event['data']['tenant_uuid'] == tenant_uuid
             and event['name'] == 'chatd_user_room_message_created'
+        ):
+            return None
+
+        if (
+            event['name'] == 'auth_refresh_token_deleted'
+            and event['data'].get('mobile') is not True
         ):
             return None
 
@@ -439,6 +450,23 @@ class PushNotification:
             NotificationType.MISSED_CALL,
             message_title='Missed Call',
             message_body=f'From: {display_name} ({display_number})',
+            extra={'items': payload},
+            data_only=True,
+        )
+
+    def appLogout(self, data: dict[str, Any]) -> NotificationSentStatusDict:
+        payload = {
+            'notification_timestamp': generate_timestamp(),
+            'client_id': data.get('client_id'),
+            'reason': 'session_revoked',
+        }
+        return self.send_notification(
+            NotificationType.APP_LOGOUT,
+            message_title='Signed out',
+            message_body=(
+                "You have been signed out. "
+                "Calls and notifications won't be received by this application."
+            ),
             extra={'items': payload},
             data_only=True,
         )
@@ -749,7 +777,8 @@ class PushNotification:
                 'apns-push-type': 'alert',
                 'apns-priority': '5',
             }
-            # For non-call notifications (messageReceived, voicemailReceived, missedCall),
+            # For non-call notifications
+            # (messageReceived, voicemailReceived, missedCall, appLogout),
             # wrap custom fields under top-level "data" so that iOS receives them in
             # notification.data and the mobile app can read items.data_only.
             payload = cast(

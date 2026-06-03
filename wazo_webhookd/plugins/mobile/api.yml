@@ -46,7 +46,7 @@ definitions:
     properties:
       notification_type:
         type: string
-        pattern: '(?!^(messageReceived|voicemailReceived|incomingCall|cancelIncomingCall)$)(^[a-z0-9_]+$)'
+        pattern: '(?!^(messageReceived|voicemailReceived|incomingCall|cancelIncomingCall|missedCall|appLogout)$)(^[a-z0-9_]+$)'
         description: A name without special characters to differenciate the notification from others
         example: myCustomNotification
         minLength: 1

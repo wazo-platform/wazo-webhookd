@@ -1,4 +1,4 @@
-# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from typing import Any
@@ -107,6 +107,46 @@ class TestAPN(TestCase):
                     'aps': {"badge": 1, "sound": "default", "content-available": 1},
                     'notification_type': NotificationType.CANCEL_INCOMING_CALL,
                     'items': {},
+                }
+            ),
+        )
+        assert_that(token, equal_to(s.apns_notification_token))
+
+    def test_wazo_app_logout(self):
+        message_title = 'Signed out'
+        message_body = "You have been signed out."
+        data: NotificationPayload = {
+            'notification_type': NotificationType.APP_LOGOUT,
+            'items': {'reason': 'session_revoked'},
+        }
+
+        headers, payload, token = self._push._create_apn_message(
+            message_title,
+            message_body,
+            data,
+            False,
+        )
+
+        assert_that(
+            headers,
+            equal_to(
+                {
+                    'apns-topic': 'org.wazo-platform',
+                    'apns-push-type': 'alert',
+                    'apns-priority': '5',
+                }
+            ),
+        )
+        assert_that(
+            payload,
+            equal_to(
+                {
+                    'aps': {
+                        'badge': 1,
+                        'sound': 'default',
+                        'alert': {'title': message_title, 'body': message_body},
+                    },
+                    'data': data,
                 }
             ),
         )
