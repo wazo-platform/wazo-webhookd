@@ -2054,12 +2054,10 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request,
                 has_entries(
-                    data=has_entries(
-                        notification_type='cancelIncomingCall',
-                        items=has_entries(
-                            peer_caller_id_number='caller-id',
-                            notification_timestamp=an_iso_timestamp(),
-                        ),
+                    notification_type='cancelIncomingCall',
+                    items=has_entries(
+                        peer_caller_id_number='caller-id',
+                        notification_timestamp=an_iso_timestamp(),
                     ),
                 ),
             )

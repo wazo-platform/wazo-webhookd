@@ -95,7 +95,7 @@ class TestAPN(TestCase):
             equal_to(
                 {
                     'apns-topic': 'org.wazo-platform',
-                    'apns-push-type': 'background',
+                    'apns-push-type': 'alert',
                     'apns-priority': '10',
                 }
             ),
@@ -104,8 +104,9 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'aps': {'content-available': 1},
-                    'data': data,
+                    'aps': {'badge': 1, 'content-available': 1},
+                    'notification_type': NotificationType.CANCEL_INCOMING_CALL,
+                    'items': {},
                 }
             ),
         )
@@ -216,7 +217,7 @@ class TestAPNWithPerTokenTopics(TestCase):
             equal_to(
                 {
                     'apns-topic': 'com.custom.app',
-                    'apns-push-type': 'background',
+                    'apns-push-type': 'alert',
                     'apns-priority': '10',
                 }
             ),

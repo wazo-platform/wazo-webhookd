@@ -832,19 +832,21 @@ class PushNotification:
                 },
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
-            # Must NOT use voip push type: Apple requires every VoIP push to
-            # result in a CallKit call report, which a cancel cannot satisfy.
+            # cannot use voip notification, those are reserved for incoming calls
+            # and must result in CallKit invocation or else be blocked:
             # https://developer.apple.com/documentation/pushkit/responding-to-voip-notifications-from-pushkit
+            # alert type is required for high-priority:
+            # https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns#Know-when-to-use-push-types
             headers = {
                 'apns-topic': apns_default_topic,
-                'apns-push-type': 'background',
+                'apns-push-type': 'alert',
                 'apns-priority': '10',
             }
             payload = cast(
                 ApnsPayload,
                 {
-                    'aps': {'content-available': 1},
-                    'data': data,
+                    'aps': {'badge': 1, 'content-available': 1},
+                    **data,
                 },
             )
         else:
