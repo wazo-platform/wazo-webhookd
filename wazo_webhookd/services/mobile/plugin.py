@@ -6,12 +6,13 @@ from __future__ import annotations
 import json
 import logging
 import tempfile
+import time
 import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, cast
 
 import httpx
 from celery import Task
@@ -158,6 +159,8 @@ MAP_NAME_TO_NOTIFICATION_TYPE = {
 class Service:
     subscription_service: SubscriptionService
     _config: WebhookdConfigDict
+    _auth_cache: ClassVar[tuple[AuthClient, str] | None] = None
+    _auth_cache_expires_at: ClassVar[float] = 0.0
 
     def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
@@ -295,6 +298,9 @@ class Service:
 
     @classmethod
     def get_auth(cls, config: WebhookdConfigDict) -> tuple[AuthClient, str]:
+        now = time.monotonic()
+        if cls._auth_cache is not None and now < cls._auth_cache_expires_at - 60:
+            return cls._auth_cache
         auth_config = dict(config['auth'])
         # FIXME(sileht): Keep the certificate
         auth_config['verify_certificate'] = False
@@ -304,7 +310,9 @@ class Service:
         jwt = token.get("metadata", {}).get("jwt", "")
         auth.username = None
         auth.password = None
-        return auth, jwt
+        cls._auth_cache = (auth, jwt)
+        cls._auth_cache_expires_at = now + 3600
+        return cls._auth_cache
 
     @classmethod
     def get_external_data(

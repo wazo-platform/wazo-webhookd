@@ -1,4 +1,4 @@
-# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import json
@@ -227,6 +227,97 @@ class TestNotifications(BaseIntegrationTest):
             },
         )
         until.return_(verify_called, timeout=15, interval=0.5)
+
+
+class TestMobileNotificationAuthCaching(BaseIntegrationTest):
+    """Verify that sequential push notifications share the same auth token.
+
+    Each notification must not trigger a new POST /0.1/token call: the Celery
+    worker should reuse the cached service token for subsequent tasks within
+    the same worker process.
+    """
+
+    asset = 'proxy'
+    wait_strategy = ConnectedWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.auth = self.make_auth()
+        requests.post(
+            self.auth.url('0.1/users'),
+            json={
+                'email_address': 'foo@bar',
+                'username': 'foobar',
+                'password': 'secret',
+                'uuid': USER_1_UUID,
+            },
+            headers={'Wazo-Tenant': USERS_TENANT},
+        )
+
+    def test_sequential_notifications_reuse_auth_token(self) -> None:
+        notification = {
+            'notification_type': 'plugin',
+            'user_uuid': USER_1_UUID,
+            'title': 'test',
+            'body': 'test',
+            'extra': {
+                'plugin': {
+                    'id': 'test',
+                    'entityId': 'test-plugin',
+                    'action': 'test',
+                    'payload': {},
+                },
+            },
+        }
+
+        # Use a single Celery worker so both tasks go to the same process,
+        # guaranteeing the class-level cache is shared between invocations.
+        with self.webhookd_with_config({'celery': {'worker_min': 1, 'worker_max': 1}}):
+            webhookd = self.make_webhookd(MASTER_TOKEN, USERS_TENANT)
+            self.wait_strategy.wait(webhookd)
+
+            third_party = MockServerClient(
+                f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
+            )
+            third_party.reset()
+            third_party.mock_any_response(
+                {
+                    'httpRequest': {'method': 'POST', 'path': '/fcm/send'},
+                    'httpResponse': {
+                        'statusCode': 200,
+                        'body': json.dumps({'message_id': 'ok'}),
+                    },
+                }
+            )
+
+            self.auth.reset_external_auth()
+            # Intentionally no set_external_config: GET /external/mobile/config
+            # returns 404 and the code falls back to the Nestbox JWT path.
+            self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+            with self.auth.capture_requests() as capture:
+                webhookd.mobile_notifications.send(notification)
+                webhookd.mobile_notifications.send(notification)
+
+                until.return_(
+                    partial(
+                        third_party.verify,
+                        request={'method': 'POST', 'path': '/fcm/send'},
+                        count=2,
+                    ),
+                    timeout=30,
+                    interval=0.5,
+                )
+
+            token_calls = [
+                r
+                for r in capture.requests
+                if r['path'] == '/0.1/token' and r['method'] == 'POST'
+            ]
+            assert len(token_calls) == 1, (
+                f'Expected 1 POST /0.1/token but got {len(token_calls)}. '
+                'The service auth token is not being cached between Celery tasks.'
+            )
 
 
 class TestNotificationsFCMv1(BaseIntegrationTest):
