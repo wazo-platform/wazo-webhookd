@@ -1,12 +1,18 @@
 # Copyright 2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
+import pytest
 import requests
-from celery.signals import task_failure
 
-from ..plugin import Service
+from wazo_webhookd.services.helpers import HookRetry
+
+from ..plugin import EMPTY_EXTERNAL_CONFIG, Service
+
+if TYPE_CHECKING:
+    from wazo_webhookd.database.models import Subscription
 
 
 def _make_config():
@@ -36,10 +42,24 @@ def _make_http_error(status_code, url):
     return requests.HTTPError(response=response)
 
 
+def _reset_service_cache():
+    Service._auth_cache = None
+    Service._auth_cache_expires_at = 0.0
+    Service._auth_url_base = None
+
+
+def _prime_cache(base_url='https://localhost:9497/0.1'):
+    mock_client = _make_mock_auth_client(base_url=base_url)
+    with patch(
+        'wazo_webhookd.services.mobile.plugin.AuthClient', return_value=mock_client
+    ):
+        Service.get_auth(_make_config())
+    return mock_client
+
+
 class TestGetAuthCaching:
     def setup_method(self):
-        Service._auth_cache = None
-        Service._auth_cache_expires_at = 0.0
+        _reset_service_cache()
 
     def test_get_auth_creates_token_on_first_call(self):
         mock_client = _make_mock_auth_client()
@@ -78,22 +98,45 @@ class TestGetAuthCaching:
         assert mock_client.token.new.call_count == 2
 
 
-class TestAuthCacheInvalidation:
+class TestIsCachedAuth401:
+    """The discriminator used by get_external_data and Service.run."""
+
     def setup_method(self):
-        Service._auth_cache = None
-        Service._auth_cache_expires_at = 0.0
-        Service._auth_url_base = None
+        _reset_service_cache()
 
-    def _prime_cache(self, base_url='https://localhost:9497/0.1'):
-        mock_client = _make_mock_auth_client(base_url=base_url)
-        with patch(
-            'wazo_webhookd.services.mobile.plugin.AuthClient', return_value=mock_client
-        ):
-            Service.get_auth(_make_config())
-        return mock_client
+    def test_true_when_401_targets_cached_auth_base_url(self):
+        _prime_cache(base_url='https://localhost:9497/0.1')
+        exc = _make_http_error(401, 'https://localhost:9497/0.1/users/abc')
 
-    def test_invalidate_auth_cache_clears_state(self):
-        self._prime_cache()
+        assert Service.is_cached_auth_401(exc) is True
+
+    def test_false_when_401_from_unrelated_host(self):
+        _prime_cache(base_url='https://localhost:9497/0.1')
+        exc = _make_http_error(
+            401, 'https://fcm.googleapis.com/v1/projects/x/messages:send'
+        )
+
+        assert Service.is_cached_auth_401(exc) is False
+
+    def test_false_when_status_is_not_401(self):
+        _prime_cache()
+        exc = _make_http_error(500, 'https://localhost:9497/0.1/users/abc')
+
+        assert Service.is_cached_auth_401(exc) is False
+
+    def test_false_when_no_cache_base_url(self):
+        # cache never primed -> _auth_url_base is None
+        exc = _make_http_error(401, 'https://localhost:9497/0.1/users/abc')
+
+        assert Service.is_cached_auth_401(exc) is False
+
+
+class TestInvalidateAuthCache:
+    def setup_method(self):
+        _reset_service_cache()
+
+    def test_clears_state(self):
+        _prime_cache()
         assert Service._auth_cache is not None
 
         Service.invalidate_auth_cache()
@@ -101,44 +144,98 @@ class TestAuthCacheInvalidation:
         assert Service._auth_cache is None
         assert Service._auth_cache_expires_at == 0.0
 
-    def test_task_failure_invalidates_cache_on_auth_401(self):
-        self._prime_cache(base_url='https://localhost:9497/0.1')
-        exc = _make_http_error(401, 'https://localhost:9497/0.1/users/abc')
 
-        task_failure.send(sender=None, exception=exc)
+class TestGetExternalData:
+    """get_external_data invalidates the cache on cached-auth 401 then re-raises."""
 
-        assert Service._auth_cache is None
+    def setup_method(self):
+        _reset_service_cache()
 
-    def test_task_failure_ignores_401_from_other_host(self):
-        self._prime_cache(base_url='https://localhost:9497/0.1')
-        # 401 from FCM (Google OAuth2 bearer rejected) — not our service token
-        exc = _make_http_error(
-            401, 'https://fcm.googleapis.com/v1/projects/x/messages:send'
+    def test_invalidates_cache_on_cached_auth_401(self):
+        mock_client = _prime_cache(base_url='https://localhost:9497/0.1')
+        mock_client.external.get.side_effect = _make_http_error(
+            401, 'https://localhost:9497/0.1/users/user-1/external/mobile'
         )
 
-        task_failure.send(sender=None, exception=exc)
-
-        assert Service._auth_cache is not None
-
-    def test_task_failure_ignores_non_401_status(self):
-        self._prime_cache()
-        exc = _make_http_error(500, 'https://localhost:9497/0.1/users/abc')
-
-        task_failure.send(sender=None, exception=exc)
-
-        assert Service._auth_cache is not None
-
-    def test_task_failure_ignores_non_http_error(self):
-        self._prime_cache()
-
-        task_failure.send(sender=None, exception=ValueError('boom'))
-
-        assert Service._auth_cache is not None
-
-    def test_task_failure_no_cache_no_crash(self):
-        assert Service._auth_cache is None
-        exc = _make_http_error(401, 'https://localhost:9497/0.1/users/abc')
-
-        task_failure.send(sender=None, exception=exc)
+        with pytest.raises(requests.HTTPError):
+            Service.get_external_data(_make_config(), 'user-1')
 
         assert Service._auth_cache is None
+
+    def test_propagates_non_401_without_invalidation(self):
+        mock_client = _prime_cache(base_url='https://localhost:9497/0.1')
+        mock_client.external.get.side_effect = _make_http_error(
+            500, 'https://localhost:9497/0.1/users/user-1/external/mobile'
+        )
+
+        with pytest.raises(requests.HTTPError):
+            Service.get_external_data(_make_config(), 'user-1')
+
+        # cache still primed
+        assert Service._auth_cache is not None
+
+    def test_external_config_404_falls_back_to_empty(self):
+        mock_client = _prime_cache()
+        mock_client.external.get.return_value = {'token': 'tok'}
+        mock_client.users.get.return_value = {'tenant_uuid': 'tenant-1'}
+        mock_client.external.get_config.side_effect = _make_http_error(
+            404, 'https://localhost:9497/0.1/external/mobile/config'
+        )
+
+        external_tokens, external_config, jwt = Service.get_external_data(
+            _make_config(), 'user-1'
+        )
+
+        assert external_config == EMPTY_EXTERNAL_CONFIG
+        assert external_tokens == {'token': 'tok'}
+        # cache untouched: 404 is not the cached-auth-401 signal
+        assert Service._auth_cache is not None
+
+
+class TestServiceRunAuthRetry:
+    """Service.run converts cached-auth 401 into HookRetry for hook_runner_task."""
+
+    def setup_method(self):
+        _reset_service_cache()
+
+    def _run(self):
+        task = MagicMock()
+        subscription = cast('Subscription', {'events_user_uuid': 'user-1'})
+        event = {'name': 'user_missed_call', 'data': {'user_uuid': 'user-1'}}
+        return Service.run(task, _make_config(), subscription, event)
+
+    def test_cached_auth_401_raises_hook_retry(self):
+        _prime_cache(base_url='https://localhost:9497/0.1')
+        with patch.object(
+            Service,
+            'get_external_data',
+            side_effect=_make_http_error(
+                401, 'https://localhost:9497/0.1/users/user-1/external/mobile'
+            ),
+        ):
+            with pytest.raises(HookRetry):
+                self._run()
+
+    def test_non_cached_auth_401_propagates_as_http_error(self):
+        _prime_cache(base_url='https://localhost:9497/0.1')
+        with patch.object(
+            Service,
+            'get_external_data',
+            side_effect=_make_http_error(
+                401, 'https://fcm.googleapis.com/v1/projects/x/messages:send'
+            ),
+        ):
+            with pytest.raises(requests.HTTPError):
+                self._run()
+
+    def test_non_401_http_error_propagates_as_http_error(self):
+        _prime_cache()
+        with patch.object(
+            Service,
+            'get_external_data',
+            side_effect=_make_http_error(
+                500, 'https://localhost:9497/0.1/users/user-1/external/mobile'
+            ),
+        ):
+            with pytest.raises(requests.HTTPError):
+                self._run()
