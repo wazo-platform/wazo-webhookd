@@ -42,12 +42,16 @@ def send_notification(
             jwt,
         ) = PushNotificationService.get_external_data(config, notification['user_uuid'])
     except requests.HTTPError as e:
-        if e.response and e.response.status_code == 404:
+        if e.response is not None and e.response.status_code == 404:
             logger.error(
                 'Cannot send notification as no authentication exists for mobile (%s)',
                 str(e),
             )
             return False
+        if PushNotificationService.is_cached_auth_401(e):
+            # cache invalidation should occur in get_external_data;
+            # retry once so the next attempt mints a fresh token
+            raise task.retry(exc=e, countdown=1, max_retries=1)
         raise
 
     push_notification = PushNotification(
