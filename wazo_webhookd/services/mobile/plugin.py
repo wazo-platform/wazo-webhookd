@@ -308,23 +308,39 @@ class Service:
         # which is harmful during peak-load / activity burst
         now = time.monotonic()
         if cls._auth_cache is not None and now < cls._auth_cache_expires_at - 60:
+            logger.debug(
+                'Cache hit on auth token (now=%d, expires=%d)',
+                now,
+                cls._auth_cache_expires_at,
+            )
             return cls._auth_cache
+
+        logger.debug(
+            'Cache miss on auth token (now=%d, expires=%d)',
+            now,
+            cls._auth_cache_expires_at,
+        )
         auth_config = dict(config['auth'])
         # FIXME(sileht): Keep the certificate
         auth_config['verify_certificate'] = False
         auth = AuthClient(**auth_config)
         expiration = TASK_AUTH_TOKEN_EXPIRATION
         token: TokenDict = auth.token.new('wazo_user', expiration=expiration)
-        auth.set_token(token["token"])
-        jwt = token.get("metadata", {}).get("jwt", "")
+        auth.set_token(token['token'])
+        jwt = token.get('metadata', {}).get('jwt', '')
         return cls.prime_cache(auth, jwt, expiration)
 
     @classmethod
     def prime_cache(
         cls, auth: AuthClient, jwt: str, expiration: int
     ) -> tuple[AuthClient, str]:
+        now = time.monotonic()
+        expires_at = now + expiration
+        logger.debug(
+            'priming auth token cache (now=%d, expires=%d)', now, now + expiration
+        )
         cls._auth_cache = (auth, jwt)
-        cls._auth_cache_expires_at = time.monotonic() + expiration
+        cls._auth_cache_expires_at = expires_at
         cls._auth_url_base = auth.url()
         # prevent re-auth without cache management through get_auth
         auth.username = None
@@ -333,6 +349,7 @@ class Service:
 
     @classmethod
     def invalidate_auth_cache(cls) -> None:
+        logger.debug('invalidating auth token cache')
         cls._auth_cache = None
         cls._auth_cache_expires_at = 0.0
 
