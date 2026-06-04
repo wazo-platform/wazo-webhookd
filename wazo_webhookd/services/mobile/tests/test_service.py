@@ -3,6 +3,9 @@
 
 from unittest.mock import MagicMock, patch
 
+import requests
+from celery.signals import task_failure
+
 from ..plugin import Service
 
 
@@ -16,13 +19,21 @@ def _make_config():
     }
 
 
-def _make_mock_auth_client(jwt='test-jwt'):
+def _make_mock_auth_client(jwt='test-jwt', base_url='https://localhost:9497/0.1'):
     mock_client = MagicMock()
     mock_client.token.new.return_value = {
         'token': 'wazo-token-uuid',
         'metadata': {'jwt': jwt},
     }
+    mock_client.url.return_value = base_url
     return mock_client
+
+
+def _make_http_error(status_code, url):
+    response = requests.Response()
+    response.status_code = status_code
+    response.url = url
+    return requests.HTTPError(response=response)
 
 
 class TestGetAuthCaching:
@@ -65,3 +76,69 @@ class TestGetAuthCaching:
 
         # 2 new tokens: call 1 and call 3; call 2 was served from cache
         assert mock_client.token.new.call_count == 2
+
+
+class TestAuthCacheInvalidation:
+    def setup_method(self):
+        Service._auth_cache = None
+        Service._auth_cache_expires_at = 0.0
+        Service._auth_url_base = None
+
+    def _prime_cache(self, base_url='https://localhost:9497/0.1'):
+        mock_client = _make_mock_auth_client(base_url=base_url)
+        with patch(
+            'wazo_webhookd.services.mobile.plugin.AuthClient', return_value=mock_client
+        ):
+            Service.get_auth(_make_config())
+        return mock_client
+
+    def test_invalidate_auth_cache_clears_state(self):
+        self._prime_cache()
+        assert Service._auth_cache is not None
+
+        Service.invalidate_auth_cache()
+
+        assert Service._auth_cache is None
+        assert Service._auth_cache_expires_at == 0.0
+
+    def test_task_failure_invalidates_cache_on_auth_401(self):
+        self._prime_cache(base_url='https://localhost:9497/0.1')
+        exc = _make_http_error(401, 'https://localhost:9497/0.1/users/abc')
+
+        task_failure.send(sender=None, exception=exc)
+
+        assert Service._auth_cache is None
+
+    def test_task_failure_ignores_401_from_other_host(self):
+        self._prime_cache(base_url='https://localhost:9497/0.1')
+        # 401 from FCM (Google OAuth2 bearer rejected) — not our service token
+        exc = _make_http_error(
+            401, 'https://fcm.googleapis.com/v1/projects/x/messages:send'
+        )
+
+        task_failure.send(sender=None, exception=exc)
+
+        assert Service._auth_cache is not None
+
+    def test_task_failure_ignores_non_401_status(self):
+        self._prime_cache()
+        exc = _make_http_error(500, 'https://localhost:9497/0.1/users/abc')
+
+        task_failure.send(sender=None, exception=exc)
+
+        assert Service._auth_cache is not None
+
+    def test_task_failure_ignores_non_http_error(self):
+        self._prime_cache()
+
+        task_failure.send(sender=None, exception=ValueError('boom'))
+
+        assert Service._auth_cache is not None
+
+    def test_task_failure_no_cache_no_crash(self):
+        assert Service._auth_cache is None
+        exc = _make_http_error(401, 'https://localhost:9497/0.1/users/abc')
+
+        task_failure.send(sender=None, exception=exc)
+
+        assert Service._auth_cache is None

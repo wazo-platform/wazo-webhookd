@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, cast
 
 import httpx
 from celery import Task
+from celery.signals import task_failure
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 from wazo_bus.resources.voicemail.types import VoicemailMessageDict
@@ -128,6 +129,9 @@ REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
 
 DEFAULT_ANDROID_CHANNEL_ID = 'io.wazo.songbird'
 
+# auth token for celery tasks live 1h
+TASK_AUTH_TOKEN_EXPIRATION = 3600
+
 
 class NotificationType(StrEnum):
     MESSAGE_RECEIVED = 'messageReceived'
@@ -161,6 +165,7 @@ class Service:
     _config: WebhookdConfigDict
     _auth_cache: ClassVar[tuple[AuthClient, str] | None] = None
     _auth_cache_expires_at: ClassVar[float] = 0.0
+    _auth_url_base: ClassVar[str | None] = None
 
     def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
@@ -298,6 +303,9 @@ class Service:
 
     @classmethod
     def get_auth(cls, config: WebhookdConfigDict) -> tuple[AuthClient, str]:
+        # cache auth token to avoid hammering wazo-auth
+        # with password-hashing auth on every push event
+        # which is harmful during peak-load / activity burst
         now = time.monotonic()
         if cls._auth_cache is not None and now < cls._auth_cache_expires_at - 60:
             return cls._auth_cache
@@ -305,14 +313,48 @@ class Service:
         # FIXME(sileht): Keep the certificate
         auth_config['verify_certificate'] = False
         auth = AuthClient(**auth_config)
-        token: TokenDict = auth.token.new('wazo_user', expiration=3600)
+        expiration = TASK_AUTH_TOKEN_EXPIRATION
+        token: TokenDict = auth.token.new('wazo_user', expiration=expiration)
         auth.set_token(token["token"])
         jwt = token.get("metadata", {}).get("jwt", "")
+        return cls.prime_cache(auth, jwt, expiration)
+
+    @classmethod
+    def prime_cache(
+        cls, auth: AuthClient, jwt: str, expiration: int
+    ) -> tuple[AuthClient, str]:
+        cls._auth_cache = (auth, jwt)
+        cls._auth_cache_expires_at = time.monotonic() + expiration
+        cls._auth_url_base = auth.url()
+        # prevent re-auth without cache management through get_auth
         auth.username = None
         auth.password = None
-        cls._auth_cache = (auth, jwt)
-        cls._auth_cache_expires_at = now + 3600
         return cls._auth_cache
+
+    @classmethod
+    def invalidate_auth_cache(cls) -> None:
+        cls._auth_cache = None
+        cls._auth_cache_expires_at = 0.0
+
+    @classmethod
+    def _on_task_failure(
+        cls, sender: Any = None, exception: BaseException | None = None, **_: Any
+    ) -> None:
+        if not isinstance(exception, HTTPError):
+            return
+        response = exception.response
+        if response is None or response.status_code != 401:
+            return
+        if cls._auth_url_base is None or not response.url.startswith(
+            cls._auth_url_base
+        ):
+            return
+        logger.warning(
+            'Cached webhookd service token rejected by wazo-auth (HTTP 401 on %s); '
+            'invalidating cache so the next task retry mints a fresh token.',
+            response.url,
+        )
+        cls.invalidate_auth_cache()
 
     @classmethod
     def get_external_data(
@@ -363,6 +405,10 @@ class Service:
 
         logger.error('No matching notification type for event %s', name)
         return None
+
+
+# task failure handlers e.g. token cache invalidation
+task_failure.connect(Service._on_task_failure, weak=False)
 
 
 def generate_timestamp() -> str:
