@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, NotRequired, TypedDict
 
 import httpx
 from celery import Task
-from celery.signals import task_failure
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 from wazo_bus.resources.voicemail.types import VoicemailMessageDict
@@ -356,40 +355,40 @@ class Service:
         cls._auth_cache_expires_at = 0.0
 
     @classmethod
-    def _on_task_failure(
-        cls, sender: Any = None, exception: BaseException | None = None, **_: Any
-    ) -> None:
-        if not isinstance(exception, HTTPError):
-            return
-        response = exception.response
-        if response is None or response.status_code != 401:
-            return
-        if cls._auth_url_base is None or not response.url.startswith(
-            cls._auth_url_base
-        ):
-            return
-        logger.warning(
-            'Cached webhookd service token rejected by wazo-auth (HTTP 401 on %s); '
-            'invalidating cache so the next task retry mints a fresh token.',
-            response.url,
+    def is_cached_auth_401(cls, exc: HTTPError) -> bool:
+        """True iff `exc` is a 401 from a call against the cached AuthClient."""
+        return (
+            exc.response is not None
+            and exc.response.status_code == 401
+            and cls._auth_url_base is not None
+            and exc.response.url.startswith(cls._auth_url_base)
         )
-        cls.invalidate_auth_cache()
 
     @classmethod
     def get_external_data(
         cls, config: WebhookdConfigDict, user_uuid: str
     ) -> tuple[ExternalMobileDict, ExternalConfigDict, str]:
         auth, jwt = cls.get_auth(config)
-        external_tokens: ExternalMobileDict = auth.external.get('mobile', user_uuid)
-        tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
         try:
-            external_config: ExternalConfigDict = auth.external.get_config(
-                'mobile', tenant_uuid
-            )
+            external_tokens: ExternalMobileDict = auth.external.get('mobile', user_uuid)
+            tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
+            try:
+                external_config: ExternalConfigDict = auth.external.get_config(
+                    'mobile', tenant_uuid
+                )
+            except HTTPError as e:
+                if e.response and e.response.status_code != 404:
+                    raise
+                external_config = EMPTY_EXTERNAL_CONFIG
         except HTTPError as e:
-            if e.response and e.response.status_code != 404:
-                raise
-            external_config = EMPTY_EXTERNAL_CONFIG
+            if cls.is_cached_auth_401(e):
+                logger.warning(
+                    'Cached webhookd service token rejected by wazo-auth '
+                    '(HTTP 401 on %s); invalidating cache.',
+                    e.response.url,
+                )
+                cls.invalidate_auth_cache()
+            raise
 
         return external_tokens, external_config, jwt
 
@@ -409,7 +408,22 @@ class Service:
         ):
             return None
 
-        external_tokens, external_config, jwt = cls.get_external_data(config, user_uuid)
+        try:
+            external_tokens, external_config, jwt = cls.get_external_data(
+                config, user_uuid
+            )
+        except HTTPError as e:
+            if cls.is_cached_auth_401(e):
+                # cache already invalidated by get_external_data; retry the
+                # task so the next attempt mints a fresh token.
+                raise HookRetry(
+                    {
+                        "error": str(e),
+                        "reason": "cached webhookd-service token rejected by wazo-auth",
+                    }
+                )
+            raise
+
         push = PushNotification(task, config, external_tokens, external_config, jwt)
 
         data = event.get('data')
@@ -424,10 +438,6 @@ class Service:
 
         logger.error('No matching notification type for event %s', name)
         return None
-
-
-# task failure handlers e.g. token cache invalidation
-task_failure.connect(Service._on_task_failure, weak=False)
 
 
 def generate_timestamp() -> str:
