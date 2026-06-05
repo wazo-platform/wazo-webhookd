@@ -30,11 +30,12 @@ def configure(config: WebhookdConfigDict) -> None:
     app.conf.worker_hijack_root_logger = False
     app.conf.worker_loglevel = logging.getLevelName(config['log_level']).upper()
 
-    # avoid memory leaks
-    app.conf.worker_max_tasks_per_child = 1_000
-    # max mem need to be large enough for baseline
-    # else no task reuse
-    app.conf.worker_max_memory_per_child = 1_000_000  # 1GB
+    # recycle workers to bound memory growth; thresholds are operator-tunable
+    # via config so small deployments can lower them.
+    app.conf.worker_max_tasks_per_child = config['celery']['worker_max_tasks_per_child']
+    app.conf.worker_max_memory_per_child = config['celery'][
+        'worker_max_memory_per_child'
+    ]
 
 
 def start_celery(argv: tuple[str, ...]) -> int | None:
