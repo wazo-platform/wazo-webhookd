@@ -146,21 +146,65 @@ class TestInvalidateAuthCache:
 
 
 class TestGetExternalData:
-    """get_external_data invalidates the cache on cached-auth 401 then re-raises."""
+    """get_external_data retries inline on cached-auth 401."""
 
     def setup_method(self):
         _reset_service_cache()
 
-    def test_invalidates_cache_on_cached_auth_401(self):
-        mock_client = _prime_cache(base_url='https://localhost:9497/0.1')
-        mock_client.external.get.side_effect = _make_http_error(
+    def test_inline_retries_on_cached_auth_401(self):
+        """First call returns 401 from cached auth; cache invalidated; second
+        call mints a fresh token and succeeds."""
+        stale_client = _prime_cache(base_url='https://localhost:9497/0.1')
+        stale_client.external.get.side_effect = _make_http_error(
             401, 'https://localhost:9497/0.1/users/user-1/external/mobile'
         )
 
-        with pytest.raises(requests.HTTPError):
-            Service.get_external_data(_make_config(), 'user-1')
+        fresh_client = _make_mock_auth_client(jwt='fresh-jwt')
+        fresh_client.external.get.return_value = {'token': 'tok'}
+        fresh_client.users.get.return_value = {'tenant_uuid': 'tenant-1'}
+        fresh_client.external.get_config.side_effect = _make_http_error(
+            404, 'https://localhost:9497/0.1/external/mobile/config'
+        )
 
-        assert Service._auth_cache is None
+        # After invalidate_auth_cache, get_auth instantiates a new AuthClient.
+        with patch(
+            'wazo_webhookd.services.mobile.plugin.AuthClient',
+            return_value=fresh_client,
+        ):
+            external_tokens, external_config, jwt = Service.get_external_data(
+                _make_config(), 'user-1'
+            )
+
+        assert external_tokens == {'token': 'tok'}
+        assert external_config == EMPTY_EXTERNAL_CONFIG
+        assert jwt == 'fresh-jwt'
+        # cache re-primed with fresh client
+        assert Service._auth_cache == (fresh_client, 'fresh-jwt')
+
+    def test_persistent_cached_auth_401_propagates(self):
+        """Both attempts return 401 → HTTPError propagates; cache cleared."""
+        stale_client = _prime_cache(base_url='https://localhost:9497/0.1')
+        stale_client.external.get.side_effect = _make_http_error(
+            401, 'https://localhost:9497/0.1/users/user-1/external/mobile'
+        )
+
+        # Fresh client returned by get_auth's re-mint also fails with 401.
+        fresh_client = _make_mock_auth_client()
+        fresh_client.external.get.side_effect = _make_http_error(
+            401, 'https://localhost:9497/0.1/users/user-1/external/mobile'
+        )
+
+        with patch(
+            'wazo_webhookd.services.mobile.plugin.AuthClient',
+            return_value=fresh_client,
+        ):
+            with pytest.raises(requests.HTTPError):
+                Service.get_external_data(_make_config(), 'user-1')
+
+        # last attempt's failure left the cache primed with the fresh client;
+        # an external caller (Service.run -> HookRetry, or send_notification
+        # -> task.retry) is responsible for any further recovery.
+        assert Service._auth_cache == (fresh_client, 'test-jwt')
 
     def test_propagates_non_401_without_invalidation(self):
         mock_client = _prime_cache(base_url='https://localhost:9497/0.1')

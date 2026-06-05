@@ -368,29 +368,39 @@ class Service:
     def get_external_data(
         cls, config: WebhookdConfigDict, user_uuid: str
     ) -> tuple[ExternalMobileDict, ExternalConfigDict, str]:
-        auth, jwt = cls.get_auth(config)
-        try:
-            external_tokens: ExternalMobileDict = auth.external.get('mobile', user_uuid)
-            tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
+        # Retry in-band on cached-auth 401: same worker, same call stack,
+        # guaranteed-fresh cache on the second attempt. Sidesteps Celery's
+        # broker-mediated retry which has no worker affinity and would let
+        # the retry bounce to another worker whose cache is still stale.
+        for attempt in range(2):
+            auth, jwt = cls.get_auth(config)
             try:
-                external_config: ExternalConfigDict = auth.external.get_config(
-                    'mobile', tenant_uuid
+                external_tokens: ExternalMobileDict = auth.external.get(
+                    'mobile', user_uuid
                 )
+                tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
+                try:
+                    external_config: ExternalConfigDict = auth.external.get_config(
+                        'mobile', tenant_uuid
+                    )
+                except HTTPError as e:
+                    if e.response is not None and e.response.status_code != 404:
+                        raise
+                    external_config = EMPTY_EXTERNAL_CONFIG
+                return external_tokens, external_config, jwt
             except HTTPError as e:
-                if e.response is not None and e.response.status_code != 404:
-                    raise
-                external_config = EMPTY_EXTERNAL_CONFIG
-        except HTTPError as e:
-            if cls.is_cached_auth_401(e):
-                logger.warning(
-                    'Cached webhookd service token rejected by wazo-auth '
-                    '(HTTP 401 on %s); invalidating cache.',
-                    e.response.url,
-                )
-                cls.invalidate_auth_cache()
-            raise
+                if attempt == 0 and cls.is_cached_auth_401(e):
+                    logger.warning(
+                        'Cached webhookd service token rejected by wazo-auth '
+                        '(HTTP 401 on %s); invalidating cache and retrying '
+                        'inline.',
+                        e.response.url,
+                    )
+                    cls.invalidate_auth_cache()
+                    continue
+                raise
 
-        return external_tokens, external_config, jwt
+        raise AssertionError('get_external_data retry loop fell through')
 
     @classmethod
     def run(
