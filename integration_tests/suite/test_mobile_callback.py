@@ -2574,13 +2574,17 @@ class TestMobileSubscriptionAuthCaching(BaseMobileCallbackIntegrationTest):
             },
         )
 
+    def tearDown(self) -> None:
+        self.webhookd = self.make_webhookd(MASTER_TOKEN)
+        super().tearDown()
+
     def test_consecutive_subscription_events_share_auth_token(self) -> None:
         # Pin to one Celery worker so both tasks land in the same process and
         # share the class-level cache; otherwise autoscale may spawn a new
         # child per task.
         with self.webhookd_with_config({'celery': {'worker_min': 1, 'worker_max': 1}}):
-            webhookd = self.make_webhookd(MASTER_TOKEN)
-            self.wait_strategy.wait(webhookd)
+            self.webhookd = self.make_webhookd(MASTER_TOKEN)
+            self.wait_strategy.wait(self.webhookd)
 
             subscription = self._given_mobile_subscription(USER_1_UUID)
 
@@ -2600,7 +2604,7 @@ class TestMobileSubscriptionAuthCaching(BaseMobileCallbackIntegrationTest):
 
                 self._wait_items(
                     functools.partial(
-                        webhookd.subscriptions.get_logs, subscription["uuid"]
+                        self.webhookd.subscriptions.get_logs, subscription["uuid"]
                     ),
                     number=2,
                 )
