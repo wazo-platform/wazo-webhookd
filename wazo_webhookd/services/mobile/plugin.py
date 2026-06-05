@@ -375,7 +375,7 @@ class Service:
                     'mobile', tenant_uuid
                 )
             except HTTPError as e:
-                if e.response and e.response.status_code != 404:
+                if e.response is not None and e.response.status_code != 404:
                     raise
                 external_config = EMPTY_EXTERNAL_CONFIG
         except HTTPError as e:

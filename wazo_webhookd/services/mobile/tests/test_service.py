@@ -191,6 +191,17 @@ class TestGetExternalData:
         # cache untouched: 404 is not the cached-auth-401 signal
         assert Service._auth_cache is not None
 
+    def test_external_config_non_404_propagates(self):
+        mock_client = _prime_cache()
+        mock_client.external.get.return_value = {'token': 'tok'}
+        mock_client.users.get.return_value = {'tenant_uuid': 'tenant-1'}
+        mock_client.external.get_config.side_effect = _make_http_error(
+            500, 'https://localhost:9497/0.1/external/mobile/config'
+        )
+
+        with pytest.raises(requests.HTTPError):
+            Service.get_external_data(_make_config(), 'user-1')
+
 
 class TestServiceRunAuthRetry:
     """Service.run converts cached-auth 401 into HookRetry for hook_runner_task."""
