@@ -48,7 +48,7 @@ _DEFAULT_CONFIG = {
         'worker_min': 3,
         'worker_max': 5,
         'worker_max_tasks_per_child': 1_000,
-        'worker_max_memory_per_child': 1_000_000,  # KB
+        'worker_max_memory_per_child': 1_000_000,  # KiB (~1 GiB)
     },
     'db_uri': (
         'postgresql://asterisk:proformatique@localhost/asterisk?'

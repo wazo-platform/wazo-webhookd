@@ -1,4 +1,4 @@
-# Copyright 2023-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2023-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class CeleryConfigDict(TypedDict):
     worker_min: int
     worker_max: int
     worker_max_tasks_per_child: int
-    worker_max_memory_per_child: int  # kilobytes
+    worker_max_memory_per_child: int  # KiB (per Celery --max-memory-per-child)
 
 
 class RestApiCorsConfigDict(TypedDict):
