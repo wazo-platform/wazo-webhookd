@@ -46,7 +46,7 @@ class CeleryConfigDict(TypedDict):
     worker_min: int
     worker_max: int
     worker_max_tasks_per_child: int
-    worker_max_memory_per_child: int  # kilobytes
+    worker_max_memory_per_child: int  # KiB (per Celery --max-memory-per-child)
 
 
 class RestApiCorsConfigDict(TypedDict):
