@@ -48,10 +48,9 @@ def send_notification(
                 str(e),
             )
             return False
-        if PushNotificationService.is_cached_auth_401(e):
-            # cache invalidation should occur in get_external_data;
-            # retry once so the next attempt mints a fresh token
-            raise task.retry(exc=e, countdown=1, max_retries=1)
+        # No task-level retry on the API path: fail fast and let the client
+        # decide whether to retry. get_external_data already absorbs the
+        # cached-auth 401 race in-band via its own inline retry.
         raise
 
     push_notification = PushNotification(
