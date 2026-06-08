@@ -1,4 +1,4 @@
-FROM wazoplatform/wazo-webhookd
+FROM wazoplatform/wazo-webhookd:wazo-26.02
 
 ENV PYTHONDONTWRITEBYTECODE='true'
 
