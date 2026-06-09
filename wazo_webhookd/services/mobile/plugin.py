@@ -46,6 +46,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Sentinel: emitted once at module import. Operators can grep for this string
+# in wazo-webhookd logs to confirm the auth-cache patch is loaded.
+logger.warning('wazo-webhookd auth-cache patch loaded')
+
 
 class ExternalMobileDict(TypedDict):
     token: str
