@@ -308,6 +308,13 @@ class Service:
         # with password-hashing auth on every push event
         # which is harmful during peak-load / activity burst
         now = time.monotonic()
+        logger.info(
+            'get_auth called (cache=%s, now=%.0f, expires=%.0f, ttl=%.0fs)',
+            'warm' if cls._auth_cache is not None else 'cold',
+            now,
+            cls._auth_cache_expires_at,
+            max(0.0, cls._auth_cache_expires_at - now),
+        )
         if cls._auth_cache is not None and now < cls._auth_cache_expires_at - 60:
             logger.debug(
                 'Cache hit on auth token (now=%d, expires=%d)',
