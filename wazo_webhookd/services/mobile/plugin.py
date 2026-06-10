@@ -360,16 +360,18 @@ class Service:
         logger.debug('invalidating auth token cache')
         cls._auth_cache = None
         cls._auth_cache_expires_at = 0.0
+        cls._auth_url_base = None
 
     @classmethod
     def is_cached_auth_401(cls, exc: HTTPError) -> bool:
         """True iff `exc` is a 401 from a call against the cached AuthClient."""
-        return (
-            exc.response is not None
-            and exc.response.status_code == 401
-            and cls._auth_url_base is not None
-            and exc.response.url.startswith(cls._auth_url_base)
-        )
+        if cls._auth_cache is None or cls._auth_url_base is None:
+            return False
+        if exc.response is None or exc.response.status_code != 401:
+            return False
+        url = exc.response.url
+        base = cls._auth_url_base
+        return url == base or url.startswith(base + '/')
 
     @classmethod
     def get_external_data(
@@ -431,8 +433,9 @@ class Service:
             )
         except HTTPError as e:
             if cls.is_cached_auth_401(e):
-                # cache already invalidated by get_external_data; retry the
-                # task so the next attempt mints a fresh token.
+                # get_external_data already retried inline with a fresh token
+                # and still got 401; surface as HookRetry so hook_runner_task
+                # backs off before the next attempt.
                 raise HookRetry(
                     {
                         "error": str(e),

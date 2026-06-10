@@ -130,6 +130,25 @@ class TestIsCachedAuth401:
 
         assert Service.is_cached_auth_401(exc) is False
 
+    def test_false_after_invalidation_even_if_url_matches(self):
+        # A 401 escaping from a fresh-mint path (e.g. token.new rejected for
+        # bad service credentials) must not be classified as a cached-auth
+        # race once the cache has been dropped — otherwise Service.run would
+        # raise HookRetry and burn hook_max_attempts against a permanent
+        # credential failure.
+        _prime_cache(base_url='https://localhost:9497/0.1')
+        Service.invalidate_auth_cache()
+        exc = _make_http_error(401, 'https://localhost:9497/0.1/token')
+
+        assert Service.is_cached_auth_401(exc) is False
+
+    def test_false_when_url_only_overlaps_prefix(self):
+        # base 'https://host/0.1' must NOT match e.g. '/0.10' coexisting
+        _prime_cache(base_url='https://localhost:9497/0.1')
+        exc = _make_http_error(401, 'https://localhost:9497/0.10/users/abc')
+
+        assert Service.is_cached_auth_401(exc) is False
+
 
 class TestInvalidateAuthCache:
     def setup_method(self):
@@ -138,11 +157,13 @@ class TestInvalidateAuthCache:
     def test_clears_state(self):
         _prime_cache()
         assert Service._auth_cache is not None
+        assert Service._auth_url_base is not None
 
         Service.invalidate_auth_cache()
 
         assert Service._auth_cache is None
         assert Service._auth_cache_expires_at == 0.0
+        assert Service._auth_url_base is None
 
 
 class TestGetExternalData:
