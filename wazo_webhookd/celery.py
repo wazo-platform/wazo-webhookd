@@ -1,4 +1,4 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -30,8 +30,12 @@ def configure(config: WebhookdConfigDict) -> None:
     app.conf.worker_hijack_root_logger = False
     app.conf.worker_loglevel = logging.getLevelName(config['log_level']).upper()
 
-    app.conf.worker_max_tasks_per_child = 1_000
-    app.conf.worker_max_memory_per_child = 100_000
+    # recycle workers to bound memory growth; thresholds are operator-tunable
+    # via config so small deployments can lower them.
+    app.conf.worker_max_tasks_per_child = config['celery']['worker_max_tasks_per_child']
+    app.conf.worker_max_memory_per_child = config['celery'][
+        'worker_max_memory_per_child'
+    ]
 
 
 def start_celery(argv: tuple[str, ...]) -> int | None:

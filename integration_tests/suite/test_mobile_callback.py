@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -2527,3 +2527,99 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             )
 
         self.webhookd.subscriptions.delete(subscription["uuid"])
+
+
+class TestMobileSubscriptionAuthCaching(BaseMobileCallbackIntegrationTest):
+    """Verify the wazo-auth service-token cache survives across subscription tasks.
+
+    Production push notifications flow through subscriptions:
+        bus event -> hook_runner_task -> Service.run -> get_external_data -> get_auth
+
+    A correctly-cached token means two sequential bus events produce exactly ONE
+    POST /0.1/token to wazo-auth, not two.
+    """
+
+    asset = 'proxy'
+    wait_strategy = ConnectedWaitStrategy()
+
+    def setUp(self):
+        super().setUp()
+        self.fcm_third_party = MockServerClient(
+            f'http://127.0.0.1:{self.service_port(443, "fcm.proxy.example.com")}'
+        )
+        self.fcm_third_party.reset()
+        self.auth.set_external_auth({'token': 'token-android', 'apns_token': None})
+
+    def _publish_missed_call(self, user_uuid):
+        self.bus.publish(
+            {
+                'name': 'user_missed_call',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'user_uuid': str(user_uuid),
+                    'caller_user_uuid': 'ad5b78cf-6e15-45c7-9ef3-bec36e07e8d6',
+                    'caller_id_name': 'John Doe',
+                    'caller_id_number': '12221114455',
+                    'dialed_extension': '8000',
+                    'conversation_id': '1718908219.36',
+                    'reason': 'no-answer',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'user_missed_call',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{user_uuid}': True,
+            },
+        )
+
+    def tearDown(self) -> None:
+        self.webhookd = self.make_webhookd(MASTER_TOKEN)
+        super().tearDown()
+
+    def test_consecutive_subscription_events_share_auth_token(self) -> None:
+        # Pin to one Celery worker so both tasks land in the same process and
+        # share the class-level cache; otherwise autoscale may spawn a new
+        # child per task.
+        with self.webhookd_with_config({'celery': {'worker_min': 1, 'worker_max': 1}}):
+            self.webhookd = self.make_webhookd(MASTER_TOKEN)
+            self.wait_strategy.wait(self.webhookd)
+
+            subscription = self._given_mobile_subscription(USER_1_UUID)
+
+            self.fcm_third_party.mock_any_response(
+                {
+                    'httpRequest': {'method': 'POST', 'path': '/fcm/send'},
+                    'httpResponse': {
+                        'statusCode': 200,
+                        'body': json.dumps({'message_id': 'ok'}),
+                    },
+                }
+            )
+
+            with self.auth.capture_requests() as capture:
+                self._publish_missed_call(USER_1_UUID)
+                self._publish_missed_call(USER_1_UUID)
+
+                self._wait_items(
+                    functools.partial(
+                        self.webhookd.subscriptions.get_logs, subscription["uuid"]
+                    ),
+                    number=2,
+                )
+
+            token_calls = [
+                r
+                for r in capture.requests
+                if r['path'] == '/0.1/token' and r['method'] == 'POST'
+            ]
+            assert len(token_calls) == 1, (
+                f'Expected 1 POST /0.1/token but got {len(token_calls)}. '
+                'Auth token cache is not shared across Celery tasks on the '
+                'subscription path (hook_runner_task -> Service.run).'
+            )
+
+
+# TODO: cover cache-401 recovery end-to-end once wazo-auth-mock supports a
+# one-shot response override (currently unit-tested only).
