@@ -1,5 +1,11 @@
 # Changelog
 
+## 26.08
+
+* New `rest_api.min_threads` option: threads kept ready at all times.
+  `max_threads` is now a ceiling the pool grows to under load, not a fixed
+  thread count.
+
 ## 26.02
 
 * `PATCH` request bodies to endpoints accepting JSON payload are systematically parsed as JSON, with or without a proper `Content-Type` header;

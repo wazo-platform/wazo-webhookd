@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
@@ -50,6 +50,7 @@ class TestDatabase(AssetLaunchingTestCase):
         return {
             'db_uri': self.db_uri,
             'rest_api': {
+                'min_threads': 10,
                 'max_threads': 10,
             },
         }
