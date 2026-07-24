@@ -1,4 +1,4 @@
-# Copyright 2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2025-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
@@ -82,7 +82,9 @@ def main():
 
     engine = create_engine(
         config['db_uri'],
-        pool_size=config['rest_api']['max_threads'],
+        pool_size=config['rest_api']['min_threads'],
+        max_overflow=config['rest_api']['max_threads']
+        - config['rest_api']['min_threads'],
         pool_pre_ping=True,
     )
     Session = scoped_session(sessionmaker())

@@ -1,4 +1,4 @@
-# Copyright 2017-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DB_POOL_SPARE_CONN = 10
+
 
 class SubscriptionService:
     # NOTE(sileht): We share the pubsub object, so a plugin that instantiate
@@ -40,9 +42,12 @@ class SubscriptionService:
     def __init__(
         self, config: WebhookdConfigDict, notifier: SubscriptionNotifier
     ) -> None:
+        min_threads = config['rest_api']['min_threads']
+        max_threads = config['rest_api']['max_threads']
         self._engine = create_engine(
             config['db_uri'],
-            pool_size=config['rest_api']['max_threads'],
+            pool_size=min_threads,
+            max_overflow=max_threads - min_threads + DB_POOL_SPARE_CONN,
             pool_pre_ping=True,
         )
         self._Session: scoped_session = scoped_session(sessionmaker())
