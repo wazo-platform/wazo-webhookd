@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from datetime import timedelta
 
 from flask import Flask, Response, request
@@ -40,6 +41,7 @@ class CoreRestApi:
         app.config['auth'] = global_config['auth']
         self._load_cors()
         self.server: wsgi.WSGIServer = None  # type: ignore[assignment]
+        self._stopped = threading.Event()
 
     def _load_cors(self) -> None:
         cors_config = dict(self.config.get('cors', {}))
@@ -72,9 +74,14 @@ class CoreRestApi:
         for route in http_helpers.list_routes(app):
             logger.debug(route)
 
+        if self._stopped.is_set():
+            logger.warning('stop requested during startup: not starting the server')
+            return
+
         self.server.start()
 
     def stop(self) -> None:
+        self._stopped.set()
         if self.server:
             self.server.stop()
 
