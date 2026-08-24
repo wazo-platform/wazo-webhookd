@@ -1,4 +1,4 @@
-# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from unittest import TestCase
@@ -74,6 +74,7 @@ class TestSendViaFcmLegacy(TestCase):
             data_message=data,
             time_to_live=0,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+            low_priority=False,
         )
         push_service.notify_single_device.assert_not_called()
 
@@ -246,6 +247,7 @@ class TestSendViaFCMv1(TestCase):
             },
             time_to_live=0,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+            low_priority=False,
         )
         push_service.notify_single_device.assert_not_called()
 

@@ -691,8 +691,10 @@ class PushNotification:
                 **notify_kwargs,
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
+            # need same priority parameters as INCOMING_CALL
             notification = push_service.single_device_data_message(
                 android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
+                low_priority=False,
                 **notify_kwargs,
             )
         else:
@@ -830,15 +832,20 @@ class PushNotification:
                 },
             )
         elif notification_type == NotificationType.CANCEL_INCOMING_CALL:
+            # cannot use voip notification, those are reserved for incoming calls
+            # and must result in CallKit invocation or else be blocked:
+            # https://developer.apple.com/documentation/pushkit/responding-to-voip-notifications-from-pushkit
+            # alert type is required for high-priority:
+            # https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns#Know-when-to-use-push-types
             headers = {
                 'apns-topic': apns_default_topic,
                 'apns-push-type': 'alert',
-                'apns-priority': '5',
+                'apns-priority': '10',
             }
             payload = cast(
                 ApnsPayload,
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'aps': {'badge': 1, 'content-available': 1},
                     **data,
                 },
             )

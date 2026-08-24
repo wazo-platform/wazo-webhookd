@@ -1913,6 +1913,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             responseBody={'tracker': 'tracker-voip'},
             statusCode=200,
         )
+        # cancel uses the notification token, not the voip token
         self.apns_third_party.mock_simple_response(
             path='/3/device/apns-notification-token',
             responseBody={'tracker': 'tracker-notification'},

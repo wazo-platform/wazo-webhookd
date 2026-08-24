@@ -1,4 +1,4 @@
-# Copyright 2022-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2022-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0+
 
 from typing import Any
@@ -96,7 +96,7 @@ class TestAPN(TestCase):
                 {
                     'apns-topic': 'org.wazo-platform',
                     'apns-push-type': 'alert',
-                    'apns-priority': '5',
+                    'apns-priority': '10',
                 }
             ),
         )
@@ -104,7 +104,7 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'aps': {'badge': 1, 'content-available': 1},
                     'notification_type': NotificationType.CANCEL_INCOMING_CALL,
                     'items': {},
                 }
@@ -218,7 +218,7 @@ class TestAPNWithPerTokenTopics(TestCase):
                 {
                     'apns-topic': 'com.custom.app',
                     'apns-push-type': 'alert',
-                    'apns-priority': '5',
+                    'apns-priority': '10',
                 }
             ),
         )
