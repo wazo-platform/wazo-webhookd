@@ -201,7 +201,6 @@ class TestNotifications(BaseIntegrationTest):
         webhookd.mobile_notifications.send(test_notification)
         test = {
             'aps': {
-                'badge': 1,
                 'sound': 'default',
                 'alert': {'title': 'test title', 'body': 'test message'},
             },

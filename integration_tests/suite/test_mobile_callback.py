@@ -2291,7 +2291,6 @@ class TestMobileCallbackAPNS(TestMobileCallback):
             assert_that(
                 request['aps'],
                 has_entries(
-                    badge=1,
                     sound='default',
                     alert=has_entries(
                         title='New Voicemail',

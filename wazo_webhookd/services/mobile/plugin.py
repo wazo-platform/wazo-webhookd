@@ -814,6 +814,14 @@ class PushNotification:
             'token' if token_default_topic else 'config',
         )
 
+        # We intentionally do NOT send `aps.badge`. iOS applies the payload
+        # badge to the app icon at delivery (before app code runs) and there
+        # is no `mutable-content` here for a Notification Service Extension to
+        # rewrite it, so a hard-coded `badge: 1` clobbered the count the mobile
+        # app maintains itself (it stuck the icon at 1 / made it flicker). The
+        # app owns the icon badge via UNUserNotificationCenter.setBadgeCount
+        # from its own unread store; omitting `badge` leaves the icon for the
+        # app to manage. See bogue/IOS-CHAT-NOTIFICATIONS.md in wazo-native.
         if (
             notification_type := data['notification_type']
         ) == NotificationType.INCOMING_CALL:
@@ -825,7 +833,7 @@ class PushNotification:
             payload = cast(
                 ApnsPayload,
                 {
-                    'aps': {'alert': data, 'badge': 1},
+                    'aps': {'alert': data},
                     **data,
                 },
             )
@@ -838,7 +846,7 @@ class PushNotification:
             payload = cast(
                 ApnsPayload,
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'aps': {"sound": "default", "content-available": 1},
                     **data,
                 },
             )
@@ -854,7 +862,7 @@ class PushNotification:
             payload = cast(
                 ApnsPayload,
                 {
-                    'aps': {'badge': 1, 'sound': "default"},
+                    'aps': {'sound': "default"},
                     'data': data,
                 },
             )

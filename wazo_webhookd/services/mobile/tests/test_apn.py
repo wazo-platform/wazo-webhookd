@@ -67,7 +67,7 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'aps': {'alert': data, 'badge': 1},
+                    'aps': {'alert': data},
                     'notification_type': NotificationType.INCOMING_CALL,
                     'items': {},
                 }
@@ -104,7 +104,7 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'aps': {"sound": "default", "content-available": 1},
                     'notification_type': NotificationType.CANCEL_INCOMING_CALL,
                     'items': {},
                 }
@@ -145,7 +145,7 @@ class TestAPN(TestCase):
             payload,
             equal_to(
                 {
-                    'aps': {"badge": 1, "sound": "default", "content-available": 1},
+                    'aps': {"sound": "default", "content-available": 1},
                     'data': {
                         'notification_type': NotificationType.MESSAGE_RECEIVED,
                         'items': data['items'],
