@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -16,7 +15,6 @@ from wazo_webhookd.services.mobile.fcm_client import FCMNotification
 from wazo_webhookd.types import WebhookdConfigDict
 
 _DEFAULT_HTTP_PORT = 9300
-_PID_DIR = '/run/wazo-webhookd'
 
 _DEFAULT_CONFIG = {
     'config_file': '/etc/wazo-webhookd/config.yml',
@@ -43,7 +41,6 @@ _DEFAULT_CONFIG = {
         'broker': 'amqp://guest:guest@localhost:5672',
         'exchange_name': 'celery-webhookd',
         'queue_name': 'celery-webhookd',
-        'worker_pid_file': os.path.join(_PID_DIR, 'celery-worker.pid'),
         'worker_min': 3,
         'worker_max': 5,
         'worker_max_tasks_per_child': 1_000,

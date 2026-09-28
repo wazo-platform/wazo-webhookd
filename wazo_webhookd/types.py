@@ -42,7 +42,6 @@ class CeleryConfigDict(TypedDict):
     broker: str
     exchange_name: str
     queue_name: str
-    worker_pid_file: str
     worker_min: int
     worker_max: int
     worker_max_tasks_per_child: int

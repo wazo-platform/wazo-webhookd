@@ -72,8 +72,6 @@ def spawn_workers(config: WebhookdConfigDict) -> multiprocessing.Process:
         'webhookd@%h',
         '--autoscale',
         f"{config['celery']['worker_max']},{config['celery']['worker_min']}",
-        '--pidfile',
-        config['celery']['worker_pid_file'],
     ]
     process = multiprocessing.Process(target=start_celery, args=(argv,))
     process.start()
