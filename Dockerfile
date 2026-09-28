@@ -23,7 +23,6 @@ COPY ./etc/wazo-webhookd /etc/wazo-webhookd
 RUN true \
     && adduser --quiet --system --group wazo-webhookd \
     && mkdir -p /etc/wazo-webhookd/conf.d \
-    && install -o wazo-webhookd -g wazo-webhookd -d /run/wazo-webhookd \
     && install -o wazo-webhookd -g wazo-webhookd /dev/null /var/log/wazo-webhookd.log
 
 EXPOSE 9300
