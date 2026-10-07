@@ -30,10 +30,14 @@ def send_notification(
     config: WebhookdConfigDict,
     notification: NotificationDict,
 ) -> bool:
+    push_trace_uuid = notification.get('extra', {}).get('items', {}).get(
+        'push_trace_uuid'
+    )
     logger.debug(
-        "Attempting to send notification with payload: %s (attempt %d)",
+        "Attempting to send notification with payload: %s (attempt %d, push_trace_uuid=%s)",
         notification,
         task.request.retries + 1,
+        push_trace_uuid,
     )
     try:
         (
