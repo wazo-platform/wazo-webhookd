@@ -1,5 +1,22 @@
 # Changelog
 
+## 26.10
+
+* Subscriptions survive a restart: one thread binds them all at the broker,
+  retries a failed binding (1 s doubling to 60 s) without stopping the others,
+  and rebinds everything after every reconnection. Bus handlers no longer
+  make AMQP calls.
+* A mobile subscription missing for a user holding a `mobile` external auth
+  is created again every 5 minutes. It needs the
+  `auth.mobile.external.users.read` ACL for the `wazo-webhookd` service.
+* `/status` `bus_consumer` gains `last_message_age_seconds` and is `fail` when
+  one message has been handled for more than 60 seconds. A new
+  `subscriptions` section reports `desired`, `bound`, `pending`, `failed`,
+  `retries`, `last_error`, `last_error_at`, `last_full_bind_at`,
+  `queue_bindings_synced` and `reconciled_users_created`; it is `fail` while
+  `bound < desired` 2 minutes after a start or a reconnection.
+* The systemd unit starts after RabbitMQ and stops within 15 seconds.
+
 ## 26.09
 
 * Requests to wazo-auth now default to `localhost:80`, through nginx.

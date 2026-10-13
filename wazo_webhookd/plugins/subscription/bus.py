@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 import kombu.exceptions
 
 from wazo_webhookd.auth import master_tenant_uuid
+from wazo_webhookd.bus import LOG_PREFIX
 
 from .celery_tasks import hook_runner_task
 from .schema import subscription_schema
@@ -60,8 +61,17 @@ class SubscriptionBusEventHandler:
         self._service_manager = service_manager
 
     def subscribe(self) -> None:
+        # one subscription that cannot be registered never stops the others
         for subscription in self._service.list():
-            self._register(subscription)
+            try:
+                self._register(subscription)
+            except Exception as exc:
+                logger.exception(
+                    '%s state=register_failed subscription=%s error=%s',
+                    LOG_PREFIX,
+                    subscription.uuid,
+                    type(exc).__name__,
+                )
 
     def on_subscription_created(self, subscription: Subscription) -> None:
         self._register(subscription)
