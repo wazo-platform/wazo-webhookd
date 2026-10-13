@@ -300,7 +300,7 @@ def test_status_tells_a_denied_reconciliation_from_a_healthy_one(auth_patch):
     with patch(
         'wazo_webhookd.services.mobile.plugin.time.sleep', side_effect=StopLoop()
     ), patch(
-        'wazo_webhookd.services.mobile.plugin._utcnow', return_value='T1'
+        'wazo_webhookd.services.mobile.plugin.utcnow', return_value='T1'
     ), pytest.raises(
         StopLoop
     ):
@@ -316,7 +316,7 @@ def test_status_tells_a_denied_reconciliation_from_a_healthy_one(auth_patch):
     with patch(
         'wazo_webhookd.services.mobile.plugin.time.sleep', side_effect=StopLoop()
     ), patch(
-        'wazo_webhookd.services.mobile.plugin._utcnow', return_value='T2'
+        'wazo_webhookd.services.mobile.plugin.utcnow', return_value='T2'
     ), pytest.raises(
         StopLoop
     ):

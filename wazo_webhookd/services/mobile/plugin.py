@@ -22,7 +22,7 @@ from wazo_auth_client import Client as AuthClient
 from wazo_bus.resources.voicemail.types import VoicemailMessageDict
 from xivo.status import Status
 
-from wazo_webhookd.bus import LOG_PREFIX, _utcnow
+from wazo_webhookd.bus import LOG_PREFIX, utcnow
 from wazo_webhookd.plugins.subscription.notifier import SubscriptionNotifier
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 from wazo_webhookd.services.helpers import (
@@ -236,7 +236,7 @@ class Service:
                 )
             else:
                 self.last_reconcile_error = None
-            self.last_reconcile_at = _utcnow()
+            self.last_reconcile_at = utcnow()
             time.sleep(RECONCILE_INTERVAL)
 
     def reconcile(self) -> int:

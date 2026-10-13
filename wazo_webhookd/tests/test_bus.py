@@ -749,8 +749,10 @@ def test_a_bind_in_flight_during_a_reconnection_is_bound_again_after_it():
     assert (counts['bound'], counts['desired']) == (2, 2)
 
 
-def test_a_stop_during_a_broker_outage_ends_the_pass_after_one_attempt():
-    # SR-4: each connect may wait its timeout; a stop must not wait for all
+def test_a_stop_during_a_broker_outage_is_seen_after_one_failed_attempt():
+    # SR-4: each connect may wait its timeout. A failed attempt ends the pass
+    # (generation), so the run loop sees the stop before the next connect;
+    # without the stop, the same call makes three attempts
     broker = FakeBroker()
     broker.refuse_until = 1e9
     registrar = make_registrar(broker)

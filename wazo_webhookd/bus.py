@@ -42,7 +42,7 @@ def _wants_headers(handler: Callable) -> bool:
     return len(signature(handler).parameters) == 2
 
 
-def _utcnow() -> str:
+def utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -300,7 +300,7 @@ class SubscriptionRegistrar:
         connect: Callable[[], kombu.Connection],
         clock: Callable[[], float] = monotonic,
         rand: Callable[[], float] = random.random,
-        wall: Callable[[], str] = _utcnow,
+        wall: Callable[[], str] = utcnow,
     ) -> None:
         self._exchange = exchange
         self._connect = connect
