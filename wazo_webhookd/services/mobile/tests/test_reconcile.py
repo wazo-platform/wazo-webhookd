@@ -244,7 +244,7 @@ def test_loop_logs_one_warning_when_wazo_auth_is_down_and_carries_on(
 def test_status_reports_reconciled_users_created(auth_patch):
     auth_patch.return_value = (FakeAuth({'u1': TENANT_A}), 'jwt')
     service, _ = make_service(FakeAuth({}))
-    status: dict = {'subscriptions': {}}
+    status: dict = {'subscriptions': {}, 'mobile_reconciliation': {}}
 
     service.provide_status(status)  # type: ignore[arg-type]
     assert status['subscriptions'] == {'reconciled_users_created': 0}
@@ -278,3 +278,52 @@ def test_load_starts_the_reconciliation_thread_and_the_status_provider():
     )
     thread.return_value.start.assert_called_once_with()
     status_aggregator.add_provider.assert_called_once_with(service.provide_status)
+
+
+def test_status_tells_a_denied_reconciliation_from_a_healthy_one(auth_patch):
+    # SR-1: without auth.mobile.external.users.read the listing answers 401
+    service, _ = make_service(FakeAuth({}))
+    first_full_bind = Event()
+    first_full_bind.set()
+    auth = FakeAuth({})
+    auth.external.list_connected_users.side_effect = HTTPError('401 Unauthorized')
+    auth_patch.return_value = (auth, 'jwt')
+
+    status: dict = {'subscriptions': {}, 'mobile_reconciliation': {}}
+    service.provide_status(status)  # type: ignore[arg-type]
+    assert status['mobile_reconciliation'] == {
+        'status': 'ok',
+        'last_reconcile_at': None,
+        'last_reconcile_error': None,
+    }
+
+    with patch(
+        'wazo_webhookd.services.mobile.plugin.time.sleep', side_effect=StopLoop()
+    ), patch(
+        'wazo_webhookd.services.mobile.plugin._utcnow', return_value='T1'
+    ), pytest.raises(
+        StopLoop
+    ):
+        service._reconcile_forever(first_full_bind)
+    service.provide_status(status)  # type: ignore[arg-type]
+    assert status['mobile_reconciliation'] == {
+        'status': 'fail',
+        'last_reconcile_at': 'T1',
+        'last_reconcile_error': 'HTTPError',
+    }
+
+    auth.external.list_connected_users.side_effect = auth._list
+    with patch(
+        'wazo_webhookd.services.mobile.plugin.time.sleep', side_effect=StopLoop()
+    ), patch(
+        'wazo_webhookd.services.mobile.plugin._utcnow', return_value='T2'
+    ), pytest.raises(
+        StopLoop
+    ):
+        service._reconcile_forever(first_full_bind)
+    service.provide_status(status)  # type: ignore[arg-type]
+    assert status['mobile_reconciliation'] == {
+        'status': 'ok',
+        'last_reconcile_at': 'T2',
+        'last_reconcile_error': None,
+    }

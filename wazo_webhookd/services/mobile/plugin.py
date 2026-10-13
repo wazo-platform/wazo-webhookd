@@ -20,8 +20,9 @@ from celery import Task
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 from wazo_bus.resources.voicemail.types import VoicemailMessageDict
+from xivo.status import Status
 
-from wazo_webhookd.bus import LOG_PREFIX
+from wazo_webhookd.bus import LOG_PREFIX, _utcnow
 from wazo_webhookd.plugins.subscription.notifier import SubscriptionNotifier
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 from wazo_webhookd.services.helpers import (
@@ -174,6 +175,8 @@ class Service:
     _auth_cache_expires_at: ClassVar[float] = 0.0
     _auth_url_base: ClassVar[str | None] = None
     reconciled_users_created = 0
+    last_reconcile_at: str | None = None
+    last_reconcile_error: str | None = None
 
     def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
@@ -210,6 +213,13 @@ class Service:
         status['subscriptions'][
             'reconciled_users_created'
         ] = self.reconciled_users_created
+        # a denied listing (401 without auth.mobile.external.users.read) is
+        # not green (SR-1)
+        status['mobile_reconciliation'].update(
+            status=Status.fail if self.last_reconcile_error else Status.ok,
+            last_reconcile_at=self.last_reconcile_at,
+            last_reconcile_error=self.last_reconcile_error,
+        )
 
     def _reconcile_forever(self, first_full_bind: Event) -> None:
         # once after the first full bind, then every period
@@ -218,9 +228,15 @@ class Service:
             try:
                 self.reconcile()
             except Exception as exc:
+                self.last_reconcile_error = type(exc).__name__
                 logger.warning(
-                    '%s state=reconcile_failed error=%s', LOG_PREFIX, type(exc).__name__
+                    '%s state=reconcile_failed error=%s',
+                    LOG_PREFIX,
+                    self.last_reconcile_error,
                 )
+            else:
+                self.last_reconcile_error = None
+            self.last_reconcile_at = _utcnow()
             time.sleep(RECONCILE_INTERVAL)
 
     def reconcile(self) -> int:

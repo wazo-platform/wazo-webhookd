@@ -8,7 +8,9 @@
   make AMQP calls.
 * A mobile subscription missing for a user holding a `mobile` external auth
   is created again every 5 minutes. It needs the
-  `auth.mobile.external.users.read` ACL for the `wazo-webhookd` service.
+  `auth.mobile.external.users.read` ACL for the `wazo-webhookd` service;
+  `/status` `mobile_reconciliation` is `fail` while the last attempt failed,
+  with `last_reconcile_at` and `last_reconcile_error`.
 * `/status` `bus_consumer` gains `last_message_age_seconds` and is `fail` when
   one message has been handled for more than 60 seconds. A new
   `subscriptions` section reports `desired`, `bound`, `pending`, `failed`,

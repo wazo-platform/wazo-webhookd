@@ -73,6 +73,7 @@ class TestSubscriptionsSurviveARestart(BaseIntegrationTest):
             self._create(user_uuid)
 
         seconds, exit_code = self._stop_webhookd_seconds()
+        print(f'webhookd stop: {seconds:.1f} s, exit code {exit_code}')
         assert_that(seconds, less_than(15))
         assert_that(exit_code, is_not(137))  # 137: killed after the timeout
 

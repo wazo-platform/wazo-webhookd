@@ -315,7 +315,12 @@ class SubscriptionRegistrar:
         self._last_error_at: str | None = None
         self._last_full_bind_at: str | None = None
         self._unbound_since = clock()
+        self._added_at: dict[str, float] = {}
+        # bumped whenever everything is marked unbound: a bind started
+        # before it does not count after it (SR-3)
+        self._generation = 0
         self._full = False
+        self._loaded = False
         self._drop_connection = False
         self._stopping = False
         self._connection: kombu.Connection | None = None
@@ -323,6 +328,8 @@ class SubscriptionRegistrar:
 
     def add(self, event_name: str) -> None:
         with self._cond:
+            if event_name not in self._desired:
+                self._added_at[event_name] = self._clock()
             self._desired[event_name] += 1
             self._cond.notify_all()
 
@@ -333,10 +340,12 @@ class SubscriptionRegistrar:
             self._desired[event_name] -= 1
             if self._desired[event_name] <= 0:
                 del self._desired[event_name]
+                self._added_at.pop(event_name, None)
 
     def rebind_all(self, reason: str) -> None:
         with self._cond:
             self._bound.clear()
+            self._generation += 1
             self._unbound_since = self._clock()
             self._full = False
             self._drop_connection = True
@@ -353,6 +362,7 @@ class SubscriptionRegistrar:
         # start loop asks for the line to carry the loaded total
         with self._cond:
             self._full = False
+            self._loaded = True
             self._cond.notify_all()
 
     def stop(self) -> None:
@@ -381,18 +391,24 @@ class SubscriptionRegistrar:
             with self._cond:
                 drop, self._drop_connection = self._drop_connection, False
                 due = self._due()
+                generation = self._generation
             if drop:
                 self._release()
             if not due:
                 break
             for event_name in due:
+                # a reconnection or a failure ends the pass: the rest would
+                # run on a dropped connection (SR-3), and in an outage each
+                # connect may wait its timeout while a stop waits (SR-4)
+                if self._generation != generation:
+                    break
                 try:
                     self._bind(event_name)
                 except Exception as exc:
                     self._release()
                     self._failed(event_name, exc)
                 else:
-                    self._succeeded(event_name)
+                    self._succeeded(event_name, generation)
         self._check_full()
 
     def status(self) -> dict[str, Any]:
@@ -404,9 +420,17 @@ class SubscriptionRegistrar:
                 for e, n in self._desired.items()
                 if e not in self._bound and e in self._failures
             )
-            late = self._clock() - self._unbound_since > FULL_BIND_GRACE
+            now = self._clock()
+            # each unbound event is late 2 minutes after the later of the last
+            # start or reconnection and its own arrival (SR-6)
+            late = any(
+                now - max(self._unbound_since, self._added_at.get(e, 0.0))
+                > FULL_BIND_GRACE
+                for e in self._desired
+                if e not in self._bound
+            )
             return {
-                'status': Status.fail if bound < desired and late else Status.ok,
+                'status': Status.fail if late else Status.ok,
                 'desired': desired,
                 'bound': bound,
                 'pending': desired - bound - failed,
@@ -443,8 +467,10 @@ class SubscriptionRegistrar:
             )
         self._connection = None
 
-    def _succeeded(self, event_name: str) -> None:
+    def _succeeded(self, event_name: str, generation: int) -> None:
         with self._cond:
+            if generation != self._generation:
+                return
             self._bound.add(event_name)
             self._failures.pop(event_name, None)
             self._retry_at.pop(event_name, None)
@@ -461,6 +487,7 @@ class SubscriptionRegistrar:
             self._last_error = type(exc).__name__
             self._last_error_at = self._wall()
             self._bound.clear()
+            self._generation += 1
             self._full = False
             logger.warning(
                 '%s state=retry event=%s attempt=%d delay=%.1f error=%s',
@@ -484,6 +511,7 @@ class SubscriptionRegistrar:
                     desired,
                     self._clock() - self._unbound_since,
                 )
-                self.first_full_bind.set()
+                if self._loaded:
+                    self.first_full_bind.set()
             self._full = full
             self._cond.notify_all()

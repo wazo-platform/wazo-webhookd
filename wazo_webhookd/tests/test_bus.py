@@ -9,6 +9,7 @@ import re
 import threading
 import uuid
 from collections import Counter
+from pathlib import Path
 from threading import Event, Thread
 from typing import Any
 from unittest.mock import PropertyMock, patch
@@ -706,14 +707,94 @@ def test_a_release_that_raises_is_ignored():
     assert broker.exchange_binds == Counter(a=2)
 
 
-def test_first_full_bind_is_signalled_once_everything_is_bound():
+def test_first_full_bind_waits_for_the_start_loop_then_a_full_pass():
+    # SR-2: an empty or partial desired set is not the first full bind
     registrar = make_registrar(FakeBroker())
-    registrar.add('a')
+    registrar.bind_due()
     assert not registrar.first_full_bind.is_set()
 
+    registrar.add('a')
+    registrar.bind_due()
+    assert not registrar.first_full_bind.is_set()
+
+    registrar.add('b')
+    registrar.report_next_full_bind()
+    assert not registrar.first_full_bind.is_set()
     registrar.bind_due()
 
     assert registrar.first_full_bind.is_set()
+
+
+def test_a_bind_in_flight_during_a_reconnection_is_bound_again_after_it():
+    # SR-3: the consumer reconnects while the registrar is inside _bind('x')
+    broker = FakeBroker()
+    registrar = make_registrar(broker)
+    registrar.add('x')
+    registrar.add('y')
+    original = FakeChannel.exchange_bind
+    reconnected: list[bool] = []
+
+    def bind_then_reconnect(channel, destination, source, **kwargs):
+        original(channel, destination, source, **kwargs)
+        if kwargs['arguments']['name'] == 'x' and not reconnected:
+            reconnected.append(True)
+            registrar.rebind_all('consumer_connected')
+
+    with patch.object(FakeChannel, 'exchange_bind', bind_then_reconnect):
+        registrar.bind_due()
+
+    assert broker.exchange_binds == Counter(x=2, y=1)
+    assert broker.releases == 1
+    counts = registrar.status()
+    assert (counts['bound'], counts['desired']) == (2, 2)
+
+
+def test_a_stop_during_a_broker_outage_ends_the_pass_after_one_attempt():
+    # SR-4: each connect may wait its timeout; a stop must not wait for all
+    broker = FakeBroker()
+    broker.refuse_until = 1e9
+    registrar = make_registrar(broker)
+    for name in ('a', 'b', 'c'):
+        registrar.add(name)
+    attempts = []
+    original = FakeConnection.connect
+
+    def connect_then_stop(connection):
+        attempts.append(1)
+        registrar.stop()
+        original(connection)
+
+    with patch.object(FakeConnection, 'connect', connect_then_stop):
+        registrar.bind_due()
+
+    assert len(attempts) == 1
+
+
+def test_a_new_event_name_gets_its_own_grace():
+    # SR-6: hours after the start, a never-seen event is not late at once
+    broker = FakeBroker()
+    registrar = make_registrar(broker)
+    registrar.add('a')
+    registrar.bind_due()
+    broker.clock.now = 5000.0
+    broker.bind_failures['z'] = 100
+
+    registrar.add('z')
+    assert registrar.status()['status'] == 'ok'
+    registrar.bind_due()
+    assert registrar.status()['status'] == 'ok'
+
+    broker.clock.now = 5120.5
+    assert registrar.status()['status'] == 'fail'
+
+
+def test_the_systemd_unit_stops_in_15_seconds_and_starts_after_rabbitmq():
+    # SR-5: the container of the integration test has no systemd
+    unit = (Path(__file__).parents[2] / 'debian' / 'wazo-webhookd.service').read_text()
+    lines = unit.splitlines()
+    assert 'TimeoutStopSec=15' in lines
+    assert 'After=network.target rabbitmq-server.service' in lines
+    assert 'Wants=rabbitmq-server.service' in lines
 
 
 def test_bus_consumer_from_config_registers_the_registrar_thread():
