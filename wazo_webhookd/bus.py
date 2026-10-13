@@ -203,6 +203,8 @@ class WebhookdExchange:
         # on auto-delete exchanges are not kept in rabbitmq
         self._bindings: set[kombu.binding] = set()
         self._connection: kombu.Connection = None
+        # py-amqp connections are not thread-safe
+        self._connection_lock = Lock()
 
     def subscribe(self, event_name: str) -> None:
         binding = self._binding(event_name)
@@ -211,20 +213,23 @@ class WebhookdExchange:
     def subscribe_connected(
         self, event_name: str, consumer_connection: kombu.Connection
     ) -> None:
-        if self._connection is None:
-            self._connection = consumer_connection.clone()
+        with self._connection_lock:
+            if self._connection is None:
+                self._connection = consumer_connection.clone()
 
-        if not self._connection.connected:
-            self._connection.connect()
+            if not self._connection.connected:
+                self._connection.connect()
 
-        channel = self._connection.default_channel
-        self._kombu_exchange.declare(channel=channel)
-        binding = self._binding(event_name)
-        logger.debug(
-            'Binding exchange %s to event %s', self._kombu_exchange.name, event_name
-        )
-        binding.bind(self._kombu_exchange, channel=channel)
-        self._bindings.add(binding)
+            channel = self._connection.default_channel
+            self._kombu_exchange.declare(channel=channel)
+            binding = self._binding(event_name)
+            logger.debug(
+                'Binding exchange %s to event %s',
+                self._kombu_exchange.name,
+                event_name,
+            )
+            binding.bind(self._kombu_exchange, channel=channel)
+            self._bindings.add(binding)
 
     def declare(self, channel: StdChannel) -> None:
         logger.debug('Declaring exchange %s', self._kombu_exchange.name)
@@ -234,10 +239,11 @@ class WebhookdExchange:
             binding.bind(self._kombu_exchange, channel=channel)
 
     def on_connection_error(self) -> None:
-        if self._connection is None:
-            return
+        with self._connection_lock:
+            if self._connection is None:
+                return
 
-        self._connection.release()
+            self._connection.release()
 
     def _binding(self, event_name: str) -> kombu.binding:
         headers = {'name': event_name}
