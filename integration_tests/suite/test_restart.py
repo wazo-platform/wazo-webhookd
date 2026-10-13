@@ -42,9 +42,6 @@ class TestSubscriptionsSurviveARestart(BaseIntegrationTest):
             f'http://127.0.0.1:{self.service_port(1080, "third-party-http")}'
         )
         self.third_party.reset()
-        self.third_party.mock_simple_response(
-            path='/push/.*', responseBody='ok', statusCode=200
-        )
         self.bus = self.make_bus()
 
     def _create(self, user_uuid):
@@ -68,6 +65,10 @@ class TestSubscriptionsSurviveARestart(BaseIntegrationTest):
 
     def test_restart_while_subscriptions_are_created_binds_everything(self):
         users = [str(uuid.uuid4()) for _ in range(USERS_BEFORE + USERS_DURING)]
+        for user_uuid in users:
+            self.third_party.mock_simple_response(
+                path=f'/push/{user_uuid}', responseBody='ok', statusCode=200
+            )
         for user_uuid in users[:USERS_BEFORE]:
             self._create(user_uuid)
 
@@ -109,7 +110,11 @@ class TestSubscriptionsSurviveARestart(BaseIntegrationTest):
 
         for user_uuid in users:
             self.bus.publish(
-                {'name': EVENT, 'data': {'user_uuid': user_uuid}},
+                {
+                    'name': EVENT,
+                    'origin_uuid': 'my-origin-uuid',
+                    'data': {'user_uuid': user_uuid},
+                },
                 headers={'name': EVENT, f'user_uuid:{user_uuid}': True},
             )
 

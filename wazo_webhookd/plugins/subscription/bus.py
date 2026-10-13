@@ -72,6 +72,7 @@ class SubscriptionBusEventHandler:
                     subscription.uuid,
                     type(exc).__name__,
                 )
+        self._bus_consumer.report_next_full_bind()
 
     def on_subscription_created(self, subscription: Subscription) -> None:
         self._register(subscription)

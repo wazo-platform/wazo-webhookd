@@ -155,6 +155,9 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
     def first_full_bind(self) -> Event:
         return self._registrar.first_full_bind
 
+    def report_next_full_bind(self) -> None:
+        self._registrar.report_next_full_bind()
+
     # Never an AMQP call: any thread may subscribe, the consumer's own
     # included (BUG-646). wazo-bus records the queue binding under its lock
     # and applies it from the consumer thread; the registrar binds the
@@ -343,6 +346,13 @@ class SubscriptionRegistrar:
                 reason,
                 sum(self._desired.values()),
             )
+            self._cond.notify_all()
+
+    def report_next_full_bind(self) -> None:
+        # rows whose events are already bound make no new transition: the
+        # start loop asks for the line to carry the loaded total
+        with self._cond:
+            self._full = False
             self._cond.notify_all()
 
     def stop(self) -> None:

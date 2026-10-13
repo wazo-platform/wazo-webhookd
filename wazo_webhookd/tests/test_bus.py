@@ -504,6 +504,26 @@ def test_full_bind_log_line_bound_equals_the_database_subscription_event_pairs(c
     ]
 
 
+def test_full_bind_line_is_logged_again_once_the_start_loop_has_loaded_every_row(
+    caplog,
+):
+    # seen in the integration run: the consumer's own handlers are bound
+    # before the start loop runs, and rows on already-bound events make no
+    # new transition, so the only line said bound=8
+    broker = FakeBroker()
+    consumer = make_consumer(broker)
+    consumer.subscribe('call_push_notification', lambda payload: None)
+    consumer._registrar.bind_due()
+    stored = [make_subscription(events=['call_push_notification']) for _ in range(5)]
+
+    with caplog.at_level(logging.INFO, logger='wazo_webhookd.bus'):
+        make_handler(consumer, FakeSubscriptionService(stored)).subscribe()
+        consumer._registrar.bind_due()
+
+    full = [r.getMessage() for r in caplog.records if 'state=bound' in r.getMessage()]
+    assert full == ['webhookd_subscriptions state=bound bound=6 desired=6 seconds=0.0']
+
+
 def test_queue_bindings_synced_only_once_the_broker_holds_every_queue_binding():
     broker = FakeBroker()
     consumer = make_consumer(broker)
