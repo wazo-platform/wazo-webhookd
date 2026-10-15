@@ -13,6 +13,7 @@ from flask_cors import CORS
 from flask_restful import Api, Resource
 from xivo import http_helpers, mallow_helpers, rest_api_helpers, wsgi
 from xivo.flask.auth_verifier import AuthVerifierFlask
+from xivo.flask.metrics import init_flask_metrics
 
 from wazo_webhookd.types import WebhookdConfigDict
 
@@ -40,6 +41,8 @@ class CoreRestApi:
         app.permanent_session_lifetime = timedelta(minutes=5)
         app.config['auth'] = global_config['auth']
         self._load_cors()
+        if global_config['metrics']['enabled']:
+            init_flask_metrics(app, api)
         self.server: wsgi.WSGIServer = None  # type: ignore[assignment]
         self._stopped = threading.Event()
 
