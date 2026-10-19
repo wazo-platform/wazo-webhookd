@@ -80,6 +80,7 @@ _DEFAULT_CONFIG = {
     'enabled_plugins': {
         'api': True,
         'config': True,
+        'metrics': False,
         'mobile': True,
         'services': True,
         'status': True,
@@ -97,9 +98,6 @@ _DEFAULT_CONFIG = {
     'mobile_apns_call_topic': 'org.wazo-platform.voip',
     'mobile_apns_default_topic': 'org.wazo-platform',
     'mobile_fcm_notification_end_point': FCMNotification.FCM_END_POINT,
-    'metrics': {
-        'enabled': True,
-    },
 }
 
 

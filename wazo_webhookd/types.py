@@ -93,10 +93,6 @@ class ServiceDiscoveryConfigDict(TypedDict):
     extra_tags: list[str]
 
 
-class MetricsConfigDict(TypedDict):
-    enabled: bool
-
-
 class ConsulConfigDict(TypedDict):
     scheme: str
     port: int
@@ -116,7 +112,6 @@ class WebhookdConfigDict(TypedDict):
     db_uri: str
     hook_max_attempts: int
     hook_http_retry_countdown_factor: int
-    metrics: MetricsConfigDict
     rest_api: RestApiConfigDict
     enabled_celery_tasks: EnabledCeleryTasksConfigDict
     enabled_plugins: EnabledPluginConfigDict
