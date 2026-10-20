@@ -1,5 +1,17 @@
 # Changelog
 
+## 26.10
+
+* `/status` `bus_consumer` gains `last_message_age_seconds` and is `fail` when
+  one message has been handled for more than 60 seconds.
+* New `/status` section `subscriptions`: `desired`, `bound`, `pending`,
+  `failed`, `retries`, `last_error`, `last_error_at`, `last_full_bind_at`,
+  `queue_bindings_synced` and `reconciled_users_created`; it is `fail` while
+  `bound < desired` 2 minutes after a start or a reconnection.
+* New `/status` section `mobile_reconciliation`: `status`,
+  `last_reconcile_at` and `last_reconcile_error`; it is `fail` while the last
+  reconciliation of mobile subscriptions failed.
+
 ## 26.09
 
 * Requests to wazo-auth now default to `localhost:80`, through nginx.

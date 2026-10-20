@@ -4,12 +4,16 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Callable, Sequence
+from datetime import datetime, timezone
 from inspect import signature
-from threading import Lock
+from threading import Condition, Event, Lock
+from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 import kombu
+from tenacity import RetryCallState, wait_random_exponential
 from wazo_bus.base import Base
 from wazo_bus.mixins import ConsumerMixin, ThreadableMixin
 from wazo_bus.publisher import BusPublisher as BasePublisher
@@ -26,9 +30,27 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+LOG_PREFIX = 'webhookd_subscriptions'
+FULL_BIND_GRACE = 120.0
+MESSAGE_STUCK_AFTER = 60.0
+
 
 def _wants_headers(handler: Callable) -> bool:
     return len(signature(handler).parameters) == 2
+
+
+def utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+_retry_wait = wait_random_exponential(multiplier=1, max=60)
+
+
+def retry_delay(attempt: int) -> float:
+    """Random in [0, 1 s], doubling each attempt, the window capped at 60 s."""
+    state = RetryCallState(None, None, (), {})  # type: ignore[arg-type]
+    state.attempt_number = attempt
+    return _retry_wait(state)
 
 
 # !!DO NOT RENAME!!
@@ -38,6 +60,10 @@ class _ConsumerMixin(ConsumerMixin):
     callbacks, based on the AMQP headers of the message.
     This is a performance optimization to avoid having many queues in RabbitMQ
     for wazo-webhookd."""
+
+    _clock: Callable[[], float] = monotonic
+    _message_started_at: float | None = None
+    _message_ended_at: float | None = None
 
     def _check_headers_match(
         self, headers: Headers | None, binding: kombu.binding
@@ -55,6 +81,18 @@ class _ConsumerMixin(ConsumerMixin):
 
     def __dispatch(
         self, event_name: str, payload: Payload, headers: Headers | None = None
+    ) -> None:
+        # Handlers run in turn on the consumer thread: one that never returns
+        # stops every push. /status reads these two to say so.
+        self._message_started_at = self._clock()
+        try:
+            self.__dispatch_to_handlers(event_name, payload, headers)
+        finally:
+            self._message_ended_at = self._clock()
+            self._message_started_at = None
+
+    def __dispatch_to_handlers(
+        self, event_name: str, payload: Payload, headers: Headers | None
     ) -> None:
         with self.__lock:
             subscriptions = self.__subscriptions[event_name].copy()
@@ -82,7 +120,12 @@ class _ConsumerMixin(ConsumerMixin):
 
 class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
     def __init__(
-        self, name='', exchange_name: str = '', exchange_type: str = '', **kwargs: Any
+        self,
+        name='',
+        exchange_name: str = '',
+        exchange_type: str = '',
+        clock: Callable[[], float] = monotonic,
+        **kwargs: Any,
     ) -> None:
         exchange_kwargs = {'auto_delete': True}
         self._webhookd_exchange = WebhookdExchange(
@@ -99,27 +142,44 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             exchange_kwargs=exchange_kwargs,
             **kwargs,
         )
+        self._clock = clock
+        self._registrar = SubscriptionRegistrar(
+            self._webhookd_exchange, lambda: self.connection.clone(), clock=clock
+        )
+        self._register_thread('registrar', self._registrar.run, self._registrar.stop)
         self._handlers_lock = Lock()
         self._handlers: dict[
             str, tuple[AmpqCallback, Sequence[str], Headers | None]
         ] = {}
 
+    @property
+    def first_full_bind(self) -> Event:
+        return self._registrar.first_full_bind
+
+    def report_next_full_bind(self) -> None:
+        self._registrar.report_next_full_bind()
+
+    # Never an AMQP call: any thread may subscribe, the consumer's own
+    # included. wazo-bus records the queue binding under its lock
+    # and applies it from the consumer thread; the registrar binds the
+    # exchange.
     def subscribe(self, event_name: str, *args, **kwargs) -> None:
-        if self.is_running:
-            self._webhookd_exchange.subscribe_connected(event_name, self.connection)
-        else:
-            self._webhookd_exchange.subscribe(event_name)
-        return super().subscribe(event_name, *args, **kwargs)
+        super().subscribe(event_name, *args, **kwargs)
+        self._registrar.add(event_name)
+
+    def unsubscribe(self, event_name: str, *args, **kwargs) -> bool:
+        removed = super().unsubscribe(event_name, *args, **kwargs)
+        if removed:
+            self._registrar.remove(event_name)
+        return removed
 
     def get_consumers(
         self, Consumer: kombu.Consumer, channel: StdChannel
     ) -> list[kombu.Consumer]:
         self._webhookd_exchange.declare(channel)
+        # the auto-delete exchange and its bindings may be gone with the queue
+        self._registrar.rebind_all('consumer_connected')
         return super().get_consumers(Consumer, channel)
-
-    def on_connection_error(self, exc: Exception, interval: str) -> None:
-        self._webhookd_exchange.on_connection_error()
-        return super().on_connection_error(exc, interval)
 
     # Deprecated, wrapper for plugin compatibility
     # please use method `subscribe`
@@ -169,8 +229,19 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             self.unsubscribe(event, callback)
 
     def provide_status(self, status: StatusDict) -> None:
+        now = self._clock()
+        started, ended = self._message_started_at, self._message_ended_at
+        stuck = started is not None and now - started > MESSAGE_STUCK_AFTER
+        connected = self.consumer_connected()
         status['bus_consumer']['status'] = (
-            Status.ok if self.consumer_connected() else Status.fail
+            Status.ok if connected and not stuck else Status.fail
+        )
+        status['bus_consumer']['last_message_age_seconds'] = (
+            None if ended is None else round(now - ended, 1)
+        )
+        status['subscriptions'].update(
+            self._registrar.status(),
+            queue_bindings_synced=self.wait_synchronized(timeout=0),
         )
 
     @classmethod
@@ -198,47 +269,250 @@ class WebhookdExchange:
         self._upstream_kombu_exchange = kombu.Exchange(
             upstream_exchange_name, upstream_exchange_type
         )
-        # We need to keep a binding list in case we're not connected yet
-        # and to recreate the bindings after rabbitmq restart, as bindings
-        # on auto-delete exchanges are not kept in rabbitmq
-        self._bindings: set[kombu.binding] = set()
-        self._connection: kombu.Connection = None
-
-    def subscribe(self, event_name: str) -> None:
-        binding = self._binding(event_name)
-        self._bindings.add(binding)
-
-    def subscribe_connected(
-        self, event_name: str, consumer_connection: kombu.Connection
-    ) -> None:
-        if self._connection is None:
-            self._connection = consumer_connection.clone()
-
-        if not self._connection.connected:
-            self._connection.connect()
-
-        channel = self._connection.default_channel
-        self._kombu_exchange.declare(channel=channel)
-        binding = self._binding(event_name)
-        logger.debug(
-            'Binding exchange %s to event %s', self._kombu_exchange.name, event_name
-        )
-        binding.bind(self._kombu_exchange, channel=channel)
-        self._bindings.add(binding)
 
     def declare(self, channel: StdChannel) -> None:
         logger.debug('Declaring exchange %s', self._kombu_exchange.name)
         self._kombu_exchange.declare(channel=channel)
-        logger.debug('Binding exchange %s', self._kombu_exchange.name)
-        for binding in self._bindings:
-            binding.bind(self._kombu_exchange, channel=channel)
 
-    def on_connection_error(self) -> None:
+    def bind(self, event_name: str, channel: StdChannel) -> None:
+        # declared again: the exchange is auto-delete and may have gone
+        self._kombu_exchange.declare(channel=channel)
+        headers = {'name': event_name}
+        binding = kombu.binding(self._upstream_kombu_exchange, None, headers, headers)
+        binding.bind(self._kombu_exchange, channel=channel)
+
+
+class SubscriptionRegistrar:
+    """The only code that binds webhookd's exchange at the broker.
+
+    A py-amqp connection serves one thread: every other thread
+    changes the desired set under the lock and wakes this one, which owns its
+    connection, binds what is missing one event at a time, retries a failure
+    with backoff without stopping the others, and rebinds everything after a
+    reconnection (bindings are idempotent at the broker).
+
+    Counts are (handler, event) pairs: one per subscription event, plus
+    webhookd's own handlers (user/tenant deleted, mobile external auth).
+    """
+
+    def __init__(
+        self,
+        exchange: WebhookdExchange,
+        connect: Callable[[], kombu.Connection],
+        clock: Callable[[], float] = monotonic,
+        delay: Callable[[int], float] = retry_delay,
+        wall: Callable[[], str] = utcnow,
+    ) -> None:
+        self._exchange = exchange
+        self._connect = connect
+        self._clock, self._delay, self._wall = clock, delay, wall
+        self._cond = Condition()
+        self._desired: Counter[str] = Counter()
+        self._bound: set[str] = set()
+        self._failures: dict[str, int] = {}
+        self._retry_at: dict[str, float] = {}
+        self._retries = 0
+        self._last_error: str | None = None
+        self._last_error_at: str | None = None
+        self._last_full_bind_at: str | None = None
+        self._unbound_since = clock()
+        self._added_at: dict[str, float] = {}
+        # bumped whenever everything is marked unbound: a bind started
+        # before it does not count after it
+        self._generation = 0
+        self._full = False
+        self._loaded = False
+        self._drop_connection = False
+        self._stopping = False
+        self._connection: kombu.Connection | None = None
+        self.first_full_bind = Event()
+
+    def add(self, event_name: str) -> None:
+        with self._cond:
+            if event_name not in self._desired:
+                self._added_at[event_name] = self._clock()
+            self._desired[event_name] += 1
+            self._cond.notify_all()
+
+    def remove(self, event_name: str) -> None:
+        # the exchange binding stays: the queue binding wazo-bus removes is
+        # what stops delivery
+        with self._cond:
+            self._desired[event_name] -= 1
+            if self._desired[event_name] <= 0:
+                del self._desired[event_name]
+                self._added_at.pop(event_name, None)
+
+    def rebind_all(self, reason: str) -> None:
+        with self._cond:
+            self._bound.clear()
+            self._generation += 1
+            self._unbound_since = self._clock()
+            self._full = False
+            self._drop_connection = True
+            logger.info(
+                '%s state=rebind reason=%s desired=%d',
+                LOG_PREFIX,
+                reason,
+                sum(self._desired.values()),
+            )
+            self._cond.notify_all()
+
+    def report_next_full_bind(self) -> None:
+        # rows whose events are already bound make no new transition: the
+        # start loop asks for the line to carry the loaded total
+        with self._cond:
+            self._full = False
+            self._loaded = True
+            self._cond.notify_all()
+
+    def stop(self) -> None:
+        with self._cond:
+            self._stopping = True
+            self._cond.notify_all()
+
+    def run(self, ready_flag: Event) -> None:
+        ready_flag.set()
+        while not self._stopping:
+            self.bind_due()
+            with self._cond:
+                if not self._stopping and not self._due():
+                    self._cond.wait(self.next_retry_in())
+        self._release()
+
+    def next_retry_in(self) -> float | None:
+        with self._cond:
+            waiting = [
+                at for event, at in self._retry_at.items() if event in self._desired
+            ]
+            return max(0.0, min(waiting) - self._clock()) if waiting else None
+
+    def bind_due(self) -> None:
+        while not self._stopping:
+            with self._cond:
+                drop, self._drop_connection = self._drop_connection, False
+                due = self._due()
+                generation = self._generation
+            if drop:
+                self._release()
+            if not due:
+                break
+            for event_name in due:
+                # a reconnection or a failure ends the pass: the rest would
+                # run on a dropped connection, and in an outage each
+                # connect may wait its timeout while a stop waits
+                if self._generation != generation:
+                    break
+                try:
+                    self._bind(event_name)
+                except Exception as exc:
+                    self._release()
+                    self._failed(event_name, exc)
+                else:
+                    self._succeeded(event_name, generation)
+        self._check_full()
+
+    def status(self) -> dict[str, Any]:
+        with self._cond:
+            desired = sum(self._desired.values())
+            bound = sum(n for e, n in self._desired.items() if e in self._bound)
+            failed = sum(
+                n
+                for e, n in self._desired.items()
+                if e not in self._bound and e in self._failures
+            )
+            now = self._clock()
+            # each unbound event is late 2 minutes after the later of the last
+            # start or reconnection and its own arrival
+            late = any(
+                now - max(self._unbound_since, self._added_at.get(e, 0.0))
+                > FULL_BIND_GRACE
+                for e in self._desired
+                if e not in self._bound
+            )
+            return {
+                'status': Status.fail if late else Status.ok,
+                'desired': desired,
+                'bound': bound,
+                'pending': desired - bound - failed,
+                'failed': failed,
+                'retries': self._retries,
+                'last_error': self._last_error,
+                'last_error_at': self._last_error_at,
+                'last_full_bind_at': self._last_full_bind_at,
+            }
+
+    def _due(self) -> list[str]:
+        now = self._clock()
+        return [
+            event
+            for event in self._desired
+            if event not in self._bound and self._retry_at.get(event, 0.0) <= now
+        ]
+
+    def _bind(self, event_name: str) -> None:
+        if self._connection is None:
+            self._connection = self._connect()
+        if not self._connection.connected:
+            self._connection.connect()
+        self._exchange.bind(event_name, self._connection.default_channel)
+
+    def _release(self) -> None:
         if self._connection is None:
             return
+        try:
+            self._connection.release()
+        except Exception as exc:
+            logger.debug(
+                '%s state=release_failed error=%s', LOG_PREFIX, type(exc).__name__
+            )
+        self._connection = None
 
-        self._connection.release()
+    def _succeeded(self, event_name: str, generation: int) -> None:
+        with self._cond:
+            if generation != self._generation:
+                return
+            self._bound.add(event_name)
+            self._failures.pop(event_name, None)
+            self._retry_at.pop(event_name, None)
 
-    def _binding(self, event_name: str) -> kombu.binding:
-        headers = {'name': event_name}
-        return kombu.binding(self._upstream_kombu_exchange, None, headers, headers)
+    def _failed(self, event_name: str, exc: Exception) -> None:
+        # the connection is renewed, so everything is rebound on it (scope 3);
+        # the exception's text is never logged: it can carry the broker URL
+        with self._cond:
+            attempt = self._failures.get(event_name, 0) + 1
+            delay = self._delay(attempt)
+            self._failures[event_name] = attempt
+            self._retry_at[event_name] = self._clock() + delay
+            self._retries += 1
+            self._last_error = type(exc).__name__
+            self._last_error_at = self._wall()
+            self._bound.clear()
+            self._generation += 1
+            self._full = False
+            logger.warning(
+                '%s state=retry event=%s attempt=%d delay=%.1f error=%s',
+                LOG_PREFIX,
+                event_name,
+                attempt,
+                delay,
+                self._last_error,
+            )
+
+    def _check_full(self) -> None:
+        with self._cond:
+            full = all(event in self._bound for event in self._desired)
+            if full and not self._full:
+                desired = sum(self._desired.values())
+                self._last_full_bind_at = self._wall()
+                logger.info(
+                    '%s state=bound bound=%d desired=%d seconds=%.1f',
+                    LOG_PREFIX,
+                    desired,
+                    desired,
+                    self._clock() - self._unbound_since,
+                )
+                if self._loaded:
+                    self.first_full_bind.set()
+            self._full = full
+            self._cond.notify_all()

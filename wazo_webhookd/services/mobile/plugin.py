@@ -12,6 +12,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import StrEnum
+from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, NotRequired, TypedDict, cast
 
 import httpx
@@ -19,7 +20,9 @@ from celery import Task
 from requests.exceptions import HTTPError
 from wazo_auth_client import Client as AuthClient
 from wazo_bus.resources.voicemail.types import VoicemailMessageDict
+from xivo.status import Status
 
+from wazo_webhookd.bus import LOG_PREFIX, utcnow
 from wazo_webhookd.plugins.subscription.notifier import SubscriptionNotifier
 from wazo_webhookd.plugins.subscription.service import SubscriptionService
 from wazo_webhookd.services.helpers import (
@@ -41,6 +44,7 @@ from .fcm_client import (
 
 if TYPE_CHECKING:
     from wazo_auth_client.types import TokenDict
+    from xivo.status import StatusDict
 
     from ...types import ServicePluginDependencyDict, WebhookdConfigDict
 
@@ -133,6 +137,9 @@ DEFAULT_ANDROID_CHANNEL_ID = 'io.wazo.songbird'
 # auth token for celery tasks live 1h
 TASK_AUTH_TOKEN_EXPIRATION = 3600
 
+RECONCILE_INTERVAL = 300
+RECONCILE_PAGE_SIZE = 500
+
 
 class NotificationType(StrEnum):
     MESSAGE_RECEIVED = 'messageReceived'
@@ -167,6 +174,9 @@ class Service:
     _auth_cache: ClassVar[tuple[AuthClient, str] | None] = None
     _auth_cache_expires_at: ClassVar[float] = 0.0
     _auth_url_base: ClassVar[str | None] = None
+    reconciled_users_created = 0
+    last_reconcile_at: str | None = None
+    last_reconcile_error: str | None = None
 
     def load(self, dependencies: ServicePluginDependencyDict) -> None:
         bus_consumer = dependencies['bus_consumer']
@@ -190,7 +200,95 @@ class Service:
             self.on_external_auth_deleted,
             headers={'x-internal': True},
         )
+        dependencies['status_aggregator'].add_provider(self.provide_status)
+        Thread(
+            target=self._reconcile_forever,
+            args=(bus_consumer.first_full_bind,),
+            name='mobile-reconcile',
+            daemon=True,
+        ).start()
         logger.info('Mobile push notification plugin is started')
+
+    def provide_status(self, status: StatusDict) -> None:
+        status['subscriptions'][
+            'reconciled_users_created'
+        ] = self.reconciled_users_created
+        # a denied listing (401 without auth.mobile.external.users.read) is
+        # not green
+        status['mobile_reconciliation'].update(
+            status=Status.fail if self.last_reconcile_error else Status.ok,
+            last_reconcile_at=self.last_reconcile_at,
+            last_reconcile_error=self.last_reconcile_error,
+        )
+
+    def _reconcile_forever(self, first_full_bind: Event) -> None:
+        # once after the first full bind, then every period
+        first_full_bind.wait(RECONCILE_INTERVAL)
+        while True:
+            try:
+                self.reconcile()
+            except Exception as exc:
+                self.last_reconcile_error = type(exc).__name__
+                logger.warning(
+                    '%s state=reconcile_failed error=%s',
+                    LOG_PREFIX,
+                    self.last_reconcile_error,
+                )
+            else:
+                self.last_reconcile_error = None
+            self.last_reconcile_at = utcnow()
+            time.sleep(RECONCILE_INTERVAL)
+
+    def reconcile(self) -> int:
+        """Create the mobile subscription of every user holding a `mobile`
+        external auth without one: the app's « unregister » and « create »
+        are two requests, and a failure between them leaves the user with
+        no push. User-made subscriptions are never touched."""
+        auth, _ = self.get_auth(self._config)
+        mobile_users = self._mobile_user_uuids(auth)
+        subscribed = {
+            subscription.owner_user_uuid
+            for subscription in self.subscription_service.list(
+                search_metadata={'mobile': 'true'}
+            )
+        }
+        created = 0
+        for user_uuid in sorted(mobile_users - subscribed):
+            try:
+                # the listing carries no tenant; read only for missing users
+                tenant_uuid = auth.users.get(user_uuid)['tenant_uuid']
+                self._ensure_mobile_subscription(user_uuid, tenant_uuid)
+            except Exception as exc:
+                logger.warning(
+                    '%s state=reconcile_user_failed error=%s',
+                    LOG_PREFIX,
+                    type(exc).__name__,
+                )
+                continue
+            created += 1
+        self.reconciled_users_created += created
+        logger.info(
+            '%s state=reconciled mobile_users=%d created=%d',
+            LOG_PREFIX,
+            len(mobile_users),
+            created,
+        )
+        return created
+
+    @staticmethod
+    def _mobile_user_uuids(auth: AuthClient) -> set[str]:
+        # GET /external/mobile/users?recurse=true: every tenant, paginated
+        user_uuids: set[str] = set()
+        offset = 0
+        while True:
+            page = auth.external.list_connected_users(
+                'mobile', recurse=True, limit=RECONCILE_PAGE_SIZE, offset=offset
+            )
+            items = page['items']
+            user_uuids.update(item['uuid'] for item in items)
+            offset += len(items)
+            if not items or offset >= page['total']:
+                return user_uuids
 
     def on_external_auth_added(self, body: dict, headers: dict):
         if body['data'].get('external_auth_name') == 'mobile':
