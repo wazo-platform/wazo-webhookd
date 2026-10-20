@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import logging
-import random
 from collections import Counter
 from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
@@ -14,6 +13,7 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 import kombu
+from tenacity import RetryCallState, wait_random_exponential
 from wazo_bus.base import Base
 from wazo_bus.mixins import ConsumerMixin, ThreadableMixin
 from wazo_bus.publisher import BusPublisher as BasePublisher
@@ -31,9 +31,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 LOG_PREFIX = 'webhookd_subscriptions'
-RETRY_FIRST_DELAY = 1.0
-RETRY_MAX_DELAY = 60.0
-RETRY_JITTER = 0.2
 FULL_BIND_GRACE = 120.0
 MESSAGE_STUCK_AFTER = 60.0
 
@@ -46,10 +43,14 @@ def utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def retry_delay(attempt: int, rand: float) -> float:
-    """1 s, doubling, capped at 60 s, then ±20 % (`rand` in [0, 1])."""
-    base = min(RETRY_MAX_DELAY, RETRY_FIRST_DELAY * 2 ** min(attempt - 1, 16))
-    return base * (1 + RETRY_JITTER * (2 * rand - 1))
+_retry_wait = wait_random_exponential(multiplier=1, max=60)
+
+
+def retry_delay(attempt: int) -> float:
+    """Random in [0, 1 s], doubling each attempt, the window capped at 60 s."""
+    state = RetryCallState(None, None, (), {})  # type: ignore[arg-type]
+    state.attempt_number = attempt
+    return _retry_wait(state)
 
 
 # !!DO NOT RENAME!!
@@ -159,7 +160,7 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
         self._registrar.report_next_full_bind()
 
     # Never an AMQP call: any thread may subscribe, the consumer's own
-    # included (BUG-646). wazo-bus records the queue binding under its lock
+    # included. wazo-bus records the queue binding under its lock
     # and applies it from the consumer thread; the registrar binds the
     # exchange.
     def subscribe(self, event_name: str, *args, **kwargs) -> None:
@@ -284,7 +285,7 @@ class WebhookdExchange:
 class SubscriptionRegistrar:
     """The only code that binds webhookd's exchange at the broker.
 
-    A py-amqp connection serves one thread (BUG-646): every other thread
+    A py-amqp connection serves one thread: every other thread
     changes the desired set under the lock and wakes this one, which owns its
     connection, binds what is missing one event at a time, retries a failure
     with backoff without stopping the others, and rebinds everything after a
@@ -299,12 +300,12 @@ class SubscriptionRegistrar:
         exchange: WebhookdExchange,
         connect: Callable[[], kombu.Connection],
         clock: Callable[[], float] = monotonic,
-        rand: Callable[[], float] = random.random,
+        delay: Callable[[int], float] = retry_delay,
         wall: Callable[[], str] = utcnow,
     ) -> None:
         self._exchange = exchange
         self._connect = connect
-        self._clock, self._rand, self._wall = clock, rand, wall
+        self._clock, self._delay, self._wall = clock, delay, wall
         self._cond = Condition()
         self._desired: Counter[str] = Counter()
         self._bound: set[str] = set()
@@ -317,7 +318,7 @@ class SubscriptionRegistrar:
         self._unbound_since = clock()
         self._added_at: dict[str, float] = {}
         # bumped whenever everything is marked unbound: a bind started
-        # before it does not count after it (SR-3)
+        # before it does not count after it
         self._generation = 0
         self._full = False
         self._loaded = False
@@ -398,8 +399,8 @@ class SubscriptionRegistrar:
                 break
             for event_name in due:
                 # a reconnection or a failure ends the pass: the rest would
-                # run on a dropped connection (SR-3), and in an outage each
-                # connect may wait its timeout while a stop waits (SR-4)
+                # run on a dropped connection, and in an outage each
+                # connect may wait its timeout while a stop waits
                 if self._generation != generation:
                     break
                 try:
@@ -422,7 +423,7 @@ class SubscriptionRegistrar:
             )
             now = self._clock()
             # each unbound event is late 2 minutes after the later of the last
-            # start or reconnection and its own arrival (SR-6)
+            # start or reconnection and its own arrival
             late = any(
                 now - max(self._unbound_since, self._added_at.get(e, 0.0))
                 > FULL_BIND_GRACE
@@ -480,7 +481,7 @@ class SubscriptionRegistrar:
         # the exception's text is never logged: it can carry the broker URL
         with self._cond:
             attempt = self._failures.get(event_name, 0) + 1
-            delay = retry_delay(attempt, self._rand())
+            delay = self._delay(attempt)
             self._failures[event_name] = attempt
             self._retry_at[event_name] = self._clock() + delay
             self._retries += 1

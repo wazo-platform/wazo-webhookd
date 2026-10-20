@@ -214,7 +214,7 @@ class Service:
             'reconciled_users_created'
         ] = self.reconciled_users_created
         # a denied listing (401 without auth.mobile.external.users.read) is
-        # not green (SR-1)
+        # not green
         status['mobile_reconciliation'].update(
             status=Status.fail if self.last_reconcile_error else Status.ok,
             last_reconcile_at=self.last_reconcile_at,

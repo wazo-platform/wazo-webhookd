@@ -47,7 +47,7 @@ class FakeClock:
 
 class FakeBroker:
     """Records what reached the broker. A connection belongs to the first
-    thread that uses it, as a py-amqp one must (BUG-646): a second thread
+    thread that uses it, as a py-amqp one must: a second thread
     raises, and the violation is kept even if the caller swallows it."""
 
     def __init__(self, clock: FakeClock | None = None) -> None:
@@ -232,9 +232,6 @@ def master_tenant():
         yield
 
 
-# Criterion 1
-
-
 def test_start_with_3500_while_another_thread_creates_20_uses_one_thread_per_connection():
     broker = FakeBroker()
     consumer = make_consumer(broker)
@@ -245,7 +242,7 @@ def test_start_with_3500_while_another_thread_creates_20_uses_one_thread_per_con
         target=consumer._registrar.run, args=(Event(),), daemon=True
     )
 
-    # C1: the start loop runs while the consumer is running
+    # The start loop runs while the consumer is running
     with patch.object(
         BusConsumer, 'is_running', new_callable=PropertyMock, return_value=True
     ):
@@ -269,9 +266,6 @@ def test_start_with_3500_while_another_thread_creates_20_uses_one_thread_per_con
     assert not registrar_thread.is_alive()
 
 
-# Criterion 2
-
-
 def test_external_auth_added_returns_without_amqp_call_then_registrar_binds_it():
     broker = FakeBroker()
     consumer = make_consumer(broker)
@@ -293,36 +287,29 @@ def test_external_auth_added_returns_without_amqp_call_then_registrar_binds_it()
     assert (counts['bound'], counts['desired']) == (6, 6)
 
 
-# Criterion 3
-
-
 @pytest.mark.parametrize(
-    'attempt,rand,expected',
-    [
-        (1, 0.5, 1.0),
-        (2, 0.5, 2.0),
-        (3, 0.5, 4.0),
-        (6, 0.5, 32.0),
-        (7, 0.5, 60.0),
-        (40, 0.5, 60.0),
-        (1, 0.0, 0.8),
-        (1, 1.0, 1.2),
-        (7, 0.0, 48.0),
-        (7, 1.0, 72.0),
-    ],
+    'attempt,high',
+    [(1, 1.0), (2, 2.0), (3, 4.0), (6, 32.0), (7, 60.0), (40, 60.0), (2000, 60.0)],
 )
-def test_retry_delay_doubles_from_one_second_capped_at_60_with_20_percent_jitter(
-    attempt, rand, expected
+def test_retry_delay_is_tenacity_full_jitter_from_one_second_doubling_capped_at_60(
+    attempt, high
 ):
-    assert retry_delay(attempt, rand) == pytest.approx(expected)
+    with patch('tenacity.wait.random.uniform', return_value=0.25) as uniform:
+        assert retry_delay(attempt) == 0.25
+    uniform.assert_called_once_with(0, high)
 
 
-def make_registrar(broker: FakeBroker, rand=lambda: 0.5) -> SubscriptionRegistrar:
+def exact_delay(attempt: int) -> float:
+    # the top of tenacity's window, so the schedule is deterministic
+    return min(60.0, 2.0 ** (attempt - 1))
+
+
+def make_registrar(broker: FakeBroker, delay=exact_delay) -> SubscriptionRegistrar:
     exchange = WebhookdExchange(
         'wazo_webhookd', 'headers', {}, 'wazo-headers', 'headers'
     )
     return SubscriptionRegistrar(
-        exchange, lambda: FakeConnection(broker), clock=broker.clock, rand=rand
+        exchange, lambda: FakeConnection(broker), clock=broker.clock, delay=delay
     )
 
 
@@ -355,9 +342,6 @@ def test_failing_bind_is_retried_at_1_2_4_seconds_while_the_others_are_bound():
     assert registrar.next_retry_in() is None
     # each failure renews the connection, and everything is rebound on it
     assert broker.exchange_binds == Counter(a=4, b=1, c=3)
-
-
-# Criterion 4
 
 
 def test_consumer_reconnection_marks_everything_unbound_and_rebinds_it():
@@ -396,9 +380,6 @@ def test_broker_refusing_connections_for_30_seconds_at_start_ends_fully_bound():
     assert (counts['bound'], counts['desired']) == (3, 3)
     assert 30.0 <= broker.clock.now <= 30.0 + 72.0
     assert counts['last_error'] == 'ConnectionRefusedError'
-
-
-# Criterion 5
 
 
 def test_status_counts_and_fail_only_two_minutes_after_start_while_not_all_bound():
@@ -469,9 +450,6 @@ def test_removed_subscription_leaves_desired_and_unsubscribed_handler_is_not_cou
     assert consumer._registrar.status()['desired'] == 1
     consumer.unsubscribe('a', consumer._ConsumerMixin__subscriptions['a'][0].handler)
     assert consumer._registrar.status()['desired'] == 0
-
-
-# Criterion 6
 
 
 def test_full_bind_log_line_bound_equals_the_database_subscription_event_pairs(caplog):
@@ -548,9 +526,6 @@ def test_queue_bindings_synced_only_once_the_broker_holds_every_queue_binding():
     assert status_of(consumer)['subscriptions']['queue_bindings_synced'] is True
 
 
-# Criterion 7
-
-
 def test_a_message_handled_for_more_than_60_seconds_makes_bus_consumer_fail():
     clock = FakeClock()
     consumer = make_consumer(FakeBroker(clock))
@@ -619,9 +594,6 @@ def test_bus_consumer_fails_when_disconnected():
     consumer = make_consumer(FakeBroker())
     consumer.consumer_connected = lambda: False  # type: ignore[method-assign]
     assert status_of(consumer)['bus_consumer']['status'] == 'fail'
-
-
-# Criterion 10
 
 
 KEY_VALUE = re.compile(r'^[a-z_]+=\S+$')
@@ -708,7 +680,7 @@ def test_a_release_that_raises_is_ignored():
 
 
 def test_first_full_bind_waits_for_the_start_loop_then_a_full_pass():
-    # SR-2: an empty or partial desired set is not the first full bind
+    # An empty or partial desired set is not the first full bind
     registrar = make_registrar(FakeBroker())
     registrar.bind_due()
     assert not registrar.first_full_bind.is_set()
@@ -726,7 +698,7 @@ def test_first_full_bind_waits_for_the_start_loop_then_a_full_pass():
 
 
 def test_a_bind_in_flight_during_a_reconnection_is_bound_again_after_it():
-    # SR-3: the consumer reconnects while the registrar is inside _bind('x')
+    # The consumer reconnects while the registrar is inside _bind('x')
     broker = FakeBroker()
     registrar = make_registrar(broker)
     registrar.add('x')
@@ -750,7 +722,7 @@ def test_a_bind_in_flight_during_a_reconnection_is_bound_again_after_it():
 
 
 def test_a_stop_during_a_broker_outage_is_seen_after_one_failed_attempt():
-    # SR-4: each connect may wait its timeout. A failed attempt ends the pass
+    # Each connect may wait its timeout. A failed attempt ends the pass
     # (generation), so the run loop sees the stop before the next connect;
     # without the stop, the same call makes three attempts
     broker = FakeBroker()
@@ -773,7 +745,7 @@ def test_a_stop_during_a_broker_outage_is_seen_after_one_failed_attempt():
 
 
 def test_a_new_event_name_gets_its_own_grace():
-    # SR-6: hours after the start, a never-seen event is not late at once
+    # Hours after the start, a never-seen event is not late at once
     broker = FakeBroker()
     registrar = make_registrar(broker)
     registrar.add('a')
@@ -791,7 +763,7 @@ def test_a_new_event_name_gets_its_own_grace():
 
 
 def test_the_systemd_unit_stops_in_15_seconds_and_starts_after_rabbitmq():
-    # SR-5: the container of the integration test has no systemd
+    # The container of the integration test has no systemd
     unit = (Path(__file__).parents[2] / 'debian' / 'wazo-webhookd.service').read_text()
     lines = unit.splitlines()
     assert 'TimeoutStopSec=15' in lines

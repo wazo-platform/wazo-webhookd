@@ -65,9 +65,6 @@ def mobile_owners(subscription_service: FakeSubscriptionService) -> list[str]:
     )
 
 
-# Criterion 8
-
-
 def test_reconcile_creates_the_missing_mobile_subscription_and_nothing_else(auth_patch):
     auth = FakeAuth({'u1': TENANT_A, 'u2': TENANT_A, 'u3': TENANT_B})
     auth_patch.return_value = (auth, 'jwt')
@@ -160,9 +157,6 @@ def test_reconcile_skips_a_user_whose_tenant_cannot_be_read_and_repairs_the_othe
     assert [r.getMessage() for r in caplog.records] == [
         'webhookd_subscriptions state=reconcile_user_failed error=HTTPError'
     ]
-
-
-# Criterion 9
 
 
 def test_reconcile_reads_one_paginated_cross_tenant_listing(auth_patch):
@@ -281,7 +275,7 @@ def test_load_starts_the_reconciliation_thread_and_the_status_provider():
 
 
 def test_status_tells_a_denied_reconciliation_from_a_healthy_one(auth_patch):
-    # SR-1: without auth.mobile.external.users.read the listing answers 401
+    # Without auth.mobile.external.users.read the listing answers 401
     service, _ = make_service(FakeAuth({}))
     first_full_bind = Event()
     first_full_bind.set()
