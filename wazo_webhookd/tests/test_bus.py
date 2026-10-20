@@ -299,6 +299,11 @@ def test_retry_delay_is_tenacity_full_jitter_from_one_second_doubling_capped_at_
     uniform.assert_called_once_with(0, high)
 
 
+def test_the_consumer_registrar_draws_its_delay_from_tenacity():
+    consumer = make_consumer(FakeBroker())
+    assert consumer._registrar._delay is retry_delay
+
+
 def exact_delay(attempt: int) -> float:
     # the top of tenacity's window, so the schedule is deterministic
     return min(60.0, 2.0 ** (attempt - 1))
@@ -313,7 +318,7 @@ def make_registrar(broker: FakeBroker, delay=exact_delay) -> SubscriptionRegistr
     )
 
 
-def test_failing_bind_is_retried_at_1_2_4_seconds_while_the_others_are_bound():
+def test_failing_bind_is_retried_at_the_top_of_each_window_while_the_others_are_bound():
     broker = FakeBroker()
     registrar = make_registrar(broker)
     broker.bind_failures['b'] = 3
