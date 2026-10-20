@@ -66,6 +66,7 @@ class RestApiConfigDict(TypedDict):
 class EnabledPluginConfigDict(TypedDict):
     api: bool
     config: bool
+    metrics: bool
     mobile: bool
     services: bool
     status: bool

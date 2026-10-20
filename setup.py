@@ -23,7 +23,7 @@ setup(
         'wazo_webhookd.plugins': [
             'api = wazo_webhookd.plugins.api.plugin:Plugin',
             'config = wazo_webhookd.plugins.config.plugin:Plugin',
-            'metrics = wazo_webhookd.plugins.metrics.plugin:Plugin',
+            'metrics = xivo.flask.metrics:Plugin',
             'mobile = wazo_webhookd.plugins.mobile.plugin:Plugin',
             'status = wazo_webhookd.plugins.status.plugin:Plugin',
             'subscriptions = wazo_webhookd.plugins.subscription.plugin:Plugin',
