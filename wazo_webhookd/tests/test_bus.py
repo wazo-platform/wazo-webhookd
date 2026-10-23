@@ -53,3 +53,17 @@ class TestWebhookdExchange:
 
         assert recorder.max_active == 1
         consumer_connection.clone.assert_called_once_with()
+
+    def test_declare_tolerates_subscribe_while_binding(self) -> None:
+        exchange = WebhookdExchange(
+            'wazo-webhookd', 'headers', {'auto_delete': True}, 'wazo-headers', 'headers'
+        )
+        exchange.subscribe('event_0')
+        channel = MagicMock()
+        channel.exchange_bind.side_effect = lambda *args, **kwargs: exchange.subscribe(
+            'event_1'
+        )
+
+        exchange.declare(channel)
+
+        channel.exchange_bind.assert_called_once()
