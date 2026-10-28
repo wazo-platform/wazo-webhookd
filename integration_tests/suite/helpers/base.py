@@ -10,7 +10,7 @@ import requests
 import yaml
 from wazo_test_helpers import until
 from wazo_test_helpers.asset_launching_test_case import AssetLaunchingTestCase
-from wazo_test_helpers.auth import AuthClient, MockCredentials, MockUserToken
+from wazo_test_helpers.auth import AuthClient, MockUserToken
 from wazo_test_helpers.bus import BusClient
 from wazo_test_helpers.filesystem import FileSystemClient
 from wazo_webhookd_client import Client as WebhookdClient
@@ -21,7 +21,6 @@ WAZO_UUID = '00000000-0000-4000-8000-00003eb8004d'
 
 MASTER_TOKEN = '00000000-0000-4000-8000-000000000101'
 MASTER_TENANT = '00000000-0000-4000-8000-000000000201'
-MASTER_USER_UUID = '00000000-0000-4000-8000-000000000301'
 
 USERS_TENANT = '00000000-0000-4000-8000-000000000202'
 USER_1_UUID = '00000000-0000-4000-8000-000000000302'
@@ -109,20 +108,6 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
     @classmethod
     def configured_wazo_auth(cls):
         auth = cls.make_auth()
-        credential = MockCredentials('webhookd-service', 'webhookd-password')
-        auth.set_valid_credentials(credential, MASTER_TOKEN)
-        auth.set_token(
-            MockUserToken(
-                MASTER_TOKEN,
-                MASTER_USER_UUID,
-                WAZO_UUID,
-                {
-                    "tenant_uuid": MASTER_TENANT,
-                    "uuid": MASTER_USER_UUID,
-                    'jwt': JWT_TENANT_0,
-                },
-            )
-        )
         auth.set_token(
             MockUserToken(
                 USER_1_TOKEN,
