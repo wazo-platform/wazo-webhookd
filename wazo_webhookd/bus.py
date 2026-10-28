@@ -16,13 +16,12 @@ from wazo_bus.publisher import BusPublisher as BasePublisher
 from xivo.status import Status
 
 if TYPE_CHECKING:
-    from amqp import Message
     from kombu.transport.base import StdChannel
     from xivo.status import StatusDict
 
     Payload = dict[str, Any]
     Headers = dict[str, Any]
-    AmpqCallback = Callable[[dict[str, Any], Message | None], None]
+    AmpqCallback = Callable[[Payload, Headers | None], None]
 
 logger = logging.getLogger(__name__)
 
@@ -137,13 +136,6 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             logger.warning('subscription `%s` doesn\'t have event_names set', uuid)
             return
 
-        # arg1 = payload
-        # arg2 = message object from libamqp
-        two_arg_callback = callback
-
-        def one_arg_callback(payload: dict[str, Any]) -> None:
-            return two_arg_callback(payload, None)
-
         headers: dict[str, str | bool] = {
             'x-internal': True,
         }
@@ -153,9 +145,7 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             headers['origin_uuid'] = str(wazo_uuid)
 
         for event in event_names:
-            self.subscribe(
-                event, one_arg_callback, headers=headers, headers_match_all=True
-            )
+            self.subscribe(event, callback, headers=headers, headers_match_all=True)
 
         with self._handlers_lock:
             self._handlers[uuid] = (callback, event_names, headers)
