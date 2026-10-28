@@ -8,7 +8,7 @@ import os
 import threading
 from datetime import timedelta
 
-from flask import Flask, Response, request
+from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api, Resource
 from xivo import http_helpers, mallow_helpers, rest_api_helpers, wsgi
@@ -24,18 +24,12 @@ api = Api(app, prefix=f'/{VERSION}')
 auth_verifier = AuthVerifierFlask()
 
 
-def log_request_params(response: Response) -> Response:
-    http_helpers.log_request_hide_token(response)
-    logger.debug('request data: %s', request.data or '""')
-    logger.debug('response body: %s', response.data.strip() if response.data else '""')
-    return response
-
-
 class CoreRestApi:
     def __init__(self, global_config: WebhookdConfigDict) -> None:
         self.config = global_config['rest_api']
         http_helpers.add_logger(app, logger)
-        app.after_request(log_request_params)
+        app.before_request(http_helpers.log_before_request)
+        app.after_request(http_helpers.log_request)
         app.secret_key = os.urandom(24)
         app.permanent_session_lifetime = timedelta(minutes=5)
         app.config['auth'] = global_config['auth']
