@@ -1,7 +1,5 @@
-# Copyright 2017-2024 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2017-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-from uuid import uuid4
 
 from flask_restful import Resource
 
@@ -47,11 +45,6 @@ class BusSentinelResource(Resource):
         elif body['name'] == 'crash_ping':
             raise Exception('Crash message received')
 
-    @classmethod
-    def deprecated_on_message(cls, body, message):
-        if body['name'] == 'webhookd_deprecated_ping':
-            cls._last_event_payload = body['data']['payload']
-
     def get(self):
         return {'last_event_payload': self._last_event_payload}
 
@@ -67,12 +60,3 @@ class Plugin:
 
         for event in ['webhookd_ping', 'crash_ping']:
             bus_consumer.subscribe(event, BusSentinelResource.on_message)
-
-        # compatibility test for deprecated bus api
-        bus_consumer.subscribe_to_event_names(
-            uuid4(),
-            ['webhookd_deprecated_ping'],
-            None,
-            None,
-            BusSentinelResource.deprecated_on_message,
-        )
