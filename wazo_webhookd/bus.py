@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from inspect import signature
-from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 import kombu
@@ -16,13 +15,11 @@ from wazo_bus.publisher import BusPublisher as BasePublisher
 from xivo.status import Status
 
 if TYPE_CHECKING:
-    from amqp import Message
     from kombu.transport.base import StdChannel
     from xivo.status import StatusDict
 
     Payload = dict[str, Any]
     Headers = dict[str, Any]
-    AmpqCallback = Callable[[dict[str, Any], Message | None], None]
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +96,6 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             exchange_kwargs=exchange_kwargs,
             **kwargs,
         )
-        self._handlers_lock = Lock()
-        self._handlers: dict[
-            str, tuple[AmpqCallback, Sequence[str], Headers | None]
-        ] = {}
 
     def subscribe(self, event_name: str, *args, **kwargs) -> None:
         if self.is_running:
@@ -120,53 +113,6 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
     def on_connection_error(self, exc: Exception, interval: str) -> None:
         self._webhookd_exchange.on_connection_error()
         return super().on_connection_error(exc, interval)
-
-    # Deprecated, wrapper for plugin compatibility
-    # please use method `subscribe`
-    def subscribe_to_event_names(
-        self,
-        uuid: str | None,
-        event_names: Sequence[str],
-        user_uuid: str,
-        wazo_uuid: str,
-        callback: AmpqCallback,
-    ) -> None:
-        if uuid is None:
-            raise RuntimeError('uuid must be set')
-        if not event_names:
-            logger.warning('subscription `%s` doesn\'t have event_names set', uuid)
-            return
-
-        # arg1 = payload
-        # arg2 = message object from libamqp
-        two_arg_callback = callback
-
-        def one_arg_callback(payload: dict[str, Any]) -> None:
-            return two_arg_callback(payload, None)
-
-        headers: dict[str, str | bool] = {
-            'x-internal': True,
-        }
-        if user_uuid:
-            headers[f'user_uuid:{user_uuid}'] = True
-        if wazo_uuid:
-            headers['origin_uuid'] = str(wazo_uuid)
-
-        for event in event_names:
-            self.subscribe(
-                event, one_arg_callback, headers=headers, headers_match_all=True
-            )
-
-        with self._handlers_lock:
-            self._handlers[uuid] = (callback, event_names, headers)
-
-    # Deprecated, wrapper for plugin compatibility
-    # Please use method `unsubscribe`
-    def unsubscribe_from_event_names(self, uuid: str) -> None:
-        with self._handlers_lock:
-            callback, events, _ = self._handlers.pop(uuid)
-        for event in events:
-            self.unsubscribe(event, callback)
 
     def provide_status(self, status: StatusDict) -> None:
         status['bus_consumer']['status'] = (
