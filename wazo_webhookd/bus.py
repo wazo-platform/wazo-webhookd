@@ -15,7 +15,6 @@ from wazo_bus.publisher import BusPublisher as BasePublisher
 from xivo.status import Status
 
 if TYPE_CHECKING:
-    from kombu.transport.base import StdChannel
     from xivo.status import StatusDict
 
     Payload = dict[str, Any]
@@ -81,38 +80,13 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
     def __init__(
         self, name='', exchange_name: str = '', exchange_type: str = '', **kwargs: Any
     ) -> None:
-        exchange_kwargs = {'auto_delete': True}
-        self._webhookd_exchange = WebhookdExchange(
-            name,
-            exchange_type,
-            exchange_kwargs,
-            exchange_name,
-            exchange_type,
-        )
         super().__init__(
             name=name,
-            exchange_name=self._webhookd_exchange.name,
+            exchange_name=name,
             exchange_type=exchange_type,
-            exchange_kwargs=exchange_kwargs,
+            upstream_exchange_name=exchange_name,
             **kwargs,
         )
-
-    def subscribe(self, event_name: str, *args, **kwargs) -> None:
-        if self.is_running:
-            self._webhookd_exchange.subscribe_connected(event_name, self.connection)
-        else:
-            self._webhookd_exchange.subscribe(event_name)
-        return super().subscribe(event_name, *args, **kwargs)
-
-    def get_consumers(
-        self, Consumer: kombu.Consumer, channel: StdChannel
-    ) -> list[kombu.Consumer]:
-        self._webhookd_exchange.declare(channel)
-        return super().get_consumers(Consumer, channel)
-
-    def on_connection_error(self, exc: Exception, interval: str) -> None:
-        self._webhookd_exchange.on_connection_error()
-        return super().on_connection_error(exc, interval)
 
     def provide_status(self, status: StatusDict) -> None:
         status['bus_consumer']['status'] = (
@@ -128,63 +102,3 @@ class BusPublisher(BasePublisher):
     @classmethod
     def from_config(cls, service_uuid, bus_config):
         return cls(name='wazo-webhookd', service_uuid=service_uuid, **bus_config)
-
-
-class WebhookdExchange:
-    def __init__(
-        self,
-        name: str,
-        type_: str,
-        kwargs: dict[str, Any],
-        upstream_exchange_name: str,
-        upstream_exchange_type: str,
-    ):
-        self.name = name
-        self._kombu_exchange = kombu.Exchange(name, type_, **kwargs)
-        self._upstream_kombu_exchange = kombu.Exchange(
-            upstream_exchange_name, upstream_exchange_type
-        )
-        # We need to keep a binding list in case we're not connected yet
-        # and to recreate the bindings after rabbitmq restart, as bindings
-        # on auto-delete exchanges are not kept in rabbitmq
-        self._bindings: set[kombu.binding] = set()
-        self._connection: kombu.Connection = None
-
-    def subscribe(self, event_name: str) -> None:
-        binding = self._binding(event_name)
-        self._bindings.add(binding)
-
-    def subscribe_connected(
-        self, event_name: str, consumer_connection: kombu.Connection
-    ) -> None:
-        if self._connection is None:
-            self._connection = consumer_connection.clone()
-
-        if not self._connection.connected:
-            self._connection.connect()
-
-        channel = self._connection.default_channel
-        self._kombu_exchange.declare(channel=channel)
-        binding = self._binding(event_name)
-        logger.debug(
-            'Binding exchange %s to event %s', self._kombu_exchange.name, event_name
-        )
-        binding.bind(self._kombu_exchange, channel=channel)
-        self._bindings.add(binding)
-
-    def declare(self, channel: StdChannel) -> None:
-        logger.debug('Declaring exchange %s', self._kombu_exchange.name)
-        self._kombu_exchange.declare(channel=channel)
-        logger.debug('Binding exchange %s', self._kombu_exchange.name)
-        for binding in self._bindings:
-            binding.bind(self._kombu_exchange, channel=channel)
-
-    def on_connection_error(self) -> None:
-        if self._connection is None:
-            return
-
-        self._connection.release()
-
-    def _binding(self, event_name: str) -> kombu.binding:
-        headers = {'name': event_name}
-        return kombu.binding(self._upstream_kombu_exchange, None, headers, headers)
