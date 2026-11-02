@@ -89,9 +89,8 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
         )
 
     def provide_status(self, status: StatusDict) -> None:
-        status['bus_consumer']['status'] = (
-            Status.ok if self.consumer_connected() else Status.fail
-        )
+        healthy = self.consumer_connected() and not self.consumer_bindings_failing()
+        status['bus_consumer']['status'] = Status.ok if healthy else Status.fail
 
     @classmethod
     def from_config(cls, bus_config):
