@@ -381,6 +381,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         )
 
         subscription = subscriptions['items'][0]
+        self.ensure_webhookd_consume_subscription(subscription)
 
         call_event_timestamp = datetime.datetime.now()
         # setup FCM API for incomingCall push notification request
@@ -834,6 +835,7 @@ class TestMobileCallbackFCMLegacy(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
+        self.ensure_webhookd_consume_subscription(subscription)
         call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
         self.bus.publish(
@@ -1332,6 +1334,7 @@ class TestMobileCallbackFCMv1(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
+        self.ensure_webhookd_consume_subscription(subscription)
 
         call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
@@ -1798,6 +1801,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
+        self.ensure_webhookd_consume_subscription(subscription)
 
         call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification
@@ -1945,6 +1949,7 @@ class TestMobileCallbackAPNS(TestMobileCallback):
         )
 
         subscription = subscriptions['items'][0]
+        self.ensure_webhookd_consume_subscription(subscription)
 
         call_mobile_wakeup_timestamp = datetime.datetime.now(tz=datetime.UTC)
         # Send incoming call push notification

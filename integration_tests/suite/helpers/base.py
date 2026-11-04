@@ -208,11 +208,12 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         return Sentinel(url)
 
     def _has_subscription_bindings(self, subscription, bindings):
-        events_count = len(subscription['events'])
-        bindings_count = len(
-            [binding for binding in bindings if binding['uuid'] == subscription['uuid']]
-        )
-        return bindings_count == events_count
+        events = {
+            binding['event']
+            for binding in bindings
+            if binding['uuid'] == subscription['uuid']
+        }
+        return events == set(subscription['events'])
 
     def ensure_webhookd_consume_subscription(self, subscription):
         sentinel = self.make_sentinel()
