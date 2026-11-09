@@ -80,6 +80,7 @@ _DEFAULT_CONFIG = {
     'enabled_plugins': {
         'api': True,
         'config': True,
+        'metrics': False,
         'mobile': True,
         'services': True,
         'status': True,
