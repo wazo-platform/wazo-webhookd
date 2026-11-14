@@ -85,6 +85,7 @@ class BusConsumer(ThreadableMixin, _ConsumerMixin, Base):
             exchange_name=name,
             exchange_type=exchange_type,
             upstream_exchange_name=exchange_name,
+            bind_keys=('tenant_uuid',),
             **kwargs,
         )
 
