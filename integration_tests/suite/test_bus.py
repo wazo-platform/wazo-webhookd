@@ -108,20 +108,12 @@ class TestBusBindings(BaseIntegrationTest):
         )
 
     def calls(self, path):
-        try:
-            self.third_party.verify(
-                request={'method': 'GET', 'path': f'/{path}'}, count=1, exact=True
-            )
-            return 1
-        except Exception:
-            pass
-        try:
-            self.third_party.verify(
-                request={'method': 'GET', 'path': f'/{path}'}, count=0, exact=True
-            )
-            return 0
-        except Exception:
-            return 'more than one'
+        response = self.third_party._put(
+            '/retrieve?type=requests&format=json',
+            {'method': 'GET', 'path': f'/{path}'},
+        )
+        response.raise_for_status()
+        return len(response.json())
 
     def wait_for_marker(self):
         # the marker follows the events under test on the same queue, so once

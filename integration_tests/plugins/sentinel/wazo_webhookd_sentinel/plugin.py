@@ -9,15 +9,13 @@ called = False
 received: deque = deque(maxlen=1000)
 
 
-def _queue_binding(bind_keys, binding):
+def _queue_binding(consumer, binding):
     # the queue binding a subscription is consumed through: its own binding
-    # without bind_keys, else the one it shares, keyed on the consumer's keys
-    arguments = binding.arguments
-    if bind_keys is not None:
-        arguments = {'name': arguments['name'], 'x-match': 'all'} | {
-            key: binding.arguments[key] for key in bind_keys if key in binding.arguments
-        }
-    return binding.routing_key, frozenset(arguments.items())
+    # without bind_keys (or with an older wazo-bus), else the one it shares,
+    # keyed by wazo-bus itself so the rule is never copied here
+    if getattr(consumer, '_ConsumerMixin__bind_keys', None) is None:
+        return binding.routing_key, frozenset(binding.arguments.items())
+    return consumer._ConsumerMixin__shared_key(binding)
 
 
 class SentinelResource(Resource):
@@ -26,7 +24,6 @@ class SentinelResource(Resource):
 
     def _get_bindings(self):
         consumer = self._bus_consumer
-        bind_keys = getattr(consumer, '_ConsumerMixin__bind_keys', None)
         with consumer._ConsumerMixin__lock:
             subscriptions = {
                 event: list(event_subscriptions)
@@ -53,7 +50,7 @@ class SentinelResource(Resource):
                         'uuid': uuid,
                         'event': event,
                         'headers': headers,
-                        'bound': _queue_binding(bind_keys, binding) in live,
+                        'bound': _queue_binding(consumer, binding) in live,
                     }
                 )
         return container
