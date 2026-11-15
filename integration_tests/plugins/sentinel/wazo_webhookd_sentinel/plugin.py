@@ -12,7 +12,8 @@ received: deque = deque(maxlen=1000)
 def _queue_binding(consumer, binding):
     # the queue binding a subscription is consumed through: its own binding
     # without bind_keys (or with an older wazo-bus), else the one it shares,
-    # keyed by wazo-bus itself so the rule is never copied here
+    # keyed by wazo-bus itself so the rule is never copied here; a live
+    # shared binding is keyed the same way, as wazo-bus keys its values
     if getattr(consumer, '_ConsumerMixin__bind_keys', None) is None:
         return binding.routing_key, frozenset(binding.arguments.items())
     return consumer._ConsumerMixin__shared_key(binding)
@@ -31,7 +32,7 @@ class SentinelResource(Resource):
             }
             queue = consumer._ConsumerMixin__queue
             live = {
-                (binding.routing_key, frozenset(binding.arguments.items()))
+                _queue_binding(consumer, binding)
                 for binding in (queue.bindings if queue else ())
             }
 
