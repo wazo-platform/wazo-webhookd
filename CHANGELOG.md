@@ -2,6 +2,10 @@
 
 ## 26.11
 
+* The bus queue of wazo-webhookd is bound once per event name and tenant
+  (once per event name for a master tenant subscription) instead of once
+  per subscription and event. Each subscription still receives only the
+  events its filters match.
 * The deprecated bus consumer methods `subscribe_to_event_names` and
   `unsubscribe_from_event_names` have been removed. Plugins must use
   `subscribe` and `unsubscribe` instead.
