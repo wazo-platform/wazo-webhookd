@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import kombu
 from wazo_bus.base import Base
-from wazo_bus.mixins import ConsumerMixin, ThreadableMixin
+from wazo_bus.mixins import ConsumerMixin, ThreadableMixin, headers_match
 from wazo_bus.publisher import BusPublisher as BasePublisher
 from xivo.status import Status
 
@@ -38,16 +38,11 @@ class _ConsumerMixin(ConsumerMixin):
     def _check_headers_match(
         self, headers: Headers | None, binding: kombu.binding
     ) -> bool:
-        # only perform check if exchange type is headers
-        if self._exchange.type != 'headers':
-            return True
-        compare = all if binding.arguments.get('x-match', 'all') == 'all' else any
-        headers = {k: v for k, v in headers.items() if not k.startswith('x-')}  # type: ignore
-        arguments = {
-            k: v for k, v in binding.arguments.items() if not k.startswith('x-')
-        }
-
-        return compare([k in headers and headers[k] == v for k, v in arguments.items()])
+        # NOTE: the queue binding is shared by event name and tenant (bind_keys),
+        # so the subscription's own headers are compared here, as RabbitMQ would
+        # (wazo_bus.mixins.headers_match); bind_keys already refuses an exchange
+        # other than headers
+        return headers_match(headers or {}, binding.arguments)
 
     def __dispatch(
         self, event_name: str, payload: Payload, headers: Headers | None = None

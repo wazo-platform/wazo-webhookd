@@ -98,10 +98,10 @@ class TestBusBindings(BaseIntegrationTest):
         self.ensure_webhookd_consume_subscription(subscription)
         return subscription
 
-    def publish(self, name, tenant_uuid, user_uuid=None):
+    def publish(self, name, tenant_uuid, user_uuid=None, user_value=True):
         headers = {'name': name, 'tenant_uuid': tenant_uuid}
         if user_uuid:
-            headers[f'user_uuid:{user_uuid}'] = True
+            headers[f'user_uuid:{user_uuid}'] = user_value
         self.bus.publish(
             {'name': name, 'data': {}, 'origin_uuid': 'bindings-test'},
             headers=headers,
@@ -155,6 +155,26 @@ class TestBusBindings(BaseIntegrationTest):
             [self.calls('user-1'), self.calls('user-2'), self.calls('admin')],
             equal_to([1, 0, 1]),
         )
+
+    def test_a_user_header_of_another_type_does_not_reach_the_user_subscription(
+        self,
+    ):
+        # RabbitMQ never matches a boolean binding value with an integer: the
+        # user's own binding would have refused this message
+        self.subscribe('marker', [MARKER_EVENT], tenant=USERS_TENANT)
+        self.subscribe('user-1', [EVENT], tenant=USERS_TENANT, user_uuid=USER_1_UUID)
+        self.subscribe('admin', [EVENT], tenant=USERS_TENANT)
+
+        self.publish(EVENT, USERS_TENANT, user_uuid=USER_1_UUID, user_value=1)
+        self.wait_for_marker()
+
+        until.assert_(
+            lambda: assert_that(self.calls('admin'), equal_to(1)),
+            timeout=10,
+            interval=0.5,
+        )
+        time.sleep(1)
+        assert_that([self.calls('user-1'), self.calls('admin')], equal_to([0, 1]))
 
     def test_another_tenants_event_reaches_the_queue_only_for_a_master_subscription(
         self,
