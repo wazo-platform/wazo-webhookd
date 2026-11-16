@@ -40,6 +40,16 @@ SubscriptionCallbackRow = tuple[
 
 EMPTY_SUBSCRIPTION_CALLBACK: SubscriptionCallbackRow = None, [], {}
 
+MOBILE_SERVICE = 'mobile'
+MOBILE_EVENTS = (
+    'call_push_notification',
+    'call_cancel_push_notification',
+    'chatd_user_room_message_created',
+    'user_voicemail_message_created',
+    'global_voicemail_message_created',
+    'user_missed_call',
+)
+
 
 class SubscriptionBusEventHandler:
     def __init__(
@@ -51,7 +61,13 @@ class SubscriptionBusEventHandler:
     ) -> None:
         self._bus_consumer = bus_consumer
         self._subscription_callbacks: dict[str, SubscriptionCallbackRow] = {}
+        self._mobile_subscriptions: dict[str, SubscriptionCallbackRow] = {}
+        self._mobile_users: dict[str, set[str]] = {}
         self._lock = Lock()
+
+        for event in MOBILE_EVENTS:
+            bus_consumer.subscribe(event, self._dispatch_mobile)
+
         self._config = config
         self._service = subscription_service
         self._service.pubsub.subscribe('created', self.on_subscription_created)
@@ -90,6 +106,9 @@ class SubscriptionBusEventHandler:
         return headers
 
     def _register(self, subscription: Subscription):
+        if subscription.service == MOBILE_SERVICE:
+            return self._register_mobile(subscription)
+
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
 
@@ -105,6 +124,9 @@ class SubscriptionBusEventHandler:
             self._bus_consumer.subscribe(event, fn, headers=headers)
 
     def _unregister(self, subscription):
+        if self._is_mobile_registered(subscription):
+            return self._unregister_mobile(subscription)
+
         uuid = subscription.uuid
         with self._lock:
             fn, events, _ = self._subscription_callbacks.pop(
@@ -115,6 +137,13 @@ class SubscriptionBusEventHandler:
             self._bus_consumer.unsubscribe(event, fn)
 
     def _update(self, subscription: Subscription):
+        if (
+            self._is_mobile_registered(subscription)
+            or subscription.service == MOBILE_SERVICE
+        ):
+            self._unregister(subscription)
+            return self._register(subscription)
+
         uuid = subscription.uuid
         data = subscription_schema.dump(subscription)
         headers = self._build_headers(subscription)
@@ -140,6 +169,68 @@ class SubscriptionBusEventHandler:
 
         with self._lock:
             self._subscription_callbacks[uuid] = (fn, subscription.events, headers)
+
+    def _register_mobile(self, subscription: Subscription) -> None:
+        uuid = subscription.uuid
+        data = subscription_schema.dump(subscription)
+        user_key = f'user_uuid:{subscription.events_user_uuid}'
+
+        with self._lock:
+            self._mobile_subscriptions[uuid] = (
+                partial(self._callback, data),
+                subscription.events,
+                self._build_headers(subscription),
+            )
+            self._mobile_users.setdefault(user_key, set()).add(uuid)
+
+    def _is_mobile_registered(self, subscription: Subscription) -> bool:
+        with self._lock:
+            return subscription.uuid in self._mobile_subscriptions
+
+    def _unregister_mobile(self, subscription: Subscription) -> None:
+        uuid = subscription.uuid
+        with self._lock:
+            _, _, headers = self._mobile_subscriptions.pop(
+                uuid, EMPTY_SUBSCRIPTION_CALLBACK
+            )
+            for key in headers:
+                if key.startswith('user_uuid:'):
+                    self._mobile_users.get(key, set()).discard(uuid)
+
+    def _dispatch_mobile(
+        self, payload: dict[str, Any], headers: dict[str, Any]
+    ) -> None:
+        event_name = headers.get('name')
+        with self._lock:
+            if headers.get('user_uuid:*'):
+                uuids = list(self._mobile_subscriptions)
+            else:
+                uuids = [
+                    uuid
+                    for key in headers
+                    if key.startswith('user_uuid:')
+                    for uuid in self._mobile_users.get(key, ())
+                ]
+            rows = [self._mobile_subscriptions[uuid] for uuid in uuids]
+
+        for fn, events, sub_headers in rows:
+            if event_name not in events or fn is None:
+                continue
+            expected = self._handle_tenant_events(str(event_name), sub_headers)
+            if not all(
+                headers.get(k) == v
+                for k, v in expected.items()
+                if not k.startswith('x-')
+            ):
+                continue
+            try:
+                fn(payload)
+            except Exception:
+                logger.exception(
+                    'Mobile subscription %s failed for event %s',
+                    sub_headers.get('x-subscription'),
+                    event_name,
+                )
 
     def _callback(self, subscription: Subscription, payload: dict[str, Any]) -> None:
         try:
