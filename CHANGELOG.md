@@ -1,14 +1,16 @@
 # Changelog
 
+## 26.12
+
+* New endpoint `GET /1.0/metrics`: Prometheus metrics, without authentication.
+  It is served by the `metrics` plugin, disabled by default; enable it with
+  `enabled_plugins: {metrics: true}`.
+
 ## 26.11
 
 * The deprecated bus consumer methods `subscribe_to_event_names` and
   `unsubscribe_from_event_names` have been removed. Plugins must use
   `subscribe` and `unsubscribe` instead.
-
-* New endpoint `GET /1.0/metrics`: Prometheus metrics, without authentication.
-  It is served by the `metrics` plugin, disabled by default; enable it with
-  `enabled_plugins: {metrics: true}`.
 
 ## 26.09
 
