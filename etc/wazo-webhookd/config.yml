@@ -73,6 +73,7 @@ rest_api:
 enabled_plugins:
   api: true
   config: true
+  metrics: false
   services: true
   status: true
   subscriptions: true
