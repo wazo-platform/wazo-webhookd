@@ -485,9 +485,8 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         with self.last_fcm_request() as request:
             assert_that(
                 request,
-                has_entry(
-                    'data',
-                    has_entries(
+                has_entries(
+                    data=has_entries(
                         notification_type='incomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
@@ -495,6 +494,7 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                             notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
+                    time_to_live=0,
                 ),
             )
 
@@ -540,15 +540,15 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         with self.last_fcm_request() as request:
             assert_that(
                 request,
-                has_entry(
-                    'data',
-                    has_entries(
+                has_entries(
+                    data=has_entries(
                         notification_type='cancelIncomingCall',
                         items=has_entries(
                             peer_caller_id_number='caller-id',
                             notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
+                    time_to_live=0,
                 ),
             )
 
@@ -640,6 +640,15 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
             ),
         )
 
+        with self.last_fcm_request() as request:
+            assert_that(
+                request,
+                has_entries(
+                    data=has_entries(notification_type='missedCall'),
+                    time_to_live=0,
+                ),
+            )
+
     def test_global_voicemail_message_created_notification(self):
         subscription = self._given_mobile_subscription(USER_1_UUID)
 
@@ -722,9 +731,8 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         with self.last_fcm_request() as request:
             assert_that(
                 request,
-                has_entry(
-                    'data',
-                    has_entries(
+                has_entries(
+                    data=has_entries(
                         notification_type='voicemailReceived',
                         items=has_entries(
                             message=has_entries(
@@ -735,8 +743,113 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
                             notification_timestamp=an_iso_timestamp(),
                         ),
                     ),
+                    time_to_live=0,
                 ),
             )
+
+    def test_unregistered_token_is_reported(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        self._mock_fcm_proxy_response(
+            404, {'error': {'status': 'NOT_FOUND', 'message': 'UNREGISTERED'}}
+        )
+
+        self._publish_missed_call()
+
+        self._assert_single_log(
+            subscription,
+            has_entries(
+                status='error',
+                detail=has_entries(error='Token not registered'),
+                attempts=1,
+            ),
+        )
+        self.fcm_third_party.assert_verify({'path': '/fcm/send'}, count=1, exact=True)
+
+    def test_gateway_timeout_is_not_retried(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        self._mock_fcm_proxy_response(504, {'error': 'gateway timeout'}, times=1)
+        self._mock_fcm_proxy_response(200, {'message_id': 'message-id-missed-call'})
+
+        self._publish_missed_call()
+
+        self._assert_single_log(subscription, has_entries(status='error', attempts=1))
+        self.fcm_third_party.assert_verify({'path': '/fcm/send'}, count=1, exact=True)
+
+    def test_service_unavailable_is_retried(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        self._mock_fcm_proxy_response(503, {'error': 'unavailable'}, times=1)
+        self._mock_fcm_proxy_response(200, {'message_id': 'message-id-missed-call'})
+
+        self._publish_missed_call()
+
+        self._assert_single_log(
+            subscription,
+            has_entries(
+                status='success',
+                detail=has_entry(
+                    'full_response',
+                    has_entry('topic_message_id', 'message-id-missed-call'),
+                ),
+            ),
+        )
+        self.fcm_third_party.assert_verify({'path': '/fcm/send'}, count=2, exact=True)
+
+    def test_slow_proxy_response_is_awaited(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        self._mock_fcm_proxy_response(
+            200, {'message_id': 'message-id-missed-call'}, delay_seconds=7
+        )
+
+        self._publish_missed_call()
+
+        self._assert_single_log(subscription, has_entries(status='success'))
+
+    def _mock_fcm_proxy_response(
+        self,
+        status_code: int,
+        body: dict,
+        times: int | None = None,
+        delay_seconds: int = 0,
+    ) -> None:
+        expectation: dict = {
+            'httpRequest': {'path': '/fcm/send'},
+            'httpResponse': {
+                'statusCode': status_code,
+                'body': json.dumps(body),
+                'delay': {'timeUnit': 'SECONDS', 'value': delay_seconds},
+            },
+        }
+        if times is not None:
+            expectation['times'] = {'remainingTimes': times, 'unlimited': False}
+        self.fcm_third_party.mock_any_response(expectation)
+
+    def _publish_missed_call(self) -> None:
+        self.bus.publish(
+            {
+                'name': 'user_missed_call',
+                'origin_uuid': 'my-origin-uuid',
+                'data': {
+                    'user_uuid': USER_1_UUID,
+                    'caller_id_name': 'John Doe',
+                    'caller_id_number': '12221114455',
+                    'reason': 'no-answer',
+                },
+            },
+            routing_key=SOME_ROUTING_KEY,
+            headers={
+                'name': 'user_missed_call',
+                'origin_uuid': 'my-origin-uuid',
+                'tenant_uuid': USERS_TENANT,
+                f'user_uuid:{USER_1_UUID}': True,
+            },
+        )
+
+    def _assert_single_log(self, subscription: dict, matcher) -> None:
+        def check():
+            logs = self.webhookd.subscriptions.get_logs(subscription['uuid'])
+            assert_that(logs['items'], contains_exactly(matcher))
+
+        until.assert_(check, timeout=15, interval=0.5)
 
 
 class TestMobileCallback(BaseMobileCallbackIntegrationTest):
