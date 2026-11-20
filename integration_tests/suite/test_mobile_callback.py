@@ -12,6 +12,7 @@ from contextlib import contextmanager
 
 import requests
 from hamcrest import (
+    all_of,
     assert_that,
     contains_exactly,
     contains_inanyorder,
@@ -772,7 +773,18 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
 
         self._publish_missed_call()
 
-        self._assert_single_log(subscription, has_entries(status='error', attempts=1))
+        self._assert_single_log(
+            subscription,
+            has_entries(
+                status='error',
+                detail=has_entries(
+                    error=all_of(
+                        contains_string('504'), contains_string('gateway timeout')
+                    )
+                ),
+                attempts=1,
+            ),
+        )
         self.fcm_third_party.assert_verify({'path': '/fcm/send'}, count=1, exact=True)
 
     def test_service_unavailable_is_retried(self):

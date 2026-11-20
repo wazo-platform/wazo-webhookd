@@ -2,13 +2,16 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 import json
+from collections.abc import Callable
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from unittest.mock import sentinel as s
 
+from pyfcm.errors import FCMServerError as PyFCMServerError
 from requests import PreparedRequest, Response
 from requests.adapters import HTTPAdapter
 
+from .. import fcm_client
 from ..plugin import (
     DEFAULT_ANDROID_CHANNEL_ID,
     NotificationPayload,
@@ -175,15 +178,20 @@ FCM_PROXY_URL = 'https://fcm.proxy.example.com/fcm/send'
 
 
 def _fcm_proxy_reply(
-    adapter: HTTPAdapter, request: PreparedRequest, **kwargs
-) -> Response:
-    response = Response()
-    response.status_code = 200
-    response.headers['Content-Type'] = 'application/json'
-    response._content = json.dumps({'message_id': 'the-message-id'}).encode()
-    response.request = request
-    response.url = request.url or ''
-    return response
+    status_code: int = 200,
+    content: bytes = b'{"message_id": "the-message-id"}',
+) -> Callable[..., Response]:
+    def reply(adapter: HTTPAdapter, request: PreparedRequest, **kwargs) -> Response:
+        response = Response()
+        response.status_code = status_code
+        response.headers['Content-Type'] = 'application/json'
+        response.headers['Content-Length'] = str(len(content))
+        response._content = content
+        response.request = request
+        response.url = request.url or ''
+        return response
+
+    return reply
 
 
 def _json_body(request: PreparedRequest) -> dict:
@@ -209,13 +217,14 @@ class TestSendViaFcmProxyRequest(TestCase):
         data_only: bool,
         title: str | None = None,
         body: str | None = None,
+        reply: Callable[..., Response] = _fcm_proxy_reply(),
     ) -> PreparedRequest:
         data: NotificationPayload = {
             'notification_type': notification_type,
             'items': {'some': 'item'},
         }
         with patch.object(
-            HTTPAdapter, 'send', autospec=True, side_effect=_fcm_proxy_reply
+            HTTPAdapter, 'send', autospec=True, side_effect=reply
         ) as send:
             self.push_notification._send_via_fcm(title, body, data, data_only)
 
@@ -253,6 +262,27 @@ class TestSendViaFcmProxyRequest(TestCase):
         )
 
         assert _json_body(request).get('time_to_live') == 0
+
+    def test_server_error_reports_status_and_body(self):
+        reply = _fcm_proxy_reply(500, b'{"error": "proxy failure"}')
+
+        with self.assertLogs(fcm_client.logger, 'ERROR') as logs:
+            with self.assertRaises(fcm_client.FCMServerError) as raised:
+                self._send(NotificationType.MISSED_CALL, data_only=True, reply=reply)
+
+        assert raised.exception.args == (500, '{"error": "proxy failure"}')
+        assert logs.output == [
+            f'ERROR:{fcm_client.__name__}:'
+            'FCM error: status=500, text={"error": "proxy failure"}'
+        ]
+
+    def test_empty_response_is_reported_as_server_error(self):
+        reply = _fcm_proxy_reply(200, b'')
+
+        with self.assertRaises(PyFCMServerError) as raised:
+            self._send(NotificationType.MISSED_CALL, data_only=True, reply=reply)
+
+        assert 'the response is empty' in str(raised.exception)
 
 
 class TestSendViaFCMv1(TestCase):
