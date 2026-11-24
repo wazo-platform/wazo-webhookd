@@ -766,6 +766,31 @@ class TestMobileCallbackFCMProxy(BaseMobileCallbackIntegrationTest):
         )
         self.fcm_third_party.assert_verify({'path': '/fcm/send'}, count=1, exact=True)
 
+    def test_sender_id_mismatch_is_reported(self):
+        subscription = self._given_mobile_subscription(USER_1_UUID)
+        self._mock_fcm_proxy_response(
+            403,
+            {
+                'error': {
+                    'code': 403,
+                    'status': 'PERMISSION_DENIED',
+                    'details': [{'errorCode': 'SENDER_ID_MISMATCH'}],
+                }
+            },
+        )
+
+        self._publish_missed_call()
+
+        self._assert_single_log(
+            subscription,
+            has_entries(
+                status='error',
+                detail=has_entries(error=contains_string('SENDER_ID_MISMATCH')),
+                attempts=1,
+            ),
+        )
+        self.fcm_third_party.assert_verify({'path': '/fcm/send'}, count=1, exact=True)
+
     def test_gateway_timeout_is_not_retried(self):
         subscription = self._given_mobile_subscription(USER_1_UUID)
         self._mock_fcm_proxy_response(504, {'error': 'gateway timeout'}, times=1)

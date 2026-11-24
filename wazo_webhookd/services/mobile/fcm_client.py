@@ -15,6 +15,7 @@ import google.auth.transport.requests
 import requests
 from google.oauth2 import service_account
 from pyfcm import FCMNotification as FCMNotificationLegacyBase
+from pyfcm.errors import FCMNotRegisteredError as PyFCMNotRegisteredError
 from pyfcm.errors import FCMServerError as PyFCMServerError
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
@@ -643,7 +644,7 @@ class FCMNotificationLegacy(FCMNotificationLegacyBase):
         # e.g. invalid tokens
         try:
             return super().parse_responses()
-        except PyFCMServerError:
+        except (PyFCMServerError, PyFCMNotRegisteredError):
             # inspect the error responses
             error_responses: list[requests.Response] = [
                 response
@@ -658,9 +659,20 @@ class FCMNotificationLegacy(FCMNotificationLegacyBase):
                     response.status_code,
                     response.text,
                 )
-            raise FCMServerError(
-                error_responses[-1].status_code, error_responses[-1].text
-            )
+            # same errors as the v1 client for the same conditions
+            response = error_responses[-1]
+            if response.status_code == 403:
+                raise FCMSenderIDMismatch(_response_error(response))
+            if response.status_code == 404:
+                raise FCMNotRegisteredError("Token not registered")
+            raise FCMServerError(response.status_code, response.text)
+
+
+def _response_error(response: requests.Response) -> dict | str:
+    try:
+        return response.json()['error']
+    except (requests.exceptions.JSONDecodeError, KeyError, TypeError):
+        return response.text
 
 
 # simplified interface for fcm notification clients

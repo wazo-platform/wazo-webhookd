@@ -199,6 +199,19 @@ def _fcm_proxy_reply(
     return reply
 
 
+def _fcm_v1_error(code: int, status: str, error_code: str) -> dict:
+    return {
+        'code': code,
+        'status': status,
+        'details': [
+            {
+                '@type': 'type.googleapis.com/google.firebase.fcm.v1.FcmError',
+                'errorCode': error_code,
+            }
+        ],
+    }
+
+
 def _json_body(request: PreparedRequest) -> dict:
     assert request.body is not None
     return json.loads(request.body)
@@ -291,6 +304,34 @@ class TestSendViaFcmProxyRequest(TestCase):
         assert logs.output == [
             f'ERROR:{fcm_client.__name__}:'
             'FCM error: status=500, text={"error": "proxy failure"}'
+        ]
+
+    def test_sender_id_mismatch_is_reported(self):
+        error = _fcm_v1_error(403, 'PERMISSION_DENIED', 'SENDER_ID_MISMATCH')
+        content = json.dumps({'error': error}).encode()
+        reply = _fcm_proxy_reply(403, content)
+
+        with self.assertLogs(fcm_client.logger, 'ERROR') as logs:
+            with self.assertRaises(fcm_client.FCMSenderIDMismatch) as raised:
+                self._send(NotificationType.MISSED_CALL, data_only=True, reply=reply)
+
+        assert raised.exception.args == (error,)
+        assert logs.output == [
+            f'ERROR:{fcm_client.__name__}:FCM error: status=403, text={content.decode()}'
+        ]
+
+    def test_unregistered_token_is_reported_with_response(self):
+        error = _fcm_v1_error(404, 'NOT_FOUND', 'UNREGISTERED')
+        content = json.dumps({'error': error}).encode()
+        reply = _fcm_proxy_reply(404, content)
+
+        with self.assertLogs(fcm_client.logger, 'ERROR') as logs:
+            with self.assertRaises(fcm_client.FCMNotRegisteredError) as raised:
+                self._send(NotificationType.MISSED_CALL, data_only=True, reply=reply)
+
+        assert raised.exception.args == ('Token not registered',)
+        assert logs.output == [
+            f'ERROR:{fcm_client.__name__}:FCM error: status=404, text={content.decode()}'
         ]
 
     def test_empty_response_is_reported_as_server_error(self):
