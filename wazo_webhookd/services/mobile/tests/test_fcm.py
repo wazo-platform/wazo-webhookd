@@ -59,6 +59,7 @@ class TestSendViaFcmLegacy(TestCase):
             registration_id=s.token,
             data_message=data,
             time_to_live=0,
+            timeout=15,
         )
 
     @patch('wazo_webhookd.services.mobile.plugin.FCMNotificationLegacy')
@@ -80,6 +81,7 @@ class TestSendViaFcmLegacy(TestCase):
             registration_id=s.token,
             data_message=data,
             time_to_live=0,
+            timeout=15,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
             low_priority=False,
         )
@@ -105,6 +107,7 @@ class TestSendViaFcmLegacy(TestCase):
             registration_id=s.token,
             data_message=data,
             time_to_live=0,
+            timeout=15,
             message_title='New voicemail',
             message_body='From: 5555555555',
             badge=1,
@@ -132,6 +135,7 @@ class TestSendViaFcmLegacy(TestCase):
             registration_id=s.token,
             data_message=data,
             time_to_live=0,
+            timeout=15,
             low_priority=False,
             android_channel_id=DEFAULT_ANDROID_CHANNEL_ID,
         )
@@ -171,6 +175,7 @@ class TestSendViaFcmLegacy(TestCase):
             registration_id=s.token,
             data_message=data,
             time_to_live=0,
+            timeout=15,
         )
 
 
@@ -237,6 +242,18 @@ class TestSendViaFcmProxyRequest(TestCase):
 
         assert request.url == FCM_PROXY_URL
         assert request.headers['Authorization'] == 'key=the-jwt'
+
+    def test_request_times_out_after_15_seconds(self):
+        data: NotificationPayload = {
+            'notification_type': NotificationType.INCOMING_CALL,
+            'items': {},
+        }
+        with patch.object(
+            HTTPAdapter, 'send', autospec=True, side_effect=_fcm_proxy_reply()
+        ) as send:
+            self.push_notification._send_via_fcm(None, None, data, False)
+
+        assert send.call_args.kwargs['timeout'] == 15
 
     def test_incoming_call_expires_immediately(self):
         request = self._send(NotificationType.INCOMING_CALL, data_only=False)
