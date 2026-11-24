@@ -85,6 +85,7 @@ class TestNotifications(BaseIntegrationTest):
                 "title": "test title",
             },
             'priority': 'high',
+            'time_to_live': 0,
             'to': 'token-android',
         }
         third_party.mock_any_response(

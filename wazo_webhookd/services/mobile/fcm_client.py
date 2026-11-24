@@ -1,4 +1,4 @@
-# Copyright 2024-2025 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2024-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Copyright 2019 Emmanuel Adegbite
@@ -15,6 +15,8 @@ import google.auth.transport.requests
 import requests
 from google.oauth2 import service_account
 from pyfcm import FCMNotification as FCMNotificationLegacyBase
+from pyfcm.errors import FCMNotRegisteredError as PyFCMNotRegisteredError
+from pyfcm.errors import FCMServerError as PyFCMServerError
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
@@ -642,22 +644,35 @@ class FCMNotificationLegacy(FCMNotificationLegacyBase):
         # e.g. invalid tokens
         try:
             return super().parse_responses()
-        except FCMServerError:
+        except (PyFCMServerError, PyFCMNotRegisteredError):
             # inspect the error responses
             error_responses: list[requests.Response] = [
                 response
                 for response in self.send_request_responses
                 if response.status_code not in (200, 401, 400)
             ]
+            if not error_responses:
+                raise
             for response in error_responses:
                 logger.error(
                     'FCM error: status=%d, text=%s',
                     response.status_code,
                     response.text,
                 )
-            raise FCMServerError(
-                error_responses[-1].status_code, error_responses[-1].text
-            )
+            # same errors as the v1 client for the same conditions
+            response = error_responses[-1]
+            if response.status_code == 403:
+                raise FCMSenderIDMismatch(_response_error(response))
+            if response.status_code == 404:
+                raise FCMNotRegisteredError("Token not registered")
+            raise FCMServerError(response.status_code, response.text)
+
+
+def _response_error(response: requests.Response) -> dict | str:
+    try:
+        return response.json()['error']
+    except (requests.exceptions.JSONDecodeError, KeyError, TypeError):
+        return response.text
 
 
 # simplified interface for fcm notification clients

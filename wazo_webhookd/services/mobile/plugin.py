@@ -127,6 +127,7 @@ class NotificationSentStatusDict(TypedDict):
 
 
 REQUEST_TIMEOUTS = httpx.Timeout(connect=10, read=15, write=15, pool=None)
+FCM_LEGACY_REQUEST_TIMEOUT = 15
 
 DEFAULT_ANDROID_CHANNEL_ID = 'io.wazo.songbird'
 
@@ -667,6 +668,7 @@ class PushNotification:
                 'registration_id': self.external_tokens['token'],
                 'data_message': data,
                 'time_to_live': 0,
+                'timeout': FCM_LEGACY_REQUEST_TIMEOUT,
             }
         else:
             data_ = dict(data)
