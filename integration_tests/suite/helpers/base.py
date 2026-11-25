@@ -201,6 +201,11 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
                 response.raise_for_status()
                 return response.json()['called']
 
+            def received(self):
+                response = requests.get(self._url, verify=False)
+                response.raise_for_status()
+                return response.json()['received']
+
             def reset(self):
                 requests.delete(self._url, verify=False)
 
@@ -211,9 +216,31 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
         events = {
             binding['event']
             for binding in bindings
-            if binding['uuid'] == subscription['uuid']
+            if binding['uuid'] == subscription['uuid'] and binding['bound']
         }
         return events == set(subscription['events'])
+
+    def _has_subscription(self, subscription, bindings):
+        return any(binding['uuid'] == subscription['uuid'] for binding in bindings)
+
+    @classmethod
+    def list_bindings(cls):
+        output = cls.docker_exec(
+            [
+                'rabbitmqctl',
+                '--quiet',
+                'list_bindings',
+                'source_name',
+                'source_kind',
+                'destination_name',
+                'destination_kind',
+                'routing_key',
+                'arguments',
+            ],
+            service_name='rabbitmq',
+        )
+        rows = output.decode().splitlines()
+        return [dict(zip(rows[0].split('\t'), row.split('\t'))) for row in rows[1:]]
 
     def ensure_webhookd_consume_subscription(self, subscription):
         sentinel = self.make_sentinel()
@@ -237,7 +264,7 @@ class BaseIntegrationTest(AssetLaunchingTestCase):
             except requests.exceptions.ConnectionError:
                 return False
 
-            return not self._has_subscription_bindings(subscription, bindings)
+            return not self._has_subscription(subscription, bindings)
 
         until.true(unsubscribed, timeout=10, interval=0.5)
 

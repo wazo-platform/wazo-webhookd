@@ -38,7 +38,7 @@ Depends:
  python3-werkzeug,
  python3-yaml,
  wazo-auth-client-python3,
- wazo-bus-python3,
+ wazo-bus-python3 (>> 26.11~20261105.194150.b0b8643.deb12),
  wazo-dbms,
  xivo-lib-python-python3
 Description: Wazo webhookd server
